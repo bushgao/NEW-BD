@@ -15,13 +15,14 @@ import {
   Typography,
   Radio,
 } from 'antd';
-import { InboxOutlined } from '@ant-design/icons';
+import { InboxOutlined, DownloadOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 import type { ColumnsType } from 'antd/es/table';
 import {
   parseImportFile,
   previewImport,
   executeImport,
+  downloadImportTemplate,
   IMPORT_TYPE_LABELS,
   type ImportType,
   type FieldMapping,
@@ -56,8 +57,21 @@ const ImportWizard = ({
   const [previewStats, setPreviewStats] = useState({ total: 0, valid: 0, error: 0, duplicate: 0 });
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
 
   const [form] = Form.useForm();
+
+  const handleDownloadTemplate = async () => {
+    setDownloadingTemplate(true);
+    try {
+      await downloadImportTemplate(importType);
+      message.success('模板下载成功');
+    } catch (error: any) {
+      message.error(error.response?.data?.error?.message || '模板下载失败');
+    } finally {
+      setDownloadingTemplate(false);
+    }
+  };
 
   const resetState = () => {
     setCurrentStep(0);
@@ -294,6 +308,15 @@ const ImportWizard = ({
               <p className="ant-upload-text">点击或拖拽文件到此区域上传</p>
               <p className="ant-upload-hint">支持 Excel (.xlsx, .xls) 或 CSV 文件</p>
             </Dragger>
+            <div style={{ marginTop: 16, textAlign: 'center' }}>
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={handleDownloadTemplate}
+                loading={downloadingTemplate}
+              >
+                下载{IMPORT_TYPE_LABELS[importType]}导入模板
+              </Button>
+            </div>
           </div>
         );
 

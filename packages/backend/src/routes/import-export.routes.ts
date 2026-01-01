@@ -4,6 +4,7 @@ import multer from 'multer';
 import * as importService from '../services/import.service';
 import * as exportService from '../services/export.service';
 import * as reportService from '../services/report.service';
+import * as templateService from '../services/template.service';
 import { authenticate, requireFactoryMember } from '../middleware/auth.middleware';
 import { createBadRequestError } from '../middleware/errorHandler';
 import type { ApiResponse } from '@ics/shared';
@@ -254,6 +255,40 @@ router.get(
         buffer = result.buffer;
         filename = result.filename;
       }
+
+      // Set response headers for file download
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+      res.setHeader('Content-Length', buffer.length);
+
+      res.send(buffer);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// ==================== 模板下载路由 ====================
+
+/**
+ * @route GET /api/template/:type
+ * @desc Download import template
+ * @access Private (Factory Member)
+ */
+router.get(
+  '/template/:type',
+  authenticate,
+  requireFactoryMember,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const templateType = req.params.type as templateService.TemplateType;
+      const validTypes: templateService.TemplateType[] = ['influencers', 'samples'];
+
+      if (!validTypes.includes(templateType)) {
+        throw createBadRequestError(`不支持的模板类型: ${templateType}`);
+      }
+
+      const { buffer, filename } = templateService.generateImportTemplate(templateType);
 
       // Set response headers for file download
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

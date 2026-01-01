@@ -165,6 +165,39 @@ export async function executeImport(
 // ==================== 导出 API ====================
 
 /**
+ * 下载导入模板
+ */
+export async function downloadImportTemplate(type: ImportType): Promise<void> {
+  const response = await api.get(`/template/${type}`, {
+    responseType: 'blob',
+  });
+
+  // 从响应头获取文件名
+  const contentDisposition = response.headers['content-disposition'];
+  let filename = type === 'samples' ? '样品导入模板.xlsx' : '达人导入模板.xlsx';
+  
+  if (contentDisposition) {
+    const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/);
+    if (filenameMatch) {
+      filename = decodeURIComponent(filenameMatch[1]);
+    }
+  }
+
+  // 创建下载链接
+  const blob = new Blob([response.data], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
+
+/**
  * 导出数据
  */
 export async function exportData(
