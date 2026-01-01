@@ -1,0 +1,313 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  PLATFORM_ADMIN
+  FACTORY_OWNER
+  BUSINESS_STAFF
+}
+
+enum FactoryStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum PlanType {
+  FREE
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum Platform {
+  DOUYIN
+  KUAISHOU
+  XIAOHONGSHU
+  WEIBO
+  OTHER
+}
+
+enum PipelineStage {
+  LEAD
+  CONTACTED
+  QUOTED
+  SAMPLED
+  SCHEDULED
+  PUBLISHED
+  REVIEWED
+}
+
+enum BlockReason {
+  PRICE_HIGH
+  DELAYED
+  UNCOOPERATIVE
+  OTHER
+}
+
+enum ReceivedStatus {
+  PENDING
+  RECEIVED
+  LOST
+}
+
+enum OnboardStatus {
+  UNKNOWN
+  ONBOARD
+  NOT_ONBOARD
+}
+
+enum ContentType {
+  SHORT_VIDEO
+  LIVE_STREAM
+}
+
+enum ProfitStatus {
+  LOSS
+  BREAK_EVEN
+  PROFIT
+  HIGH_PROFIT
+}
+
+
+// Models
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         UserRole
+  factoryId    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  factory         Factory?          @relation("FactoryStaff", fields: [factoryId], references: [id])
+  ownedFactory    Factory?          @relation("FactoryOwner")
+  collaborations  Collaboration[]
+  sampleDispatches SampleDispatch[]
+  followUpRecords FollowUpRecord[]
+  notifications   Notification[]
+
+  @@index([email])
+  @@index([factoryId])
+}
+
+model Factory {
+  id              String        @id @default(uuid())
+  name            String
+  ownerId         String        @unique
+  status          FactoryStatus @default(PENDING)
+  planType        PlanType      @default(FREE)
+  staffLimit      Int           @default(3)
+  influencerLimit Int           @default(100)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  owner          User            @relation("FactoryOwner", fields: [ownerId], references: [id])
+  staff          User[]          @relation("FactoryStaff")
+  influencers    Influencer[]
+  samples        Sample[]
+  collaborations Collaboration[]
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+model Influencer {
+  id         String   @id @default(uuid())
+  factoryId  String
+  nickname   String
+  platform   Platform
+  platformId String
+  phone      String?
+  categories String[]
+  tags       String[]
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  factory        Factory         @relation(fields: [factoryId], references: [id])
+  collaborations Collaboration[]
+
+  @@unique([factoryId, platform, platformId])
+  @@index([factoryId])
+  @@index([nickname])
+  @@index([phone])
+}
+
+
+model Sample {
+  id          String   @id @default(uuid())
+  factoryId   String
+  sku         String
+  name        String
+  unitCost    Int      // 单件成本（分）
+  retailPrice Int      // 建议零售价（分）
+  canResend   Boolean  @default(true)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  factory   Factory          @relation(fields: [factoryId], references: [id])
+  dispatches SampleDispatch[]
+
+  @@unique([factoryId, sku])
+  @@index([factoryId])
+}
+
+model Collaboration {
+  id              String        @id @default(uuid())
+  influencerId    String
+  factoryId       String
+  businessStaffId String
+  stage           PipelineStage @default(LEAD)
+  deadline        DateTime?
+  isOverdue       Boolean       @default(false)
+  blockReason     BlockReason?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  influencer    Influencer           @relation(fields: [influencerId], references: [id])
+  factory       Factory              @relation(fields: [factoryId], references: [id])
+  businessStaff User                 @relation(fields: [businessStaffId], references: [id])
+  dispatches    SampleDispatch[]
+  followUps     FollowUpRecord[]
+  result        CollaborationResult?
+  stageHistory  StageHistory[]
+
+  @@index([factoryId])
+  @@index([businessStaffId])
+  @@index([stage])
+  @@index([isOverdue])
+}
+
+model SampleDispatch {
+  id               String         @id @default(uuid())
+  sampleId         String
+  collaborationId  String
+  businessStaffId  String
+  quantity         Int
+  unitCostSnapshot Int            // 快照，防止样品成本变更影响历史
+  totalSampleCost  Int            // quantity * unitCostSnapshot
+  shippingCost     Int            // 快递费（分）
+  totalCost        Int            // totalSampleCost + shippingCost
+  trackingNumber   String?
+  receivedStatus   ReceivedStatus @default(PENDING)
+  receivedAt       DateTime?
+  onboardStatus    OnboardStatus  @default(UNKNOWN)
+  dispatchedAt     DateTime       @default(now())
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  // Relations
+  sample        Sample        @relation(fields: [sampleId], references: [id])
+  collaboration Collaboration @relation(fields: [collaborationId], references: [id])
+  businessStaff User          @relation(fields: [businessStaffId], references: [id])
+
+  @@index([sampleId])
+  @@index([collaborationId])
+  @@index([businessStaffId])
+  @@index([receivedStatus])
+}
+
+
+model CollaborationResult {
+  id                     String       @id @default(uuid())
+  collaborationId        String       @unique
+  contentType            ContentType
+  publishedAt            DateTime
+  salesQuantity          Int
+  salesGmv               Int          // 销售GMV（分）
+  commissionRate         Float?       // 佣金比例（百分比）
+  pitFee                 Int          @default(0) // 坑位费（分）
+  actualCommission       Int          // 实付佣金（分）
+  totalSampleCost        Int          // 关联寄样的总成本
+  totalCollaborationCost Int          // totalSampleCost + pitFee + actualCommission
+  roi                    Float        // salesGmv / totalCollaborationCost
+  profitStatus           ProfitStatus
+  willRepeat             Boolean      @default(false)
+  notes                  String?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  // Relations
+  collaboration Collaboration @relation(fields: [collaborationId], references: [id])
+
+  @@index([collaborationId])
+  @@index([profitStatus])
+  @@index([publishedAt])
+}
+
+model FollowUpRecord {
+  id              String   @id @default(uuid())
+  collaborationId String
+  userId          String
+  content         String
+  createdAt       DateTime @default(now())
+
+  // Relations
+  collaboration Collaboration @relation(fields: [collaborationId], references: [id])
+  user          User          @relation(fields: [userId], references: [id])
+
+  @@index([collaborationId])
+}
+
+model StageHistory {
+  id              String        @id @default(uuid())
+  collaborationId String
+  fromStage       PipelineStage?
+  toStage         PipelineStage
+  changedAt       DateTime      @default(now())
+  notes           String?
+
+  // Relations
+  collaboration Collaboration @relation(fields: [collaborationId], references: [id])
+
+  @@index([collaborationId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  content   String
+  isRead    Boolean  @default(false)
+  relatedId String?  // 关联的合作/寄样等ID
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model PlanConfig {
+  id              String   @id @default(uuid())
+  planType        PlanType @unique
+  name            String
+  staffLimit      Int
+  influencerLimit Int
+  dataRetentionDays Int
+  price           Int      // 价格（分/月）
+  features        String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
