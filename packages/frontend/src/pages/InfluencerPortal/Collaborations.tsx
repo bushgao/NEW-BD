@@ -7,9 +7,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Table, Tag, Select, Space, message, Typography, Empty, Spin, Badge } from 'antd';
-import { TeamOutlined, ClockCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { TeamOutlined } from '@ant-design/icons';
 import * as influencerPortalService from '../../services/influencer-portal.service';
-import type { InfluencerCollabList, InfluencerCollabItem, CollabFilter, FactoryOption, PipelineStage } from '../../services/influencer-portal.service';
+import type { InfluencerCollabList, InfluencerCollabItem, CollabFilter, FactoryOption } from '../../services/influencer-portal.service';
 
 const { Title, Text } = Typography;
 

@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { Card, Descriptions, Table, Button, Modal, Form, Input, Select, Space, message, Typography, Spin, Tag, Popconfirm } from 'antd';
 import { PlusOutlined, DeleteOutlined, UserOutlined, MobileOutlined } from '@ant-design/icons';
 import * as influencerPortalService from '../../services/influencer-portal.service';
-import type { InfluencerAccountInfo, InfluencerContact, AddContactInput, ContactType } from '../../services/influencer-portal.service';
+import type { InfluencerAccountInfo, InfluencerContact, AddContactInput } from '../../services/influencer-portal.service';
 import { useInfluencerPortalStore, getContactTypeName } from '../../stores/influencerPortalStore';
 
 const { Title, Text } = Typography;

@@ -9,7 +9,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Descriptions, Tag, Table, Timeline, Button, Space, message, Typography, Spin, Empty, Badge } from 'antd';
 import { ArrowLeftOutlined, GiftOutlined, CheckOutlined } from '@ant-design/icons';
 import * as influencerPortalService from '../../services/influencer-portal.service';
-import type { InfluencerCollabDetail, InfluencerSampleItem, PipelineStage, ReceivedStatus } from '../../services/influencer-portal.service';
+import type { InfluencerCollabDetail, InfluencerSampleItem } from '../../services/influencer-portal.service';
 
 const { Title, Text } = Typography;
 
