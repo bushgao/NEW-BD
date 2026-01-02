@@ -9,6 +9,11 @@ import platformRoutes from './platform.routes';
 import importExportRoutes from './import-export.routes';
 import notificationRoutes from './notification.routes';
 
+// 达人端口路由（独立模块）
+import influencerAuthRoutes from './influencer-auth.routes';
+import influencerPortalRoutes from './influencer-portal.routes';
+import influencerAccountRoutes from './influencer-account.routes';
+
 const router = Router();
 
 // API version info
@@ -48,5 +53,12 @@ router.use('/', importExportRoutes);
 
 // Notification routes
 router.use('/notifications', notificationRoutes);
+
+// ============================================
+// 达人端口路由（独立模块，与商务端完全隔离）
+// ============================================
+router.use('/influencer-portal/auth', influencerAuthRoutes);
+router.use('/influencer-portal', influencerPortalRoutes);
+router.use('/influencer-portal/account', influencerAccountRoutes);
 
 export default router;

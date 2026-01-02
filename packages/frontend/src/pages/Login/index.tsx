@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, Form, Input, Button, Typography, message, Divider } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, MailOutlined, MobileOutlined } from '@ant-design/icons';
 import { useAuthStore, getDefaultPathForRole } from '../../stores/authStore';
 import * as authService from '../../services/auth.service';
 
@@ -122,6 +122,27 @@ const LoginPage = () => {
           <Link to="/register">
             <Button type="link" icon={<UserOutlined />}>
               注册新账号
+            </Button>
+          </Link>
+        </div>
+
+        <Divider plain>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            达人用户？
+          </Text>
+        </Divider>
+
+        <div style={{ textAlign: 'center' }}>
+          <Link to="/influencer-portal/login">
+            <Button 
+              type="default" 
+              icon={<MobileOutlined />}
+              style={{ 
+                borderColor: '#722ed1', 
+                color: '#722ed1',
+              }}
+            >
+              达人登录
             </Button>
           </Link>
         </div>

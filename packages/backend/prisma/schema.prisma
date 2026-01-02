@@ -311,3 +311,63 @@ model PlanConfig {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+
+// ============================================
+// 达人端口相关模型 (Influencer Portal)
+// ============================================
+
+// 达人联系人类型
+enum ContactType {
+  SELF       // 本人
+  ASSISTANT  // 助理
+  AGENT      // 经纪人
+  OTHER      // 其他
+}
+
+// 达人账号（独立于工厂的达人身份）
+model InfluencerAccount {
+  id           String   @id @default(uuid())
+  primaryPhone String   @unique  // 主手机号
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  contacts InfluencerContact[]
+
+  @@index([primaryPhone])
+}
+
+// 达人联系人（支持多联系人）
+model InfluencerContact {
+  id          String      @id @default(uuid())
+  accountId   String
+  phone       String      @unique  // 联系人手机号
+  name        String?     // 联系人姓名
+  contactType ContactType @default(SELF)
+  createdAt   DateTime    @default(now())
+  lastLoginAt DateTime?
+
+  // Relations
+  account   InfluencerAccount    @relation(fields: [accountId], references: [id])
+  loginLogs InfluencerLoginLog[]
+
+  @@index([accountId])
+  @@index([phone])
+}
+
+// 达人登录日志（安全审计）
+model InfluencerLoginLog {
+  id        String   @id @default(uuid())
+  contactId String
+  ip        String
+  userAgent String
+  platform  String?
+  loginAt   DateTime @default(now())
+
+  // Relations
+  contact InfluencerContact @relation(fields: [contactId], references: [id])
+
+  @@index([contactId])
+  @@index([loginAt])
+}

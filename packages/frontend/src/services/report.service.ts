@@ -56,6 +56,94 @@ export interface FactoryDashboard {
     closedDeals: number;
     totalGmv: number;
   }[];
+  staffProgress: {
+    staffId: string;
+    staffName: string;
+    todayFollowUps: number;
+    weekFollowUps: number;
+    activeCollaborations: number;
+    stuckCollaborations: number;
+    avgDaysToClose: number;
+  }[];
+  teamEfficiency: {
+    avgLeadToContact: number;
+    avgContactToQuoted: number;
+    avgQuotedToSampled: number;
+    avgSampledToScheduled: number;
+    avgScheduledToPublished: number;
+    overallAvgDays: number;
+  };
+  recentTeamActivities: {
+    id: string;
+    type: 'new_collaboration' | 'stage_progress' | 'closed_deal' | 'dispatch';
+    staffName: string;
+    influencerName: string;
+    content: string;
+    createdAt: string;
+  }[];
+  riskAlerts: {
+    longStuckCollaborations: number;
+    unbalancedWorkload: boolean;
+    highCostAlert: boolean;
+  };
+}
+
+export interface BusinessStaffDashboard {
+  metrics: {
+    currentPeriod: {
+      contactedCount: number;
+      progressedCount: number;
+      closedCount: number;
+      totalGmv: number;
+      totalCost: number;
+      averageRoi: number;
+      dispatchCount: number;
+      dispatchCost: number;
+    };
+    periodComparison: {
+      contactedChange: number;
+      closedChange: number;
+      gmvChange: number;
+      roiChange: number;
+    };
+  };
+  myPipelineDistribution: Record<PipelineStage, number>;
+  pendingItems: {
+    overdueCollaborations: number;
+    needFollowUp: number;
+    pendingReceipts: number;
+    pendingResults: number;
+  };
+  sampleUsage: {
+    sampleId: string;
+    sampleName: string;
+    sku: string;
+    dispatchCount: number;
+    totalQuantity: number;
+    totalCost: number;
+    receivedCount: number;
+    onboardCount: number;
+    onboardRate: number;
+  }[];
+  recentActivities: {
+    id: string;
+    type: 'stage_change' | 'follow_up' | 'dispatch' | 'result';
+    collaborationId: string;
+    influencerName: string;
+    content: string;
+    createdAt: string;
+  }[];
+  ranking: {
+    myRank: number;
+    totalStaff: number;
+    myClosedCount: number;
+    myGmv: number;
+    topPerformer: {
+      name: string;
+      closedCount: number;
+      gmv: number;
+    } | null;
+  };
 }
 
 export interface DateRange {
@@ -125,6 +213,16 @@ export async function getFactoryDashboard(
   period: 'week' | 'month' = 'month'
 ): Promise<FactoryDashboard> {
   const response = await api.get('/reports/dashboard', { params: { period } });
+  return response.data.data;
+}
+
+/**
+ * 获取商务人员个人看板数据
+ */
+export async function getBusinessStaffDashboard(
+  period: 'week' | 'month' = 'month'
+): Promise<BusinessStaffDashboard> {
+  const response = await api.get('/reports/my-dashboard', { params: { period } });
   return response.data.data;
 }
 

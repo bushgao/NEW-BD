@@ -14,7 +14,7 @@ import {
   Space,
   Typography,
 } from 'antd';
-import { UploadOutlined as _UploadOutlined, InboxOutlined } from '@ant-design/icons';
+import { DownloadOutlined, InboxOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -26,6 +26,7 @@ import {
   type ImportPreviewRow,
   type ImportResult,
 } from '../../services/influencer.service';
+import { downloadImportTemplate } from '../../services/import-export.service';
 
 const { Dragger } = Upload;
 const { Text } = Typography;
@@ -44,6 +45,19 @@ const ImportModal = ({ visible, onClose }: ImportModalProps) => {
   const [previewStats, setPreviewStats] = useState({ total: 0, valid: 0, error: 0, duplicate: 0 });
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+
+  const handleDownloadTemplate = async () => {
+    setDownloadingTemplate(true);
+    try {
+      await downloadImportTemplate('influencers');
+      message.success('模板下载成功');
+    } catch (error: any) {
+      message.error(error.response?.data?.error?.message || '模板下载失败');
+    } finally {
+      setDownloadingTemplate(false);
+    }
+  };
 
   const [form] = Form.useForm();
 
@@ -185,19 +199,30 @@ const ImportModal = ({ visible, onClose }: ImportModalProps) => {
     switch (currentStep) {
       case 0:
         return (
-          <Dragger
-            accept=".xlsx,.xls,.csv"
-            maxCount={1}
-            beforeUpload={() => false}
-            onChange={({ file }) => handleFileUpload(file)}
-            showUploadList={false}
-          >
-            <p className="ant-upload-drag-icon">
-              <InboxOutlined />
-            </p>
-            <p className="ant-upload-text">点击或拖拽文件到此区域上传</p>
-            <p className="ant-upload-hint">支持 Excel (.xlsx, .xls) 或 CSV 文件</p>
-          </Dragger>
+          <div>
+            <div style={{ marginBottom: 16, textAlign: 'right' }}>
+              <Button
+                icon={<DownloadOutlined />}
+                loading={downloadingTemplate}
+                onClick={handleDownloadTemplate}
+              >
+                下载导入模板
+              </Button>
+            </div>
+            <Dragger
+              accept=".xlsx,.xls,.csv"
+              maxCount={1}
+              beforeUpload={() => false}
+              onChange={({ file }) => handleFileUpload(file)}
+              showUploadList={false}
+            >
+              <p className="ant-upload-drag-icon">
+                <InboxOutlined />
+              </p>
+              <p className="ant-upload-text">点击或拖拽文件到此区域上传</p>
+              <p className="ant-upload-hint">支持 Excel (.xlsx, .xls) 或 CSV 文件</p>
+            </Dragger>
+          </div>
         );
 
       case 1:

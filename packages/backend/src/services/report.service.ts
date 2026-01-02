@@ -69,6 +69,106 @@ export interface FactoryDashboard {
     closedDeals: number;
     totalGmv: number;
   }[];
+  // 商务团队工作进展
+  staffProgress: {
+    staffId: string;
+    staffName: string;
+    todayFollowUps: number;
+    weekFollowUps: number;
+    activeCollaborations: number;
+    stuckCollaborations: number; // 超过7天未推进的合作
+    avgDaysToClose: number; // 平均成交天数
+  }[];
+  // 团队效率指标
+  teamEfficiency: {
+    avgLeadToContact: number; // 线索到联系平均天数
+    avgContactToQuoted: number; // 联系到报价平均天数
+    avgQuotedToSampled: number; // 报价到寄样平均天数
+    avgSampledToScheduled: number; // 寄样到排期平均天数
+    avgScheduledToPublished: number; // 排期到发布平均天数
+    overallAvgDays: number; // 整体平均周期
+  };
+  // 最近团队动态
+  recentTeamActivities: {
+    id: string;
+    type: 'new_collaboration' | 'stage_progress' | 'closed_deal' | 'dispatch';
+    staffName: string;
+    influencerName: string;
+    content: string;
+    createdAt: Date;
+  }[];
+  // 风险预警
+  riskAlerts: {
+    longStuckCollaborations: number; // 长期卡住的合作(>14天)
+    unbalancedWorkload: boolean; // 工作量不均衡
+    highCostAlert: boolean; // 成本异常
+  };
+}
+
+export interface BusinessStaffDashboard {
+  // 关键指标
+  metrics: {
+    // 本周期数据
+    currentPeriod: {
+      contactedCount: number;      // 建联数量
+      progressedCount: number;     // 推进数量
+      closedCount: number;         // 成交数量
+      totalGmv: number;            // 总GMV
+      totalCost: number;           // 总成本
+      averageRoi: number;          // 平均ROI
+      dispatchCount: number;       // 寄样数量
+      dispatchCost: number;        // 寄样成本
+    };
+    // 环比变化
+    periodComparison: {
+      contactedChange: number;
+      closedChange: number;
+      gmvChange: number;
+      roiChange: number;
+    };
+  };
+  // 管道分布（我负责的）
+  myPipelineDistribution: Record<PipelineStage, number>;
+  // 待办事项
+  pendingItems: {
+    overdueCollaborations: number;     // 我的超期合作
+    needFollowUp: number;              // 需要跟进（3天未跟进）
+    pendingReceipts: number;           // 待签收样品
+    pendingResults: number;            // 待录入结果
+  };
+  // 样品使用统计
+  sampleUsage: {
+    sampleId: string;
+    sampleName: string;
+    sku: string;
+    dispatchCount: number;
+    totalQuantity: number;
+    totalCost: number;
+    receivedCount: number;
+    onboardCount: number;
+    onboardRate: number;
+  }[];
+  // 最近合作动态
+  recentActivities: {
+    id: string;
+    type: 'stage_change' | 'follow_up' | 'dispatch' | 'result';
+    collaborationId: string;
+    influencerName: string;
+    content: string;
+    createdAt: Date;
+  }[];
+  // 排名信息
+  ranking: {
+    myRank: number;
+    totalStaff: number;
+    myClosedCount: number;
+    myGmv: number;
+    topPerformer: {
+      name: string;
+      closedCount: number;
+      gmv: number;
+    } | null;
+  };
 }
 
 export type ReportType = 'staff-performance' | 'roi' | 'sample-cost' | 'collaboration';
@@ -463,6 +563,273 @@ export async function getFactoryDashboard(
   // 按GMV降序排序
   staffRanking.sort((a, b) => b.totalGmv - a.totalGmv);
 
+  // ==================== 商务团队工作进展 ====================
+
+  const staffProgress: FactoryDashboard['staffProgress'] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const fourteenDaysAgoForProgress = new Date();
+  fourteenDaysAgoForProgress.setDate(fourteenDaysAgoForProgress.getDate() - 14);
+
+  for (const staff of staffMembers) {
+    // 今日跟进数
+    const todayFollowUps = await prisma.followUpRecord.count({
+      where: {
+        collaboration: {
+          factoryId,
+          businessStaffId: staff.id,
+        },
+        createdAt: { gte: today },
+      },
+    });
+
+    // 本周跟进数
+    const weekFollowUps = await prisma.followUpRecord.count({
+      where: {
+        collaboration: {
+          factoryId,
+          businessStaffId: staff.id,
+        },
+        createdAt: { gte: weekAgo },
+      },
+    });
+
+    // 活跃合作数(非已发布/已复盘)
+    const activeCollaborations = await prisma.collaboration.count({
+      where: {
+        factoryId,
+        businessStaffId: staff.id,
+        stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
+      },
+    });
+
+    // 卡住的合作(超过7天未更新)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const stuckCollaborations = await prisma.collaboration.count({
+      where: {
+        factoryId,
+        businessStaffId: staff.id,
+        stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
+        updatedAt: { lt: sevenDaysAgo },
+      },
+    });
+
+    // 平均成交天数
+    const closedCollaborations = await prisma.collaboration.findMany({
+      where: {
+        factoryId,
+        businessStaffId: staff.id,
+        stage: { in: ['PUBLISHED', 'REVIEWED'] },
+      },
+      select: {
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    let avgDaysToClose = 0;
+    if (closedCollaborations.length > 0) {
+      const totalDays = closedCollaborations.reduce((sum, c) => {
+        const days = Math.floor((c.updatedAt.getTime() - c.createdAt.getTime()) / (1000 * 60 * 60 * 24));
+        return sum + days;
+      }, 0);
+      avgDaysToClose = Math.round(totalDays / closedCollaborations.length);
+    }
+
+    staffProgress.push({
+      staffId: staff.id,
+      staffName: staff.name,
+      todayFollowUps,
+      weekFollowUps,
+      activeCollaborations,
+      stuckCollaborations,
+      avgDaysToClose,
+    });
+  }
+
+  // ==================== 团队效率指标 ====================
+
+  // 获取所有阶段变更记录来计算平均时间
+  const stageHistories = await prisma.stageHistory.findMany({
+    where: {
+      collaboration: { factoryId },
+      changedAt: { gte: currentPeriod.startDate },
+    },
+    orderBy: { changedAt: 'asc' },
+  });
+
+  // 按合作ID分组
+  const collaborationStages = new Map<string, { stage: PipelineStage; time: Date }[]>();
+  for (const history of stageHistories) {
+    if (!collaborationStages.has(history.collaborationId)) {
+      collaborationStages.set(history.collaborationId, []);
+    }
+    collaborationStages.get(history.collaborationId)!.push({
+      stage: history.toStage,
+      time: history.changedAt,
+    });
+  }
+
+  // 计算各阶段平均时间
+  const stageDurations = {
+    leadToContact: [] as number[],
+    contactToQuoted: [] as number[],
+    quotedToSampled: [] as number[],
+    sampledToScheduled: [] as number[],
+    scheduledToPublished: [] as number[],
+  };
+
+  for (const [, stages] of collaborationStages) {
+    for (let i = 0; i < stages.length - 1; i++) {
+      const current = stages[i];
+      const next = stages[i + 1];
+      const days = Math.floor((next.time.getTime() - current.time.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (current.stage === 'LEAD' && next.stage === 'CONTACTED') {
+        stageDurations.leadToContact.push(days);
+      } else if (current.stage === 'CONTACTED' && next.stage === 'QUOTED') {
+        stageDurations.contactToQuoted.push(days);
+      } else if (current.stage === 'QUOTED' && next.stage === 'SAMPLED') {
+        stageDurations.quotedToSampled.push(days);
+      } else if (current.stage === 'SAMPLED' && next.stage === 'SCHEDULED') {
+        stageDurations.sampledToScheduled.push(days);
+      } else if (current.stage === 'SCHEDULED' && next.stage === 'PUBLISHED') {
+        stageDurations.scheduledToPublished.push(days);
+      }
+    }
+  }
+
+  const avg = (arr: number[]) => arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+
+  const teamEfficiency = {
+    avgLeadToContact: avg(stageDurations.leadToContact),
+    avgContactToQuoted: avg(stageDurations.contactToQuoted),
+    avgQuotedToSampled: avg(stageDurations.quotedToSampled),
+    avgSampledToScheduled: avg(stageDurations.sampledToScheduled),
+    avgScheduledToPublished: avg(stageDurations.scheduledToPublished),
+    overallAvgDays: avg([
+      ...stageDurations.leadToContact,
+      ...stageDurations.contactToQuoted,
+      ...stageDurations.quotedToSampled,
+      ...stageDurations.sampledToScheduled,
+      ...stageDurations.scheduledToPublished,
+    ]),
+  };
+
+  // ==================== 最近团队动态 ====================
+
+  const recentTeamActivities: FactoryDashboard['recentTeamActivities'] = [];
+
+  // 最近新建的合作
+  const recentNewCollaborations = await prisma.collaboration.findMany({
+    where: { factoryId },
+    include: {
+      influencer: true,
+      businessStaff: { select: { name: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+  });
+
+  for (const collab of recentNewCollaborations) {
+    recentTeamActivities.push({
+      id: collab.id,
+      type: 'new_collaboration',
+      staffName: collab.businessStaff.name,
+      influencerName: collab.influencer.nickname,
+      content: `新建合作`,
+      createdAt: collab.createdAt,
+    });
+  }
+
+  // 最近的阶段推进
+  const recentStageChanges = await prisma.stageHistory.findMany({
+    where: {
+      collaboration: { factoryId },
+      toStage: { in: ['SAMPLED', 'SCHEDULED', 'PUBLISHED'] }, // 只显示重要阶段
+    },
+    include: {
+      collaboration: {
+        include: {
+          influencer: true,
+          businessStaff: { select: { name: true } },
+        },
+      },
+    },
+    orderBy: { changedAt: 'desc' },
+    take: 5,
+  });
+
+  for (const change of recentStageChanges) {
+    recentTeamActivities.push({
+      id: change.id,
+      type: 'stage_progress',
+      staffName: change.collaboration.businessStaff.name,
+      influencerName: change.collaboration.influencer.nickname,
+      content: `推进到${STAGE_NAMES[change.toStage]}`,
+      createdAt: change.changedAt,
+    });
+  }
+
+  // 最近成交
+  const recentClosedDeals = await prisma.collaboration.findMany({
+    where: {
+      factoryId,
+      stage: { in: ['PUBLISHED', 'REVIEWED'] },
+      updatedAt: { gte: weekAgo },
+    },
+    include: {
+      influencer: true,
+      businessStaff: { select: { name: true } },
+    },
+    orderBy: { updatedAt: 'desc' },
+    take: 5,
+  });
+
+  for (const deal of recentClosedDeals) {
+    recentTeamActivities.push({
+      id: deal.id,
+      type: 'closed_deal',
+      staffName: deal.businessStaff.name,
+      influencerName: deal.influencer.nickname,
+      content: `成交`,
+      createdAt: deal.updatedAt,
+    });
+  }
+
+  // 按时间排序并取前10条
+  recentTeamActivities.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  const topTeamActivities = recentTeamActivities.slice(0, 10);
+
+  // ==================== 风险预警 ====================
+
+  // 长期卡住的合作
+  const longStuckCollaborations = await prisma.collaboration.count({
+    where: {
+      factoryId,
+      stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
+      updatedAt: { lt: fourteenDaysAgoForProgress },
+    },
+  });
+
+  // 工作量不均衡检测
+  const workloads = staffProgress.map(s => s.activeCollaborations);
+  const maxWorkload = Math.max(...workloads);
+  const minWorkload = Math.min(...workloads);
+  const unbalancedWorkload = workloads.length > 1 && (maxWorkload - minWorkload) > 10;
+
+  // 成本异常检测(本周期成本比上周期增长超过50%)
+  const highCostAlert = currentSampleCost > previousSampleCost * 1.5;
+
+  const riskAlerts = {
+    longStuckCollaborations,
+    unbalancedWorkload,
+    highCostAlert,
+  };
+
   return {
     metrics: {
       totalSampleCost: currentSampleCost,
@@ -482,6 +849,450 @@ export async function getFactoryDashboard(
       pendingResults,
     },
     staffRanking,
+    staffProgress,
+    teamEfficiency,
+    recentTeamActivities: topTeamActivities,
+    riskAlerts,
+  };
+}
+
+
+// ==================== 商务人员看板数据 ====================
+
+/**
+ * 获取商务人员个人看板数据
+ */
+export async function getBusinessStaffDashboard(
+  factoryId: string,
+  staffId: string,
+  period: 'week' | 'month' = 'month'
+): Promise<BusinessStaffDashboard> {
+  const now = new Date();
+  
+  // 计算当前周期的日期范围
+  let currentPeriodStart: Date;
+  if (period === 'week') {
+    const dayOfWeek = now.getDay();
+    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    currentPeriodStart = new Date(now);
+    currentPeriodStart.setDate(now.getDate() - diff);
+    currentPeriodStart.setHours(0, 0, 0, 0);
+  } else {
+    currentPeriodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+
+  const currentPeriod: DateRange = {
+    startDate: currentPeriodStart,
+    endDate: now,
+  };
+
+  const previousPeriod = getPreviousPeriod(currentPeriod);
+
+  // ==================== 关键指标 ====================
+
+  // 当前周期数据
+  const currentCollaborations = await prisma.collaboration.findMany({
+    where: {
+      factoryId,
+      businessStaffId: staffId,
+      createdAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
+    },
+  });
+
+  const contactedCount = currentCollaborations.length;
+  const progressedCount = currentCollaborations.filter(c => c.stage !== 'LEAD').length;
+  const closedCount = currentCollaborations.filter(c => ['PUBLISHED', 'REVIEWED'].includes(c.stage)).length;
+
+  // 当前周期结果数据
+  const currentResults = await prisma.collaborationResult.findMany({
+    where: {
+      collaboration: {
+        factoryId,
+        businessStaffId: staffId,
+      },
+      publishedAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
+    },
+  });
+
+  const totalGmv = currentResults.reduce((sum, r) => sum + r.salesGmv, 0);
+  const totalCost = currentResults.reduce((sum, r) => sum + r.totalCollaborationCost, 0);
+  const averageRoi = calculateRoi(totalGmv, totalCost);
+
+  // 当前周期寄样数据
+  const currentDispatches = await prisma.sampleDispatch.findMany({
+    where: {
+      businessStaffId: staffId,
+      collaboration: { factoryId },
+      dispatchedAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
+    },
+  });
+
+  const dispatchCount = currentDispatches.length;
+  const dispatchCost = currentDispatches.reduce((sum, d) => sum + d.totalCost, 0);
+
+  // 上一周期数据（用于环比）
+  const previousCollaborations = await prisma.collaboration.count({
+    where: {
+      factoryId,
+      businessStaffId: staffId,
+      createdAt: { gte: previousPeriod.startDate, lte: previousPeriod.endDate },
+    },
+  });
+
+  const previousClosedCount = await prisma.collaboration.count({
+    where: {
+      factoryId,
+      businessStaffId: staffId,
+      stage: { in: ['PUBLISHED', 'REVIEWED'] },
+      createdAt: { gte: previousPeriod.startDate, lte: previousPeriod.endDate },
+    },
+  });
+
+  const previousResults = await prisma.collaborationResult.findMany({
+    where: {
+      collaboration: {
+        factoryId,
+        businessStaffId: staffId,
+      },
+      publishedAt: { gte: previousPeriod.startDate, lte: previousPeriod.endDate },
+    },
+  });
+
+  const previousGmv = previousResults.reduce((sum, r) => sum + r.salesGmv, 0);
+  const previousTotalCost = previousResults.reduce((sum, r) => sum + r.totalCollaborationCost, 0);
+  const previousRoi = calculateRoi(previousGmv, previousTotalCost);
+
+  // ==================== 管道分布 ====================
+
+  const myPipelineStats = await prisma.collaboration.groupBy({
+    by: ['stage'],
+    where: {
+      factoryId,
+      businessStaffId: staffId,
+    },
+    _count: { id: true },
+  });
+
+  const myPipelineDistribution: Record<PipelineStage, number> = {
+    LEAD: 0,
+    CONTACTED: 0,
+    QUOTED: 0,
+    SAMPLED: 0,
+    SCHEDULED: 0,
+    PUBLISHED: 0,
+    REVIEWED: 0,
+  };
+
+  for (const stat of myPipelineStats) {
+    myPipelineDistribution[stat.stage] = stat._count.id;
+  }
+
+  // ==================== 待办事项 ====================
+
+  // 我的超期合作
+  const overdueCollaborations = await prisma.collaboration.count({
+    where: {
+      factoryId,
+      businessStaffId: staffId,
+      isOverdue: true,
+      stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
+    },
+  });
+
+  // 需要跟进（3天未跟进的合作）
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+  const allMyCollaborations = await prisma.collaboration.findMany({
+    where: {
+      factoryId,
+      businessStaffId: staffId,
+      stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
+    },
+    include: {
+      followUps: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+      },
+    },
+  });
+
+  const needFollowUp = allMyCollaborations.filter(c => {
+    if (c.followUps.length === 0) return true;
+    return new Date(c.followUps[0].createdAt) < threeDaysAgo;
+  }).length;
+
+  // 待签收样品（我寄出的）
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const pendingReceipts = await prisma.sampleDispatch.count({
+    where: {
+      businessStaffId: staffId,
+      collaboration: { factoryId },
+      receivedStatus: 'PENDING',
+      dispatchedAt: { lt: sevenDaysAgo },
+    },
+  });
+
+  // 待录入结果（我负责的已上车合作）
+  const fourteenDaysAgo = new Date();
+  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+  const pendingResults = await prisma.collaboration.count({
+    where: {
+      factoryId,
+      businessStaffId: staffId,
+      stage: { in: ['SCHEDULED', 'PUBLISHED'] },
+      result: null,
+      dispatches: {
+        some: {
+          onboardStatus: 'ONBOARD',
+          dispatchedAt: { lt: fourteenDaysAgo },
+        },
+      },
+    },
+  });
+
+  // ==================== 样品使用统计 ====================
+
+  const myDispatches = await prisma.sampleDispatch.findMany({
+    where: {
+      businessStaffId: staffId,
+      collaboration: { factoryId },
+    },
+    include: {
+      sample: true,
+    },
+  });
+
+  const sampleMap = new Map<string, {
+    sampleId: string;
+    sampleName: string;
+    sku: string;
+    dispatchCount: number;
+    totalQuantity: number;
+    totalCost: number;
+    receivedCount: number;
+    onboardCount: number;
+  }>();
+
+  for (const dispatch of myDispatches) {
+    if (!sampleMap.has(dispatch.sampleId)) {
+      sampleMap.set(dispatch.sampleId, {
+        sampleId: dispatch.sampleId,
+        sampleName: dispatch.sample.name,
+        sku: dispatch.sample.sku,
+        dispatchCount: 0,
+        totalQuantity: 0,
+        totalCost: 0,
+        receivedCount: 0,
+        onboardCount: 0,
+      });
+    }
+
+    const sampleStat = sampleMap.get(dispatch.sampleId)!;
+    sampleStat.dispatchCount += 1;
+    sampleStat.totalQuantity += dispatch.quantity;
+    sampleStat.totalCost += dispatch.totalCost;
+    if (dispatch.receivedStatus === 'RECEIVED') sampleStat.receivedCount += 1;
+    if (dispatch.onboardStatus === 'ONBOARD') sampleStat.onboardCount += 1;
+  }
+
+  const sampleUsage = Array.from(sampleMap.values()).map(s => ({
+    ...s,
+    onboardRate: s.dispatchCount > 0 ? s.onboardCount / s.dispatchCount : 0,
+  }));
+
+  // 按寄样次数降序排序
+  sampleUsage.sort((a, b) => b.dispatchCount - a.dispatchCount);
+
+  // ==================== 最近合作动态 ====================
+
+  const recentActivities: BusinessStaffDashboard['recentActivities'] = [];
+
+  // 最近的阶段变更
+  const recentStageChanges = await prisma.stageHistory.findMany({
+    where: {
+      collaboration: {
+        factoryId,
+        businessStaffId: staffId,
+      },
+    },
+    include: {
+      collaboration: {
+        include: {
+          influencer: true,
+        },
+      },
+    },
+    orderBy: { changedAt: 'desc' },
+    take: 5,
+  });
+
+  for (const change of recentStageChanges) {
+    recentActivities.push({
+      id: change.id,
+      type: 'stage_change',
+      collaborationId: change.collaborationId,
+      influencerName: change.collaboration.influencer.nickname,
+      content: `阶段变更: ${change.fromStage ? STAGE_NAMES[change.fromStage] + ' → ' : ''}${STAGE_NAMES[change.toStage]}`,
+      createdAt: change.changedAt,
+    });
+  }
+
+  // 最近的跟进记录
+  const recentFollowUps = await prisma.followUpRecord.findMany({
+    where: {
+      collaboration: {
+        factoryId,
+        businessStaffId: staffId,
+      },
+    },
+    include: {
+      collaboration: {
+        include: {
+          influencer: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+  });
+
+  for (const followUp of recentFollowUps) {
+    recentActivities.push({
+      id: followUp.id,
+      type: 'follow_up',
+      collaborationId: followUp.collaborationId,
+      influencerName: followUp.collaboration.influencer.nickname,
+      content: `跟进: ${followUp.content.substring(0, 50)}${followUp.content.length > 50 ? '...' : ''}`,
+      createdAt: followUp.createdAt,
+    });
+  }
+
+  // 最近的寄样记录
+  const recentDispatchRecords = await prisma.sampleDispatch.findMany({
+    where: {
+      businessStaffId: staffId,
+      collaboration: { factoryId },
+    },
+    include: {
+      sample: true,
+      collaboration: {
+        include: {
+          influencer: true,
+        },
+      },
+    },
+    orderBy: { dispatchedAt: 'desc' },
+    take: 5,
+  });
+
+  for (const dispatch of recentDispatchRecords) {
+    recentActivities.push({
+      id: dispatch.id,
+      type: 'dispatch',
+      collaborationId: dispatch.collaborationId,
+      influencerName: dispatch.collaboration.influencer.nickname,
+      content: `寄样: ${dispatch.sample.name} x${dispatch.quantity}`,
+      createdAt: dispatch.dispatchedAt,
+    });
+  }
+
+  // 按时间排序并取前10条
+  recentActivities.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  const topActivities = recentActivities.slice(0, 10);
+
+  // ==================== 排名信息 ====================
+
+  // 获取所有商务人员的成交数据
+  const allStaff = await prisma.user.findMany({
+    where: {
+      factoryId,
+      role: 'BUSINESS_STAFF',
+    },
+    select: { id: true, name: true },
+  });
+
+  const staffPerformance: { staffId: string; name: string; closedCount: number; gmv: number }[] = [];
+
+  for (const staff of allStaff) {
+    const staffClosedCount = await prisma.collaboration.count({
+      where: {
+        factoryId,
+        businessStaffId: staff.id,
+        stage: { in: ['PUBLISHED', 'REVIEWED'] },
+        createdAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
+      },
+    });
+
+    const staffResults = await prisma.collaborationResult.findMany({
+      where: {
+        collaboration: {
+          factoryId,
+          businessStaffId: staff.id,
+        },
+        publishedAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
+      },
+    });
+
+    const staffGmv = staffResults.reduce((sum, r) => sum + r.salesGmv, 0);
+
+    staffPerformance.push({
+      staffId: staff.id,
+      name: staff.name,
+      closedCount: staffClosedCount,
+      gmv: staffGmv,
+    });
+  }
+
+  // 按GMV降序排序
+  staffPerformance.sort((a, b) => b.gmv - a.gmv);
+
+  const myRank = staffPerformance.findIndex(s => s.staffId === staffId) + 1;
+  const myPerformance = staffPerformance.find(s => s.staffId === staffId);
+  const topPerformer = staffPerformance[0];
+
+  return {
+    metrics: {
+      currentPeriod: {
+        contactedCount,
+        progressedCount,
+        closedCount,
+        totalGmv,
+        totalCost,
+        averageRoi,
+        dispatchCount,
+        dispatchCost,
+      },
+      periodComparison: {
+        contactedChange: calculateChange(contactedCount, previousCollaborations),
+        closedChange: calculateChange(closedCount, previousClosedCount),
+        gmvChange: calculateChange(totalGmv, previousGmv),
+        roiChange: calculateChange(averageRoi, previousRoi),
+      },
+    },
+    myPipelineDistribution,
+    pendingItems: {
+      overdueCollaborations,
+      needFollowUp,
+      pendingReceipts,
+      pendingResults,
+    },
+    sampleUsage,
+    recentActivities: topActivities,
+    ranking: {
+      myRank,
+      totalStaff: allStaff.length,
+      myClosedCount: myPerformance?.closedCount || 0,
+      myGmv: myPerformance?.gmv || 0,
+      topPerformer: topPerformer && topPerformer.staffId !== staffId ? {
+        name: topPerformer.name,
+        closedCount: topPerformer.closedCount,
+        gmv: topPerformer.gmv,
+      } : null,
+    },
   };
 }
 

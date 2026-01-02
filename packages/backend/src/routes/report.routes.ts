@@ -108,6 +108,43 @@ router.get(
   }
 );
 
+/**
+ * GET /api/reports/my-dashboard
+ * 获取商务人员个人看板数据
+ */
+router.get(
+  '/my-dashboard',
+  requireRoles('BUSINESS_STAFF', 'FACTORY_OWNER'),
+  [
+    query('period').optional().isIn(['week', 'month']).withMessage('周期参数无效'),
+  ],
+  validateRequest,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const factoryId = req.user!.factoryId;
+      const staffId = req.user!.id;
+      
+      if (!factoryId) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
+        });
+        return;
+      }
+
+      const period = (req.query.period as 'week' | 'month') || 'month';
+      const dashboard = await reportService.getBusinessStaffDashboard(factoryId, staffId, period);
+
+      res.json({
+        success: true,
+        data: dashboard,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // ==================== 报表导出 ====================
 
 /**

@@ -9,12 +9,21 @@ import {
   Spin,
   message,
   Badge,
+  Segmented,
+  Table,
+  Tag,
+  Tooltip,
 } from 'antd';
 import {
   SearchOutlined,
   PlusOutlined,
   ReloadOutlined,
   WarningOutlined,
+  AppstoreOutlined,
+  UnorderedListOutlined,
+  UserOutlined,
+  ClockCircleOutlined,
+  MessageOutlined,
 } from '@ant-design/icons';
 import type { PipelineStage } from '@ics/shared';
 import {
@@ -23,18 +32,27 @@ import {
   updateStage,
   STAGE_ORDER,
   STAGE_LABELS,
+  STAGE_COLORS,
   type PipelineView,
   type PipelineStats,
   type CollaborationCard,
 } from '../../services/collaboration.service';
-import { getInfluencers, type Influencer } from '../../services/influencer.service';
+import { getInfluencers, type Influencer, PLATFORM_LABELS } from '../../services/influencer.service';
 import PipelineColumn from './PipelineColumn';
 import CollaborationModal from './CollaborationModal';
 import FollowUpModal from './FollowUpModal';
 import DeadlineModal from './DeadlineModal';
 import CreateCollaborationModal from './CreateCollaborationModal';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import 'dayjs/locale/zh-cn';
+
+dayjs.extend(relativeTime);
+dayjs.locale('zh-cn');
 
 const { Title, Text } = Typography;
+
+type ViewMode = 'board' | 'table';
 
 const PipelinePage = () => {
   const [loading, setLoading] = useState(false);
@@ -42,6 +60,7 @@ const PipelinePage = () => {
   const [stats, setStats] = useState<PipelineStats | null>(null);
   const [keyword, setKeyword] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>('board');
 
   // Modal states
   const [selectedCard, setSelectedCard] = useState<CollaborationCard | null>(null);
@@ -71,8 +90,19 @@ const PipelinePage = () => {
 
   const fetchInfluencers = useCallback(async () => {
     try {
-      const result = await getInfluencers({ pageSize: 1000 });
-      setInfluencers(result.data);
+      // 获取所有达人（分页获取，每次100条）
+      let allInfluencers: Influencer[] = [];
+      let page = 1;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const result = await getInfluencers({ page, pageSize: 100 });
+        allInfluencers = [...allInfluencers, ...result.data];
+        hasMore = page < result.totalPages;
+        page++;
+      }
+      
+      setInfluencers(allInfluencers);
     } catch (error) {
       console.error('Failed to fetch influencers:', error);
     }
@@ -158,6 +188,155 @@ const PipelinePage = () => {
     }
   };
 
+  // 获取所有合作记录的扁平列表（用于表格视图）
+  const getAllCollaborations = (): CollaborationCard[] => {
+    if (!pipelineData) return [];
+    return pipelineData.stages.flatMap((stage) => stage.collaborations);
+  };
+
+  // 表格列定义
+  const tableColumns = [
+    {
+      title: '达人昵称',
+      dataIndex: ['influencer', 'nickname'],
+      key: 'nickname',
+      width: 150,
+      fixed: 'left' as const,
+      render: (text: string, record: CollaborationCard) => (
+        <Space>
+          <Text strong style={{ cursor: 'pointer' }} onClick={() => handleCardClick(record)}>
+            {text}
+          </Text>
+          {record.isOverdue && (
+            <Tag color="error" icon={<WarningOutlined />}>
+              超期
+            </Tag>
+          )}
+        </Space>
+      ),
+    },
+    {
+      title: '平台',
+      dataIndex: ['influencer', 'platform'],
+      key: 'platform',
+      width: 100,
+      render: (platform: string) => (
+        <Tag color={getPlatformColor(platform)}>
+          {PLATFORM_LABELS[platform as keyof typeof PLATFORM_LABELS] || platform}
+        </Tag>
+      ),
+    },
+    {
+      title: '阶段',
+      dataIndex: 'stage',
+      key: 'stage',
+      width: 120,
+      render: (stage: PipelineStage) => (
+        <Tag color={STAGE_COLORS[stage]}>{STAGE_LABELS[stage]}</Tag>
+      ),
+    },
+    {
+      title: '负责商务',
+      dataIndex: ['businessStaff', 'name'],
+      key: 'businessStaff',
+      width: 100,
+      render: (name: string) => (
+        <Space size={4}>
+          <UserOutlined />
+          {name}
+        </Space>
+      ),
+    },
+    {
+      title: '截止时间',
+      dataIndex: 'deadline',
+      key: 'deadline',
+      width: 150,
+      render: (deadline: string | null) => {
+        if (!deadline) return <Text type="secondary">未设置</Text>;
+        const deadlineInfo = formatDeadline(deadline);
+        if (!deadlineInfo) return <Text type="secondary">未设置</Text>;
+        return (
+          <Tooltip title={dayjs(deadline).format('YYYY-MM-DD HH:mm')}>
+            <Text style={{ color: deadlineInfo.color }}>
+              <ClockCircleOutlined /> {deadlineInfo.text}
+            </Text>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      title: '跟进',
+      dataIndex: 'followUpCount',
+      key: 'followUpCount',
+      width: 80,
+      align: 'center' as const,
+      render: (count: number, record: CollaborationCard) => (
+        <Button
+          type="link"
+          size="small"
+          icon={<MessageOutlined />}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleFollowUpClick(record);
+          }}
+        >
+          {count > 0 ? count : ''}
+        </Button>
+      ),
+    },
+    {
+      title: '寄样次数',
+      dataIndex: 'dispatchCount',
+      key: 'dispatchCount',
+      width: 100,
+      align: 'center' as const,
+      render: (count: number) => (count > 0 ? `📦 ${count}` : '-'),
+    },
+    {
+      title: '最近跟进',
+      dataIndex: 'lastFollowUp',
+      key: 'lastFollowUp',
+      width: 120,
+      render: (lastFollowUp: string | null) =>
+        lastFollowUp ? (
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {dayjs(lastFollowUp).fromNow()}
+          </Text>
+        ) : (
+          <Text type="secondary">-</Text>
+        ),
+    },
+  ];
+
+  const getPlatformColor = (platform: string): string => {
+    const colors: Record<string, string> = {
+      DOUYIN: 'magenta',
+      KUAISHOU: 'orange',
+      XIAOHONGSHU: 'red',
+      WEIBO: 'gold',
+      OTHER: 'default',
+    };
+    return colors[platform] || 'default';
+  };
+
+  const formatDeadline = (deadline: string | null) => {
+    if (!deadline) return null;
+    const date = dayjs(deadline);
+    const now = dayjs();
+    const diff = date.diff(now, 'day');
+
+    if (diff < 0) {
+      return { text: `超期 ${Math.abs(diff)} 天`, color: '#ff4d4f' };
+    } else if (diff === 0) {
+      return { text: '今天截止', color: '#fa8c16' };
+    } else if (diff <= 3) {
+      return { text: `${diff} 天后截止`, color: '#fa8c16' };
+    } else {
+      return { text: date.format('MM-DD'), color: '#8c8c8c' };
+    }
+  };
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
@@ -185,6 +364,22 @@ const PipelinePage = () => {
         </Col>
         <Col>
           <Space>
+            <Segmented
+              value={viewMode}
+              onChange={(value) => setViewMode(value as ViewMode)}
+              options={[
+                {
+                  label: '看板',
+                  value: 'board',
+                  icon: <AppstoreOutlined />,
+                },
+                {
+                  label: '表格',
+                  value: 'table',
+                  icon: <UnorderedListOutlined />,
+                },
+              ]}
+            />
             <Input
               placeholder="搜索达人昵称"
               value={keyword}
@@ -204,34 +399,53 @@ const PipelinePage = () => {
       </Row>
 
 
-      {/* Pipeline Board */}
+      {/* Pipeline Board or Table */}
       <Spin spinning={loading}>
-        <div
-          style={{
-            display: 'flex',
-            gap: 12,
-            overflowX: 'auto',
-            flex: 1,
-            paddingBottom: 16,
-          }}
-        >
-          {STAGE_ORDER.map((stage) => {
-            const stageData = pipelineData?.stages.find((s) => s.stage === stage);
-            return (
-              <PipelineColumn
-                key={stage}
-                stage={stage}
-                stageName={STAGE_LABELS[stage]}
-                cards={stageData?.collaborations || []}
-                count={stageData?.count || 0}
-                onDragEnd={handleDragEnd}
-                onCardClick={handleCardClick}
-                onFollowUpClick={handleFollowUpClick}
-                onDeadlineClick={handleDeadlineClick}
-              />
-            );
-          })}
-        </div>
+        {viewMode === 'board' ? (
+          <div
+            style={{
+              display: 'flex',
+              gap: 8,
+              flex: 1,
+              paddingBottom: 16,
+              width: '100%',
+              overflow: 'hidden',
+            }}
+          >
+            {STAGE_ORDER.map((stage) => {
+              const stageData = pipelineData?.stages.find((s) => s.stage === stage);
+              return (
+                <PipelineColumn
+                  key={stage}
+                  stage={stage}
+                  stageName={STAGE_LABELS[stage]}
+                  cards={stageData?.collaborations || []}
+                  count={stageData?.count || 0}
+                  onDragEnd={handleDragEnd}
+                  onCardClick={handleCardClick}
+                  onFollowUpClick={handleFollowUpClick}
+                  onDeadlineClick={handleDeadlineClick}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <Table
+            dataSource={getAllCollaborations()}
+            columns={tableColumns}
+            rowKey="id"
+            pagination={{
+              pageSize: 50,
+              showSizeChanger: true,
+              showTotal: (total) => `共 ${total} 条`,
+            }}
+            scroll={{ x: 1200 }}
+            onRow={(record) => ({
+              onClick: () => handleCardClick(record),
+              style: { cursor: 'pointer' },
+            })}
+          />
+        )}
       </Spin>
 
       {/* Modals */}

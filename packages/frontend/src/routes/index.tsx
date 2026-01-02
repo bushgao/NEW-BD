@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Spin } from 'antd';
 import { Suspense, lazy } from 'react';
 import { useAuthStore, getDefaultPathForRole } from '../stores/authStore';
+import { useInfluencerPortalStore } from '../stores/influencerPortalStore';
 import type { UserRole } from '@ics/shared';
 
 // Lazy load pages
@@ -16,6 +17,15 @@ const ResultsPage = lazy(() => import('../pages/Results'));
 const ReportsPage = lazy(() => import('../pages/Reports'));
 const AdminPage = lazy(() => import('../pages/Admin'));
 const NotificationsPage = lazy(() => import('../pages/Notifications'));
+
+// 达人端口页面
+const InfluencerLoginPage = lazy(() => import('../pages/InfluencerPortal/Login'));
+const InfluencerPortalLayout = lazy(() => import('../layouts/InfluencerPortalLayout'));
+const InfluencerDashboardPage = lazy(() => import('../pages/InfluencerPortal/Dashboard'));
+const InfluencerSamplesPage = lazy(() => import('../pages/InfluencerPortal/Samples'));
+const InfluencerCollaborationsPage = lazy(() => import('../pages/InfluencerPortal/Collaborations'));
+const InfluencerCollaborationDetailPage = lazy(() => import('../pages/InfluencerPortal/CollaborationDetail'));
+const InfluencerSettingsPage = lazy(() => import('../pages/InfluencerPortal/Settings'));
 
 const Loading = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -64,6 +74,29 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   if (isAuthenticated && user) {
     const defaultPath = getDefaultPathForRole(user.role);
     return <Navigate to={defaultPath} replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// 达人端口路由守卫
+const InfluencerProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useInfluencerPortalStore();
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/influencer-portal/login" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// 达人端口公开路由（已登录则跳转）
+const InfluencerPublicRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useInfluencerPortalStore();
+
+  if (isAuthenticated) {
+    return <Navigate to="/influencer-portal" replace />;
   }
 
   return <>{children}</>;
@@ -184,6 +217,36 @@ const AppRoutes = () => {
               </RoleRoute>
             }
           />
+        </Route>
+
+        {/* ============================================ */}
+        {/* 达人端口路由（独立于商务端） */}
+        {/* ============================================ */}
+        
+        {/* 达人登录页 */}
+        <Route
+          path="/influencer-portal/login"
+          element={
+            <InfluencerPublicRoute>
+              <InfluencerLoginPage />
+            </InfluencerPublicRoute>
+          }
+        />
+
+        {/* 达人端口主路由 */}
+        <Route
+          path="/influencer-portal"
+          element={
+            <InfluencerProtectedRoute>
+              <InfluencerPortalLayout />
+            </InfluencerProtectedRoute>
+          }
+        >
+          <Route index element={<InfluencerDashboardPage />} />
+          <Route path="samples" element={<InfluencerSamplesPage />} />
+          <Route path="collaborations" element={<InfluencerCollaborationsPage />} />
+          <Route path="collaborations/:id" element={<InfluencerCollaborationDetailPage />} />
+          <Route path="settings" element={<InfluencerSettingsPage />} />
         </Route>
 
         {/* Catch all */}

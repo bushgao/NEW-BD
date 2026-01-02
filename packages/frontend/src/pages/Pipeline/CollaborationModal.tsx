@@ -13,24 +13,30 @@ import {
   Popconfirm,
   message,
   Select,
+  Form,
+  InputNumber,
+  Input,
 } from 'antd';
 import {
   UserOutlined,
   ClockCircleOutlined,
   WarningOutlined,
   DeleteOutlined,
+  PlusOutlined,
 } from '@ant-design/icons';
 import type { BlockReason } from '@ics/shared';
 import {
   getCollaboration,
   deleteCollaboration,
   setBlockReason,
+  updateStage,
   STAGE_LABELS,
   STAGE_COLORS,
   BLOCK_REASON_LABELS,
   type Collaboration,
 } from '../../services/collaboration.service';
 import { PLATFORM_LABELS } from '../../services/influencer.service';
+import { getSamples, createDispatch, type Sample } from '../../services/sample.service';
 import dayjs from 'dayjs';
 
 const { Text } = Typography;
@@ -45,10 +51,14 @@ const CollaborationModal = ({ visible, collaborationId, onClose }: Collaboration
   const [loading, setLoading] = useState(false);
   const [collaboration, setCollaboration] = useState<Collaboration | null>(null);
   const [blockReason, setBlockReasonState] = useState<BlockReason | null>(null);
+  const [dispatchModalVisible, setDispatchModalVisible] = useState(false);
+  const [samples, setSamples] = useState<Sample[]>([]);
+  const [dispatchForm] = Form.useForm();
 
   useEffect(() => {
     if (visible && collaborationId) {
       fetchCollaboration();
+      fetchSamples();
     }
   }, [visible, collaborationId]);
 
@@ -63,6 +73,15 @@ const CollaborationModal = ({ visible, collaborationId, onClose }: Collaboration
       message.error('获取合作详情失败');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSamples = async () => {
+    try {
+      const result = await getSamples({ page: 1, pageSize: 100 });
+      setSamples(result.data);
+    } catch (error) {
+      console.error('获取样品列表失败:', error);
     }
   };
 
@@ -97,6 +116,53 @@ const CollaborationModal = ({ visible, collaborationId, onClose }: Collaboration
       OTHER: 'default',
     };
     return colors[platform] || 'default';
+  };
+
+  const handleDispatchSample = () => {
+    setDispatchModalVisible(true);
+    dispatchForm.resetFields();
+  };
+
+  const handleDispatchSubmit = async () => {
+    if (!collaborationId) return;
+    try {
+      const values = await dispatchForm.validateFields();
+      // 将快递费从元转换为分
+      const shippingCostInCents = Math.round(values.shippingCost * 100);
+      await createDispatch({
+        sampleId: values.sampleId,
+        collaborationId,
+        quantity: values.quantity,
+        shippingCost: shippingCostInCents,
+        trackingNumber: values.trackingNumber,
+      });
+      
+      // 如果当前阶段在"已寄样"之前,自动推进到"已寄样"
+      if (collaboration && ['LEAD', 'CONTACTED', 'QUOTED'].includes(collaboration.stage)) {
+        try {
+          await updateStage(collaborationId, 'SAMPLED', '添加寄样记录,自动推进到已寄样阶段');
+        } catch (error) {
+          console.error('自动更新阶段失败:', error);
+          // 即使阶段更新失败,寄样记录也已经添加成功了
+        }
+      }
+      
+      message.success('寄样记录已添加');
+      setDispatchModalVisible(false); // 先关闭模态框
+      dispatchForm.resetFields(); // 重置表单
+      
+      // 延迟刷新,确保模态框已关闭
+      setTimeout(() => {
+        fetchCollaboration(); // 刷新当前详情数据
+        onClose(true); // 通知父组件刷新列表
+      }, 100);
+    } catch (error: any) {
+      if (error.errorFields) {
+        // 表单验证错误
+        return;
+      }
+      message.error(error.response?.data?.error?.message || '添加寄样记录失败');
+    }
   };
 
 
@@ -226,33 +292,50 @@ const CollaborationModal = ({ visible, collaborationId, onClose }: Collaboration
     {
       key: 'dispatches',
       label: `寄样记录 (${collaboration?.dispatches?.length || 0})`,
-      children: collaboration?.dispatches && (
-        <List
-          dataSource={collaboration.dispatches}
-          renderItem={(item) => (
-            <List.Item>
-              <List.Item.Meta
-                title={item.sample?.name || '未知样品'}
-                description={
-                  <Space direction="vertical" size={0}>
-                    <Text type="secondary">
-                      SKU: {item.sample?.sku} | 数量: {item.quantity}
-                    </Text>
-                    <Text type="secondary">
-                      成本: ¥{(item.totalCost / 100).toFixed(2)} | 
-                      寄出时间: {dayjs(item.dispatchedAt).format('YYYY-MM-DD')}
-                    </Text>
-                  </Space>
-                }
-              />
-              <Tag color={item.receivedStatus === 'RECEIVED' ? 'success' : 'default'}>
-                {item.receivedStatus === 'RECEIVED' ? '已签收' : 
-                 item.receivedStatus === 'LOST' ? '已丢失' : '待签收'}
-              </Tag>
-            </List.Item>
+      children: (
+        <div>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleDispatchSample}
+            style={{ marginBottom: 16 }}
+          >
+            添加寄样
+          </Button>
+          {collaboration?.dispatches && (
+            <List
+              dataSource={collaboration.dispatches}
+              renderItem={(item) => (
+                <List.Item>
+                  <List.Item.Meta
+                    title={item.sample?.name || '未知样品'}
+                    description={
+                      <Space direction="vertical" size={0}>
+                        <Text type="secondary">
+                          SKU: {item.sample?.sku} | 数量: {item.quantity}
+                        </Text>
+                        <Text type="secondary">
+                          成本: ¥{(item.totalCost / 100).toFixed(2)} | 
+                          寄出时间: {dayjs(item.dispatchedAt).format('YYYY-MM-DD')}
+                        </Text>
+                        {item.trackingNumber && (
+                          <Text type="secondary">
+                            快递单号: {item.trackingNumber}
+                          </Text>
+                        )}
+                      </Space>
+                    }
+                  />
+                  <Tag color={item.receivedStatus === 'RECEIVED' ? 'success' : 'default'}>
+                    {item.receivedStatus === 'RECEIVED' ? '已签收' : 
+                     item.receivedStatus === 'LOST' ? '已丢失' : '待签收'}
+                  </Tag>
+                </List.Item>
+              )}
+              locale={{ emptyText: '暂无寄样记录' }}
+            />
           )}
-          locale={{ emptyText: '暂无寄样记录' }}
-        />
+        </div>
       ),
     },
   ];
@@ -293,6 +376,62 @@ const CollaborationModal = ({ visible, collaborationId, onClose }: Collaboration
       <Spin spinning={loading}>
         {collaboration && <Tabs items={tabItems} />}
       </Spin>
+
+      {/* 添加寄样模态框 */}
+      <Modal
+        title="添加寄样记录"
+        open={dispatchModalVisible}
+        onOk={handleDispatchSubmit}
+        onCancel={() => setDispatchModalVisible(false)}
+        okText="确定"
+        cancelText="取消"
+      >
+        <Form form={dispatchForm} layout="vertical">
+          <Form.Item
+            name="sampleId"
+            label="选择样品"
+            rules={[{ required: true, message: '请选择样品' }]}
+          >
+            <Select
+              placeholder="请选择样品"
+              showSearch
+              optionFilterProp="children"
+              options={samples.map((sample) => ({
+                label: `${sample.name} (${sample.sku})`,
+                value: sample.id,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item
+            name="quantity"
+            label="寄样数量"
+            rules={[
+              { required: true, message: '请输入寄样数量' },
+              { type: 'number', min: 1, message: '数量必须大于0' },
+            ]}
+          >
+            <InputNumber min={1} style={{ width: '100%' }} placeholder="请输入数量" />
+          </Form.Item>
+          <Form.Item
+            name="shippingCost"
+            label="快递费（元）"
+            rules={[
+              { required: true, message: '请输入快递费' },
+              { type: 'number', min: 0, message: '快递费不能为负数' },
+            ]}
+          >
+            <InputNumber
+              min={0}
+              precision={2}
+              style={{ width: '100%' }}
+              placeholder="请输入快递费"
+            />
+          </Form.Item>
+          <Form.Item name="trackingNumber" label="快递单号">
+            <Input placeholder="请输入快递单号（选填）" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </Modal>
   );
 };

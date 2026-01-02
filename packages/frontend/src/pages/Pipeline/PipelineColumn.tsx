@@ -55,8 +55,8 @@ const PipelineColumn = ({
     <div
       ref={columnRef}
       style={{
-        minWidth: 280,
-        maxWidth: 280,
+        flex: '1 1 0',
+        minWidth: 0,
         backgroundColor: '#f5f5f5',
         borderRadius: 8,
         display: 'flex',

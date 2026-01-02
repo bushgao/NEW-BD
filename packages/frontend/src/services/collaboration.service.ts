@@ -43,6 +43,7 @@ export interface SampleDispatch {
   sampleId: string;
   quantity: number;
   totalCost: number;
+  trackingNumber: string | null;
   dispatchedAt: string;
   receivedStatus: string;
   sample?: {

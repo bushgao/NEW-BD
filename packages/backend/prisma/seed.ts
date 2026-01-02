@@ -176,18 +176,28 @@ async function main() {
   });
 
   if (influencer) {
-    await prisma.collaboration.upsert({
-      where: { id: 'demo-collab-1' },
-      update: {},
-      create: {
-        id: 'demo-collab-1',
+    // Check if collaboration already exists
+    const existingCollab = await prisma.collaboration.findFirst({
+      where: {
         influencerId: influencer.id,
         factoryId: factory.id,
         businessStaffId: staff.id,
-        stage: PipelineStage.CONTACTED,
       },
     });
-    console.log('✅ Demo collaboration created');
+
+    if (!existingCollab) {
+      await prisma.collaboration.create({
+        data: {
+          influencerId: influencer.id,
+          factoryId: factory.id,
+          businessStaffId: staff.id,
+          stage: PipelineStage.CONTACTED,
+        },
+      });
+      console.log('✅ Demo collaboration created');
+    } else {
+      console.log('✅ Demo collaboration already exists');
+    }
   }
 
   console.log('🎉 Seed completed successfully!');
