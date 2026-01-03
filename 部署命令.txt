@@ -1,0 +1,19 @@
+# ============================================
+# 在宝塔终端中运行以下命令
+# ============================================
+
+# 1. 下载部署脚本
+cd /root
+curl -o deploy.sh https://raw.githubusercontent.com/bushgao/NEW-BD/main/%E4%B8%80%E9%94%AE%E9%83%A8%E7%BD%B2.sh
+
+# 2. 添加执行权限
+chmod +x deploy.sh
+
+# 3. 运行部署脚本
+bash deploy.sh
+
+# ============================================
+# 或者直接运行（一条命令）
+# ============================================
+
+cd /root && curl -o deploy.sh https://raw.githubusercontent.com/bushgao/NEW-BD/main/%E4%B8%80%E9%94%AE%E9%83%A8%E7%BD%B2.sh && chmod +x deploy.sh && bash deploy.sh
