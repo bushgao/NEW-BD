@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Card, Form, Input, Button, Typography, message, Select, Divider } from 'antd';
+import { Form, Input, Button, Typography, message, Select, Divider } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, ShopOutlined, LoginOutlined } from '@ant-design/icons';
 import { useAuthStore, getDefaultPathForRole } from '../../stores/authStore';
 import * as authService from '../../services/auth.service';
 import type { UserRole } from '@ics/shared';
+import { Card, CardContent } from '../../components/ui/Card';
+import { useTheme } from '../../theme/ThemeProvider';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -25,6 +27,7 @@ const roleLabels: Record<UserRole, string> = {
 };
 
 const RegisterPage = () => {
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const navigate = useNavigate();
@@ -70,152 +73,181 @@ const RegisterPage = () => {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
         padding: 24,
+        position: 'relative',
       }}
     >
+      {/* 背景装饰元素 */}
+      <div style={{
+        position: 'absolute',
+        top: '20%',
+        left: '10%',
+        width: '500px',
+        height: '500px',
+        background: 'linear-gradient(135deg, rgba(90, 200, 250, 0.12), rgba(191, 90, 242, 0.12))',
+        borderRadius: '50%',
+        filter: 'blur(100px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      <div style={{
+        position: 'absolute',
+        bottom: '20%',
+        right: '10%',
+        width: '400px',
+        height: '400px',
+        background: 'linear-gradient(135deg, rgba(255, 107, 107, 0.12), rgba(255, 217, 61, 0.12))',
+        borderRadius: '50%',
+        filter: 'blur(80px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+
       <Card
+        variant="elevated"
         style={{
           width: '100%',
           maxWidth: 420,
-          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-          borderRadius: 12,
+          position: 'relative',
+          zIndex: 1,
         }}
-        bodyStyle={{ padding: '40px 32px' }}
       >
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <Title level={2} style={{ marginBottom: 8, color: '#1890ff' }}>
-            注册账号
-          </Title>
-          <Text type="secondary">创建您的达人合作系统账号</Text>
-        </div>
+        <CardContent style={{ padding: '40px 32px' }}>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <Title level={2} style={{ marginBottom: 8, color: theme.colors.primary[500] }}>
+              注册账号
+            </Title>
+            <Text type="secondary">创建您的达人合作系统账号</Text>
+          </div>
 
-        <Form
-          form={form}
-          name="register"
-          onFinish={handleSubmit}
-          autoComplete="off"
-          size="large"
-          layout="vertical"
-        >
-          <Form.Item
-            name="email"
-            rules={[
-              { required: true, message: '请输入邮箱' },
-              { type: 'email', message: '请输入有效的邮箱地址' },
-            ]}
+          <Form
+            form={form}
+            name="register"
+            onFinish={handleSubmit}
+            autoComplete="off"
+            size="large"
+            layout="vertical"
           >
-            <Input
-              prefix={<MailOutlined style={{ color: '#bfbfbf' }} />}
-              placeholder="邮箱"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="name"
-            rules={[{ required: true, message: '请输入姓名' }]}
-          >
-            <Input
-              prefix={<UserOutlined style={{ color: '#bfbfbf' }} />}
-              placeholder="姓名"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="password"
-            rules={[
-              { required: true, message: '请输入密码' },
-              { min: 6, message: '密码长度至少为6位' },
-            ]}
-          >
-            <Input.Password
-              prefix={<LockOutlined style={{ color: '#bfbfbf' }} />}
-              placeholder="密码"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="confirmPassword"
-            dependencies={['password']}
-            rules={[
-              { required: true, message: '请确认密码' },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue('password') === value) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(new Error('两次输入的密码不一致'));
-                },
-              }),
-            ]}
-          >
-            <Input.Password
-              prefix={<LockOutlined style={{ color: '#bfbfbf' }} />}
-              placeholder="确认密码"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="role"
-            rules={[{ required: true, message: '请选择角色' }]}
-          >
-            <Select
-              placeholder="选择角色"
-              onChange={handleRoleChange}
-              suffixIcon={<UserOutlined style={{ color: '#bfbfbf' }} />}
-            >
-              <Option value="FACTORY_OWNER">{roleLabels.FACTORY_OWNER}</Option>
-              <Option value="BUSINESS_STAFF">{roleLabels.BUSINESS_STAFF}</Option>
-            </Select>
-          </Form.Item>
-
-          {selectedRole === 'FACTORY_OWNER' && (
             <Form.Item
-              name="factoryName"
-              rules={[{ required: true, message: '请输入工厂名称' }]}
+              name="email"
+              rules={[
+                { required: true, message: '请输入邮箱' },
+                { type: 'email', message: '请输入有效的邮箱地址' },
+              ]}
             >
               <Input
-                prefix={<ShopOutlined style={{ color: '#bfbfbf' }} />}
-                placeholder="工厂名称"
+                prefix={<MailOutlined style={{ color: '#bfbfbf' }} />}
+                placeholder="邮箱"
               />
             </Form.Item>
-          )}
 
-          {selectedRole === 'BUSINESS_STAFF' && (
-            <div style={{ marginBottom: 16 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                注意：商务人员需要由工厂老板邀请加入，请联系您的工厂老板获取邀请。
-              </Text>
-            </div>
-          )}
-
-          <Form.Item style={{ marginBottom: 16 }}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-              block
-              style={{ height: 44 }}
-              disabled={selectedRole === 'BUSINESS_STAFF'}
+            <Form.Item
+              name="name"
+              rules={[{ required: true, message: '请输入姓名' }]}
             >
-              注册
-            </Button>
-          </Form.Item>
-        </Form>
+              <Input
+                prefix={<UserOutlined style={{ color: '#bfbfbf' }} />}
+                placeholder="姓名"
+              />
+            </Form.Item>
 
-        <Divider plain>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            已有账号？
-          </Text>
-        </Divider>
+            <Form.Item
+              name="password"
+              rules={[
+                { required: true, message: '请输入密码' },
+                { min: 6, message: '密码长度至少为6位' },
+              ]}
+            >
+              <Input.Password
+                prefix={<LockOutlined style={{ color: '#bfbfbf' }} />}
+                placeholder="密码"
+              />
+            </Form.Item>
 
-        <div style={{ textAlign: 'center' }}>
-          <Link to="/login">
-            <Button type="link" icon={<LoginOutlined />}>
-              返回登录
-            </Button>
-          </Link>
-        </div>
+            <Form.Item
+              name="confirmPassword"
+              dependencies={['password']}
+              rules={[
+                { required: true, message: '请确认密码' },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue('password') === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error('两次输入的密码不一致'));
+                  },
+                }),
+              ]}
+            >
+              <Input.Password
+                prefix={<LockOutlined style={{ color: '#bfbfbf' }} />}
+                placeholder="确认密码"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="role"
+              rules={[{ required: true, message: '请选择角色' }]}
+            >
+              <Select
+                placeholder="选择角色"
+                onChange={handleRoleChange}
+                suffixIcon={<UserOutlined style={{ color: '#bfbfbf' }} />}
+              >
+                <Option value="FACTORY_OWNER">{roleLabels.FACTORY_OWNER}</Option>
+                <Option value="BUSINESS_STAFF">{roleLabels.BUSINESS_STAFF}</Option>
+              </Select>
+            </Form.Item>
+
+            {selectedRole === 'FACTORY_OWNER' && (
+              <Form.Item
+                name="factoryName"
+                rules={[{ required: true, message: '请输入工厂名称' }]}
+              >
+                <Input
+                  prefix={<ShopOutlined style={{ color: '#bfbfbf' }} />}
+                  placeholder="工厂名称"
+                />
+              </Form.Item>
+            )}
+
+            {selectedRole === 'BUSINESS_STAFF' && (
+              <div style={{ marginBottom: 16 }}>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  注意：商务人员需要由工厂老板邀请加入，请联系您的工厂老板获取邀请。
+                </Text>
+              </div>
+            )}
+
+            <Form.Item style={{ marginBottom: 16 }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                block
+                style={{ height: 44 }}
+                disabled={selectedRole === 'BUSINESS_STAFF'}
+              >
+                注册
+              </Button>
+            </Form.Item>
+          </Form>
+
+          <Divider plain>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              已有账号？
+            </Text>
+          </Divider>
+
+          <div style={{ textAlign: 'center' }}>
+            <Link to="/login">
+              <Button type="link" icon={<LoginOutlined />}>
+                返回登录
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
       </Card>
     </div>
   );

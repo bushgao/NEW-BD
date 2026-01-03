@@ -6,7 +6,6 @@ import {
   Select,
   Space,
   Tag,
-  Card,
   Row,
   Col,
   message,
@@ -33,6 +32,8 @@ import {
   type Influencer,
   type InfluencerFilter,
 } from '../../services/influencer.service';
+import { Card, CardContent } from '../../components/ui/Card';
+import { useTheme } from '../../theme/ThemeProvider';
 import InfluencerModal from './InfluencerModal';
 import ImportModal from './ImportModal';
 import TagsModal from './TagsModal';
@@ -41,6 +42,7 @@ import { ExportButton } from '../Import';
 const { Title } = Typography;
 
 const InfluencersPage = () => {
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<Influencer[]>([]);
   const [total, setTotal] = useState(0);
@@ -273,7 +275,41 @@ const InfluencersPage = () => {
   ];
 
   return (
-    <div>
+    <div 
+      style={{ 
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
+        position: 'relative',
+        padding: '24px',
+      }}
+    >
+      {/* 背景装饰元素 */}
+      <div style={{
+        position: 'absolute',
+        top: '10%',
+        left: '5%',
+        width: '400px',
+        height: '400px',
+        background: 'linear-gradient(135deg, rgba(90, 200, 250, 0.08), rgba(191, 90, 242, 0.08))',
+        borderRadius: '50%',
+        filter: 'blur(80px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: '40%',
+        right: '10%',
+        width: '500px',
+        height: '500px',
+        background: 'linear-gradient(135deg, rgba(255, 107, 107, 0.08), rgba(255, 217, 61, 0.08))',
+        borderRadius: '50%',
+        filter: 'blur(100px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      
+      <div style={{ position: 'relative', zIndex: 1 }}>
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
           <Title level={4} style={{ margin: 0 }}>
@@ -293,8 +329,9 @@ const InfluencersPage = () => {
         </Col>
       </Row>
 
-      <Card style={{ marginBottom: 16 }}>
-        <Row gutter={[16, 16]}>
+      <Card variant="elevated" style={{ marginBottom: 16 }}>
+        <CardContent>
+          <Row gutter={[16, 16]}>
           <Col xs={24} sm={12} md={6}>
             <Input.Search
               placeholder="搜索达人昵称"
@@ -336,6 +373,7 @@ const InfluencersPage = () => {
             />
           </Col>
         </Row>
+        </CardContent>
       </Card>
 
       <Table
@@ -371,6 +409,7 @@ const InfluencersPage = () => {
         onClose={handleTagsClose}
         allTags={allTags}
       />
+      </div>
     </div>
   );
 };

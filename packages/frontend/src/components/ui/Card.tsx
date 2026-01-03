@@ -30,28 +30,33 @@ export const Card: React.FC<CardProps> = ({
   // 根据 variant 获取样式
   const getVariantStyles = (): CSSProperties => {
     const baseStyles: CSSProperties = {
-      background: theme.colors.background.primary,
-      borderRadius: theme.borderRadius.lg,
+      background: 'rgba(255, 255, 255, 0.65)',
+      backdropFilter: 'blur(24px) saturate(180%)',
+      WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+      borderRadius: theme.borderRadius.xl,
       transition: `all ${theme.transitions.base}`,
+      border: '1px solid rgba(255, 255, 255, 0.6)',
     };
 
     switch (variant) {
       case 'elevated':
         return {
           ...baseStyles,
-          boxShadow: theme.shadows.md,
+          boxShadow: theme.shadows.lg,
+          background: 'rgba(255, 255, 255, 0.75)',
         };
       case 'outlined':
         return {
           ...baseStyles,
           border: `1px solid ${theme.colors.neutral[200]}`,
           boxShadow: 'none',
+          background: 'rgba(255, 255, 255, 0.55)',
         };
       case 'default':
       default:
         return {
           ...baseStyles,
-          boxShadow: theme.shadows.base,
+          boxShadow: theme.shadows.md,
         };
     }
   };
@@ -87,14 +92,14 @@ export const Card: React.FC<CardProps> = ({
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
     if (hoverable) {
-      e.currentTarget.style.boxShadow = theme.shadows.md;
-      e.currentTarget.style.transform = 'translateY(-2px)';
+      e.currentTarget.style.boxShadow = theme.shadows.lg;
+      e.currentTarget.style.transform = 'translateY(-4px)';
     }
   };
 
   const handleMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
     if (hoverable) {
-      e.currentTarget.style.boxShadow = variant === 'elevated' ? theme.shadows.md : theme.shadows.base;
+      e.currentTarget.style.boxShadow = variant === 'elevated' ? theme.shadows.lg : theme.shadows.md;
       e.currentTarget.style.transform = 'translateY(0)';
     }
   };

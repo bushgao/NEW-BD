@@ -1,3 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 移除所有按钮的默认边框 */
+button {
+  border: none;
+  outline: none;
+}
+
+button:focus {
+  outline: none;
+}
+
 * {
   margin: 0;
   padding: 0;

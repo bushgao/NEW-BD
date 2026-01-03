@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Card, Form, Input, Button, Typography, message, Divider } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined, MobileOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Typography, message } from 'antd';
+import { LockOutlined, MailOutlined, AppstoreOutlined, RiseOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import { useAuthStore, getDefaultPathForRole } from '../../stores/authStore';
 import * as authService from '../../services/auth.service';
 
@@ -42,111 +42,367 @@ const LoginPage = () => {
   };
 
   return (
-    <div
-      style={{
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      position: 'relative',
+      overflow: 'hidden',
+      background: '#ffffff',
+    }}>
+      {/* 左侧：营销内容区域 */}
+      <div style={{
+        flex: 1,
         display: 'flex',
+        flexDirection: 'column',
         justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
+        padding: '80px 60px',
+        position: 'relative',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        padding: 24,
-      }}
-    >
-      <Card
-        style={{
-          width: '100%',
-          maxWidth: 420,
-          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-          borderRadius: 12,
-        }}
-        bodyStyle={{ padding: '40px 32px' }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <Title level={2} style={{ marginBottom: 8, color: '#1890ff' }}>
-            达人合作系统
-          </Title>
-          <Text type="secondary">达人合作执行与成本管理系统</Text>
-        </div>
+        overflow: 'hidden',
+      }}>
+        {/* 动画背景装饰 */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px)',
+          backgroundSize: '4rem 4rem',
+          opacity: 0.1,
+          maskImage: 'radial-gradient(ellipse 60% 50% at 50% 0%, #000 70%, transparent 100%)',
+        }} />
+        
+        {/* 动画光球 */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: '33%',
+          width: '800px',
+          height: '800px',
+          background: 'rgba(255, 255, 255, 0.15)',
+          borderRadius: '50%',
+          filter: 'blur(120px)',
+          animation: 'float 15s ease-in-out infinite',
+        }} />
+        <div style={{
+          position: 'absolute',
+          top: '80px',
+          right: 0,
+          width: '600px',
+          height: '600px',
+          background: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: '50%',
+          filter: 'blur(100px)',
+          animation: 'float 18s ease-in-out infinite 2s',
+        }} />
 
-        <Form
-          form={form}
-          name="login"
-          onFinish={handleSubmit}
-          autoComplete="off"
-          size="large"
-          layout="vertical"
-        >
-          <Form.Item
-            name="email"
-            rules={[
-              { required: true, message: '请输入邮箱' },
-              { type: 'email', message: '请输入有效的邮箱地址' },
-            ]}
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: '600px' }}>
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '48px' }}>
+            <div style={{
+              padding: '12px',
+              background: 'rgba(255, 255, 255, 0.2)',
+              borderRadius: '16px',
+              backdropFilter: 'blur(10px)',
+            }}>
+              <AppstoreOutlined style={{ fontSize: '32px', color: '#ffffff' }} />
+            </div>
+            <span style={{
+              fontSize: '32px',
+              fontWeight: 900,
+              color: '#ffffff',
+              letterSpacing: '-0.02em',
+            }}>
+              Zilo
+            </span>
+          </div>
+
+          {/* 主标题 */}
+          <h1 style={{
+            fontSize: '48px',
+            fontWeight: 900,
+            lineHeight: 1.1,
+            marginBottom: '24px',
+            color: '#ffffff',
+            letterSpacing: '-0.02em',
+          }}>
+            把影响力转化为<br />
+            <span style={{
+              background: 'linear-gradient(to right, #fbbf24, #f59e0b)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}>
+              真实净利润
+            </span>
+          </h1>
+
+          {/* 副标题 */}
+          <p style={{
+            fontSize: '20px',
+            lineHeight: 1.6,
+            marginBottom: '40px',
+            color: 'rgba(255, 255, 255, 0.9)',
+            fontWeight: 500,
+          }}>
+            样品寄出了一堆，回款却算不明白？<br />
+            Zilo 帮你把散落在微信和表格里的糊涂账，<br />
+            变成看得见的真实 ROI。
+          </p>
+
+          {/* 特性列表 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '48px' }}>
+            {[
+              { icon: '✓', text: '100% 样品追踪准确率' },
+              { icon: '✓', text: '每天节省 2.5 小时统计时间' },
+              { icon: '✓', text: '只关注净利润的真实 ROI' },
+            ].map((item, idx) => (
+              <div key={idx} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                color: '#ffffff',
+                fontSize: '16px',
+                fontWeight: 600,
+              }}>
+                <div style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '14px',
+                }}>
+                  {item.icon}
+                </div>
+                {item.text}
+              </div>
+            ))}
+          </div>
+
+          {/* 统计数据 */}
+          <div style={{
+            display: 'flex',
+            gap: '48px',
+            paddingTop: '32px',
+            borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+          }}>
+            <div>
+              <div style={{
+                fontSize: '36px',
+                fontWeight: 900,
+                color: '#ffffff',
+                marginBottom: '4px',
+              }}>
+                100%
+              </div>
+              <div style={{
+                fontSize: '12px',
+                fontWeight: 700,
+                color: 'rgba(255, 255, 255, 0.7)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}>
+                样品追踪准确率
+              </div>
+            </div>
+            <div>
+              <div style={{
+                fontSize: '36px',
+                fontWeight: 900,
+                color: '#ffffff',
+                marginBottom: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}>
+                <RiseOutlined style={{ fontSize: '28px' }} />
+                ROI
+              </div>
+              <div style={{
+                fontSize: '12px',
+                fontWeight: 700,
+                color: 'rgba(255, 255, 255, 0.7)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}>
+                只关注净利润
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 右侧：登录表单区域 */}
+      <div style={{
+        width: '480px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        padding: '80px 60px',
+        background: '#ffffff',
+        position: 'relative',
+      }}>
+        <div style={{ maxWidth: '360px', margin: '0 auto', width: '100%' }}>
+          {/* 表单标题 */}
+          <div style={{ marginBottom: '40px' }}>
+            <Title level={2} style={{
+              marginBottom: '8px',
+              fontSize: '32px',
+              fontWeight: 900,
+              color: '#1e293b',
+            }}>
+              欢迎回来
+            </Title>
+            <Text style={{
+              fontSize: '16px',
+              color: '#64748b',
+            }}>
+              登录到达人合作执行系统
+            </Text>
+          </div>
+
+          {/* 登录表单 */}
+          <Form
+            form={form}
+            name="login"
+            onFinish={handleSubmit}
+            autoComplete="off"
+            layout="vertical"
           >
-            <Input
-              prefix={<MailOutlined style={{ color: '#bfbfbf' }} />}
-              placeholder="邮箱"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: '请输入密码' }]}
-          >
-            <Input.Password
-              prefix={<LockOutlined style={{ color: '#bfbfbf' }} />}
-              placeholder="密码"
-            />
-          </Form.Item>
-
-          <Form.Item style={{ marginBottom: 16 }}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-              block
-              style={{ height: 44 }}
+            <Form.Item
+              name="email"
+              rules={[
+                { required: true, message: '请输入邮箱' },
+                { type: 'email', message: '请输入有效的邮箱地址' },
+              ]}
             >
-              登录
-            </Button>
-          </Form.Item>
-        </Form>
+              <Input
+                prefix={<MailOutlined style={{ color: '#94a3b8', fontSize: '18px' }} />}
+                placeholder="邮箱地址"
+                size="large"
+                style={{
+                  height: '48px',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                }}
+              />
+            </Form.Item>
 
-        <Divider plain>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            还没有账号？
-          </Text>
-        </Divider>
-
-        <div style={{ textAlign: 'center' }}>
-          <Link to="/register">
-            <Button type="link" icon={<UserOutlined />}>
-              注册新账号
-            </Button>
-          </Link>
-        </div>
-
-        <Divider plain>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            达人用户？
-          </Text>
-        </Divider>
-
-        <div style={{ textAlign: 'center' }}>
-          <Link to="/influencer-portal/login">
-            <Button 
-              type="default" 
-              icon={<MobileOutlined />}
-              style={{ 
-                borderColor: '#722ed1', 
-                color: '#722ed1',
-              }}
+            <Form.Item
+              name="password"
+              rules={[{ required: true, message: '请输入密码' }]}
             >
-              达人登录
-            </Button>
-          </Link>
+              <Input.Password
+                prefix={<LockOutlined style={{ color: '#94a3b8', fontSize: '18px' }} />}
+                placeholder="密码"
+                size="large"
+                style={{
+                  height: '48px',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                }}
+              />
+            </Form.Item>
+
+            <Form.Item style={{ marginBottom: '24px' }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                block
+                size="large"
+                style={{
+                  height: '52px',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  border: 'none',
+                  boxShadow: '0 10px 25px rgba(102, 126, 234, 0.3)',
+                }}
+                icon={<ArrowRightOutlined />}
+              >
+                登录
+              </Button>
+            </Form.Item>
+          </Form>
+
+          {/* 分隔线 */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            margin: '32px 0',
+          }}>
+            <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+            <Text style={{ fontSize: '14px', color: '#94a3b8' }}>或</Text>
+            <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+          </div>
+
+          {/* 其他登录选项 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <Link to="/register" style={{ textDecoration: 'none' }}>
+              <Button
+                block
+                size="large"
+                style={{
+                  height: '48px',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  border: '2px solid #e2e8f0',
+                  color: '#475569',
+                }}
+              >
+                注册新账号
+              </Button>
+            </Link>
+
+            <Link to="/influencer-portal/login" style={{ textDecoration: 'none' }}>
+              <Button
+                block
+                size="large"
+                style={{
+                  height: '48px',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  border: '2px solid #c084fc',
+                  color: '#9333ea',
+                  background: 'rgba(147, 51, 234, 0.05)',
+                }}
+              >
+                达人登录入口
+              </Button>
+            </Link>
+          </div>
+
+          {/* 页脚文字 */}
+          <div style={{
+            marginTop: '40px',
+            textAlign: 'center',
+            fontSize: '13px',
+            color: '#94a3b8',
+          }}>
+            登录即表示您同意我们的服务条款和隐私政策
+          </div>
         </div>
-      </Card>
+      </div>
+
+      {/* CSS 动画 */}
+      <style>{`
+        @keyframes float {
+          0%, 100% {
+            transform: translate(0, 0) scale(1);
+            opacity: 0.3;
+          }
+          50% {
+            transform: translate(50px, 30px) scale(1.1);
+            opacity: 0.5;
+          }
+        }
+      `}</style>
     </div>
   );
 };

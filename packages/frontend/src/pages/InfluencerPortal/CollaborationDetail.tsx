@@ -6,10 +6,12 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Tag, Table, Timeline, Button, Space, message, Typography, Spin, Empty, Badge } from 'antd';
+import { Descriptions, Tag, Table, Timeline, Button, Space, message, Typography, Spin, Empty, Badge } from 'antd';
 import { ArrowLeftOutlined, GiftOutlined, CheckOutlined } from '@ant-design/icons';
 import * as influencerPortalService from '../../services/influencer-portal.service';
 import type { InfluencerCollabDetail, InfluencerSampleItem } from '../../services/influencer-portal.service';
+import { Card, CardContent } from '../../components/ui/Card';
+import { useTheme } from '../../theme/ThemeProvider';
 
 const { Title, Text } = Typography;
 
@@ -36,6 +38,7 @@ const stageColors: Record<string, string> = {
 };
 
 const InfluencerCollaborationDetailPage = () => {
+  const { theme } = useTheme();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -171,80 +174,130 @@ const InfluencerCollaborationDetailPage = () => {
   }
 
   return (
-    <div>
-      <Space style={{ marginBottom: 24 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
-          返回
-        </Button>
-        <Title level={4} style={{ margin: 0 }}>
-          合作详情
-        </Title>
-      </Space>
+    <div 
+      style={{ 
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
+        position: 'relative',
+        padding: '24px',
+      }}
+    >
+      {/* 背景装饰元素 */}
+      <div style={{
+        position: 'absolute',
+        top: '10%',
+        left: '5%',
+        width: '400px',
+        height: '400px',
+        background: 'linear-gradient(135deg, rgba(90, 200, 250, 0.08), rgba(191, 90, 242, 0.08))',
+        borderRadius: '50%',
+        filter: 'blur(80px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: '40%',
+        right: '10%',
+        width: '500px',
+        height: '500px',
+        background: 'linear-gradient(135deg, rgba(255, 107, 107, 0.08), rgba(255, 217, 61, 0.08))',
+        borderRadius: '50%',
+        filter: 'blur(100px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <Space style={{ marginBottom: 24 }}>
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
+            返回
+          </Button>
+          <Title level={4} style={{ margin: 0 }}>
+            合作详情
+          </Title>
+        </Space>
 
-      {/* 基本信息 */}
-      <Card title="基本信息" style={{ marginBottom: 16 }}>
-        <Descriptions column={{ xs: 1, sm: 2, md: 3 }}>
-          <Descriptions.Item label="工厂">{detail.factoryName}</Descriptions.Item>
-          <Descriptions.Item label="当前阶段">
-            <Tag color={stageColors[detail.stage] || 'default'}>{stageNames[detail.stage] || detail.stage}</Tag>
-          </Descriptions.Item>
-          <Descriptions.Item label="状态">
-            {detail.isOverdue ? (
-              <Badge status="error" text="已超期" />
+        {/* 基本信息 */}
+        <Card variant="elevated" style={{ marginBottom: 16 }}>
+          <CardContent>
+            <div style={{ marginBottom: 16 }}>
+              <Text strong style={{ fontSize: 16 }}>基本信息</Text>
+            </div>
+            <Descriptions column={{ xs: 1, sm: 2, md: 3 }}>
+              <Descriptions.Item label="工厂">{detail.factoryName}</Descriptions.Item>
+              <Descriptions.Item label="当前阶段">
+                <Tag color={stageColors[detail.stage] || 'default'}>{stageNames[detail.stage] || detail.stage}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="状态">
+                {detail.isOverdue ? (
+                  <Badge status="error" text="已超期" />
+                ) : (
+                  <Badge status="success" text="正常" />
+                )}
+              </Descriptions.Item>
+              <Descriptions.Item label="截止时间">
+                {detail.deadline
+                  ? new Date(detail.deadline).toLocaleDateString('zh-CN')
+                  : '未设置'}
+              </Descriptions.Item>
+              <Descriptions.Item label="创建时间">
+                {new Date(detail.createdAt).toLocaleDateString('zh-CN')}
+              </Descriptions.Item>
+              <Descriptions.Item label="样品数量">
+                {detail.samples.length} 件
+              </Descriptions.Item>
+            </Descriptions>
+          </CardContent>
+        </Card>
+
+        {/* 关联样品 */}
+        <Card variant="elevated" style={{ marginBottom: 16 }}>
+          <CardContent>
+            <div style={{ marginBottom: 16 }}>
+              <Text strong style={{ fontSize: 16 }}>关联样品</Text>
+            </div>
+            {detail.samples.length > 0 ? (
+              <Table
+                dataSource={detail.samples}
+                columns={sampleColumns}
+                rowKey="id"
+                pagination={false}
+                size="small"
+              />
             ) : (
-              <Badge status="success" text="正常" />
+              <Empty description="暂无关联样品" />
             )}
-          </Descriptions.Item>
-          <Descriptions.Item label="截止时间">
-            {detail.deadline
-              ? new Date(detail.deadline).toLocaleDateString('zh-CN')
-              : '未设置'}
-          </Descriptions.Item>
-          <Descriptions.Item label="创建时间">
-            {new Date(detail.createdAt).toLocaleDateString('zh-CN')}
-          </Descriptions.Item>
-          <Descriptions.Item label="样品数量">
-            {detail.samples.length} 件
-          </Descriptions.Item>
-        </Descriptions>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* 关联样品 */}
-      <Card title="关联样品" style={{ marginBottom: 16 }}>
-        {detail.samples.length > 0 ? (
-          <Table
-            dataSource={detail.samples}
-            columns={sampleColumns}
-            rowKey="id"
-            pagination={false}
-            size="small"
-          />
-        ) : (
-          <Empty description="暂无关联样品" />
-        )}
-      </Card>
-
-      {/* 阶段时间线 */}
-      <Card title="阶段变更历史">
-        {detail.stageHistory.length > 0 ? (
-          <Timeline
-            mode="left"
-            items={detail.stageHistory.map((item, index) => ({
-              color: index === detail.stageHistory.length - 1 ? '#722ed1' : 'gray',
-              children: (
-                <div>
-                  <Tag color={stageColors[item.stage] || 'default'}>{stageNames[item.stage] || item.stage}</Tag>
-                  <Text type="secondary" style={{ marginLeft: 8 }}>
-                    {new Date(item.changedAt).toLocaleString('zh-CN')}
-                  </Text>
-                </div>
-              ),
-            }))}
-          />
-        ) : (
-          <Empty description="暂无阶段变更记录" />
-        )}
-      </Card>
+        {/* 阶段时间线 */}
+        <Card variant="elevated">
+          <CardContent>
+            <div style={{ marginBottom: 16 }}>
+              <Text strong style={{ fontSize: 16 }}>阶段变更历史</Text>
+            </div>
+            {detail.stageHistory.length > 0 ? (
+              <Timeline
+                mode="left"
+                items={detail.stageHistory.map((item, index) => ({
+                  color: index === detail.stageHistory.length - 1 ? '#722ed1' : 'gray',
+                  children: (
+                    <div>
+                      <Tag color={stageColors[item.stage] || 'default'}>{stageNames[item.stage] || item.stage}</Tag>
+                      <Text type="secondary" style={{ marginLeft: 8 }}>
+                        {new Date(item.changedAt).toLocaleString('zh-CN')}
+                      </Text>
+                    </div>
+                  ),
+                }))}
+              />
+            ) : (
+              <Empty description="暂无阶段变更记录" />
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

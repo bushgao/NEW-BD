@@ -5,16 +5,19 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Card, Table, Tag, Button, Select, DatePicker, Space, message, Modal, Collapse, Typography, Empty, Spin } from 'antd';
+import { Table, Tag, Button, Select, DatePicker, Space, message, Modal, Collapse, Typography, Empty, Spin } from 'antd';
 import { CheckOutlined, GiftOutlined } from '@ant-design/icons';
 import * as influencerPortalService from '../../services/influencer-portal.service';
 import type { InfluencerSampleList, InfluencerSampleItem, SampleFilter, FactoryOption } from '../../services/influencer-portal.service';
 import dayjs from 'dayjs';
+import { Card, CardContent } from '../../components/ui/Card';
+import { useTheme } from '../../theme/ThemeProvider';
 
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
 
 const InfluencerSamplesPage = () => {
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [samples, setSamples] = useState<InfluencerSampleList | null>(null);
   const [factories, setFactories] = useState<FactoryOption[]>([]);
@@ -187,75 +190,114 @@ const InfluencerSamplesPage = () => {
   }
 
   return (
-    <div>
-      <Title level={4} style={{ marginBottom: 24 }}>
-        我的样品
-      </Title>
+    <div 
+      style={{ 
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
+        position: 'relative',
+        padding: '24px',
+      }}
+    >
+      {/* 背景装饰元素 */}
+      <div style={{
+        position: 'absolute',
+        top: '10%',
+        left: '5%',
+        width: '400px',
+        height: '400px',
+        background: 'linear-gradient(135deg, rgba(90, 200, 250, 0.08), rgba(191, 90, 242, 0.08))',
+        borderRadius: '50%',
+        filter: 'blur(80px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: '40%',
+        right: '10%',
+        width: '500px',
+        height: '500px',
+        background: 'linear-gradient(135deg, rgba(255, 107, 107, 0.08), rgba(255, 217, 61, 0.08))',
+        borderRadius: '50%',
+        filter: 'blur(100px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <Title level={4} style={{ marginBottom: 24 }}>
+          我的样品
+        </Title>
 
-      {/* 筛选器 */}
-      <Card style={{ marginBottom: 16 }}>
-        <Space wrap>
-          <Select
-            placeholder="选择工厂"
-            allowClear
-            style={{ width: 200 }}
-            value={filter.factoryId}
-            onChange={(value) => handleFilterChange('factoryId', value)}
-            options={factories.map((f) => ({ label: f.name, value: f.id }))}
-          />
-          <Select
-            placeholder="签收状态"
-            allowClear
-            style={{ width: 120 }}
-            value={filter.receivedStatus}
-            onChange={(value) => handleFilterChange('receivedStatus', value)}
-            options={[
-              { label: '待签收', value: 'PENDING' },
-              { label: '已签收', value: 'RECEIVED' },
-              { label: '已丢失', value: 'LOST' },
-            ]}
-          />
-          <RangePicker
-            placeholder={['开始日期', '结束日期']}
-            onChange={handleDateRangeChange}
-            value={
-              filter.startDate && filter.endDate
-                ? [dayjs(filter.startDate), dayjs(filter.endDate)]
-                : undefined
-            }
-          />
-        </Space>
-      </Card>
-
-      {/* 按工厂分组显示 */}
-      {samples && samples.groupedByFactory.length > 0 ? (
-        <Collapse
-          defaultActiveKey={samples.groupedByFactory.map((g) => g.factoryId)}
-          items={samples.groupedByFactory.map((group) => ({
-            key: group.factoryId,
-            label: (
-              <Space>
-                <span>{group.factoryName}</span>
-                <Tag>{group.samples.length} 件样品</Tag>
-              </Space>
-            ),
-            children: (
-              <Table
-                dataSource={group.samples}
-                columns={columns}
-                rowKey="id"
-                pagination={false}
-                size="small"
-                loading={loading}
+        {/* 筛选器 */}
+        <Card variant="elevated" style={{ marginBottom: 16 }}>
+          <CardContent>
+            <Space wrap>
+              <Select
+                placeholder="选择工厂"
+                allowClear
+                style={{ width: 200 }}
+                value={filter.factoryId}
+                onChange={(value) => handleFilterChange('factoryId', value)}
+                options={factories.map((f) => ({ label: f.name, value: f.id }))}
               />
-            ),
-          }))}
-        />
-      ) : (
-        <Card>
-          <Empty description="暂无样品记录" />
+              <Select
+                placeholder="签收状态"
+                allowClear
+                style={{ width: 120 }}
+                value={filter.receivedStatus}
+                onChange={(value) => handleFilterChange('receivedStatus', value)}
+                options={[
+                  { label: '待签收', value: 'PENDING' },
+                  { label: '已签收', value: 'RECEIVED' },
+                  { label: '已丢失', value: 'LOST' },
+                ]}
+              />
+              <RangePicker
+                placeholder={['开始日期', '结束日期']}
+                onChange={handleDateRangeChange}
+                value={
+                  filter.startDate && filter.endDate
+                    ? [dayjs(filter.startDate), dayjs(filter.endDate)]
+                    : undefined
+                }
+              />
+            </Space>
+          </CardContent>
         </Card>
-      )}
+
+        {/* 按工厂分组显示 */}
+        {samples && samples.groupedByFactory.length > 0 ? (
+          <Collapse
+            defaultActiveKey={samples.groupedByFactory.map((g) => g.factoryId)}
+            items={samples.groupedByFactory.map((group) => ({
+              key: group.factoryId,
+              label: (
+                <Space>
+                  <span>{group.factoryName}</span>
+                  <Tag>{group.samples.length} 件样品</Tag>
+                </Space>
+              ),
+              children: (
+                <Table
+                  dataSource={group.samples}
+                  columns={columns}
+                  rowKey="id"
+                  pagination={false}
+                  size="small"
+                  loading={loading}
+                />
+              ),
+            }))}
+          />
+        ) : (
+          <Card variant="elevated">
+            <CardContent>
+              <Empty description="暂无样品记录" />
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };

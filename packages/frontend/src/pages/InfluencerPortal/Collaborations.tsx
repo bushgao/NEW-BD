@@ -6,10 +6,12 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Table, Tag, Select, Space, message, Typography, Empty, Spin, Badge } from 'antd';
+import { Table, Tag, Select, Space, message, Typography, Empty, Spin, Badge } from 'antd';
 import { TeamOutlined } from '@ant-design/icons';
 import * as influencerPortalService from '../../services/influencer-portal.service';
 import type { InfluencerCollabList, InfluencerCollabItem, CollabFilter, FactoryOption } from '../../services/influencer-portal.service';
+import { Card, CardContent } from '../../components/ui/Card';
+import { useTheme } from '../../theme/ThemeProvider';
 
 const { Title, Text } = Typography;
 
@@ -36,6 +38,7 @@ const stageColors: Record<string, string> = {
 };
 
 const InfluencerCollaborationsPage = () => {
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [collaborations, setCollaborations] = useState<InfluencerCollabList | null>(null);
   const [factories, setFactories] = useState<FactoryOption[]>([]);
@@ -177,66 +180,105 @@ const InfluencerCollaborationsPage = () => {
   }
 
   return (
-    <div>
-      <Title level={4} style={{ marginBottom: 24 }}>
-        合作进度
-      </Title>
+    <div 
+      style={{ 
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
+        position: 'relative',
+        padding: '24px',
+      }}
+    >
+      {/* 背景装饰元素 */}
+      <div style={{
+        position: 'absolute',
+        top: '10%',
+        left: '5%',
+        width: '400px',
+        height: '400px',
+        background: 'linear-gradient(135deg, rgba(90, 200, 250, 0.08), rgba(191, 90, 242, 0.08))',
+        borderRadius: '50%',
+        filter: 'blur(80px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: '40%',
+        right: '10%',
+        width: '500px',
+        height: '500px',
+        background: 'linear-gradient(135deg, rgba(255, 107, 107, 0.08), rgba(255, 217, 61, 0.08))',
+        borderRadius: '50%',
+        filter: 'blur(100px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <Title level={4} style={{ marginBottom: 24 }}>
+          合作进度
+        </Title>
 
-      {/* 筛选器 */}
-      <Card style={{ marginBottom: 16 }}>
-        <Space wrap>
-          <Select
-            placeholder="选择工厂"
-            allowClear
-            style={{ width: 200 }}
-            value={filter.factoryId}
-            onChange={(value) => handleFilterChange('factoryId', value)}
-            options={factories.map((f) => ({ label: f.name, value: f.id }))}
-          />
-          <Select
-            placeholder="合作阶段"
-            allowClear
-            style={{ width: 120 }}
-            value={filter.stage}
-            onChange={(value) => handleFilterChange('stage', value)}
-            options={Object.entries(stageNames).map(([value, label]) => ({
-              label,
-              value,
-            }))}
-          />
-          <Select
-            placeholder="超期状态"
-            allowClear
-            style={{ width: 120 }}
-            value={filter.isOverdue}
-            onChange={(value) => handleFilterChange('isOverdue', value)}
-            options={[
-              { label: '已超期', value: true },
-              { label: '未超期', value: false },
-            ]}
-          />
-        </Space>
-      </Card>
+        {/* 筛选器 */}
+        <Card variant="elevated" style={{ marginBottom: 16 }}>
+          <CardContent>
+            <Space wrap>
+              <Select
+                placeholder="选择工厂"
+                allowClear
+                style={{ width: 200 }}
+                value={filter.factoryId}
+                onChange={(value) => handleFilterChange('factoryId', value)}
+                options={factories.map((f) => ({ label: f.name, value: f.id }))}
+              />
+              <Select
+                placeholder="合作阶段"
+                allowClear
+                style={{ width: 120 }}
+                value={filter.stage}
+                onChange={(value) => handleFilterChange('stage', value)}
+                options={Object.entries(stageNames).map(([value, label]) => ({
+                  label,
+                  value,
+                }))}
+              />
+              <Select
+                placeholder="超期状态"
+                allowClear
+                style={{ width: 120 }}
+                value={filter.isOverdue}
+                onChange={(value) => handleFilterChange('isOverdue', value)}
+                options={[
+                  { label: '已超期', value: true },
+                  { label: '未超期', value: false },
+                ]}
+              />
+            </Space>
+          </CardContent>
+        </Card>
 
-      {/* 合作列表 */}
-      <Card>
-        {collaborations && collaborations.items.length > 0 ? (
-          <Table
-            dataSource={collaborations.items}
-            columns={columns}
-            rowKey="id"
-            loading={loading}
-            pagination={{
-              total: collaborations.total,
-              showTotal: (total) => `共 ${total} 条合作记录`,
-              showSizeChanger: true,
-              pageSizeOptions: ['10', '20', '50'],
-            }}
-          />
-        ) : (
-          <Empty description="暂无合作记录" />
-        )}
-      </Card>
+        {/* 合作列表 */}
+        <Card variant="elevated">
+          <CardContent>
+            {collaborations && collaborations.items.length > 0 ? (
+              <Table
+                dataSource={collaborations.items}
+                columns={columns}
+                rowKey="id"
+                loading={loading}
+                pagination={{
+                  total: collaborations.total,
+                  showTotal: (total) => `共 ${total} 条合作记录`,
+                  showSizeChanger: true,
+                  pageSizeOptions: ['10', '20', '50'],
+                }}
+              />
+            ) : (
+              <Empty description="暂无合作记录" />
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

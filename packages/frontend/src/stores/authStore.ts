@@ -57,13 +57,13 @@ export const useAuthStore = create<AuthState>()(
 export function getDefaultPathForRole(role: UserRole): string {
   switch (role) {
     case 'PLATFORM_ADMIN':
-      return '/admin';
+      return '/app/admin';
     case 'FACTORY_OWNER':
-      return '/dashboard';
+      return '/app/dashboard';
     case 'BUSINESS_STAFF':
-      return '/dashboard';
+      return '/app/dashboard';
     default:
-      return '/dashboard';
+      return '/app/dashboard';
   }
 }
 
@@ -72,9 +72,9 @@ export function getDefaultPathForRole(role: UserRole): string {
  */
 export function hasAccessToPath(role: UserRole, path: string): boolean {
   const rolePermissions: Record<UserRole, string[]> = {
-    PLATFORM_ADMIN: ['/admin', '/dashboard', '/notifications'],
-    FACTORY_OWNER: ['/dashboard', '/influencers', '/samples', '/pipeline', '/results', '/reports', '/notifications'],
-    BUSINESS_STAFF: ['/dashboard', '/influencers', '/pipeline', '/results', '/notifications'],
+    PLATFORM_ADMIN: ['/app/admin', '/app/dashboard', '/app/notifications'],
+    FACTORY_OWNER: ['/app/dashboard', '/app/influencers', '/app/samples', '/app/pipeline', '/app/results', '/app/reports', '/app/notifications'],
+    BUSINESS_STAFF: ['/app/dashboard', '/app/influencers', '/app/pipeline', '/app/results', '/app/notifications'],
   };
 
   const allowedPaths = rolePermissions[role] || [];

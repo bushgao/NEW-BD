@@ -72,13 +72,14 @@ export const Avatar: React.FC<AvatarProps> = ({
         height: avatarSize + (hasRing ? ring * 2 : 0),
       }}
     >
-      {/* Ring decoration */}
+      {/* Ring decoration with gradient */}
       {hasRing && (
         <div
           className="absolute inset-0 rounded-full"
           style={{
-            background: ringColor,
+            background: `linear-gradient(135deg, ${ringColor}, ${ringColor}dd)`,
             padding: ring,
+            boxShadow: `0 0 12px ${ringColor}40`,
           }}
         />
       )}

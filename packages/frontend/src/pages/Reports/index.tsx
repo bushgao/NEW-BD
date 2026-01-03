@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import {
-  Card,
   Table,
   DatePicker,
   Button,
@@ -31,11 +30,14 @@ import {
   type StaffPerformanceReport,
   type DateRange,
 } from '../../services/report.service';
+import { Card, CardContent } from '../../components/ui/Card';
+import { useTheme } from '../../theme/ThemeProvider';
 
 const { RangePicker } = DatePicker;
 const { Title } = Typography;
 
 const ReportsPage = () => {
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [report, setReport] = useState<StaffPerformanceReport | null>(null);
@@ -178,13 +180,48 @@ const ReportsPage = () => {
   ];
 
   return (
-    <div style={{ padding: 24 }}>
+    <div 
+      style={{ 
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
+        position: 'relative',
+        padding: '24px',
+      }}
+    >
+      {/* 背景装饰元素 */}
+      <div style={{
+        position: 'absolute',
+        top: '10%',
+        left: '5%',
+        width: '400px',
+        height: '400px',
+        background: 'linear-gradient(135deg, rgba(90, 200, 250, 0.08), rgba(191, 90, 242, 0.08))',
+        borderRadius: '50%',
+        filter: 'blur(80px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: '40%',
+        right: '10%',
+        width: '500px',
+        height: '500px',
+        background: 'linear-gradient(135deg, rgba(255, 107, 107, 0.08), rgba(255, 217, 61, 0.08))',
+        borderRadius: '50%',
+        filter: 'blur(100px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      
+      <div style={{ position: 'relative', zIndex: 1 }}>
       <Title level={4} style={{ marginBottom: 24 }}>
         商务绩效报表
       </Title>
 
       {/* 筛选和操作栏 */}
-      <Card style={{ marginBottom: 24 }}>
+      <Card variant="elevated" style={{ marginBottom: 24 }}>
+        <CardContent>
         <Space size="middle" wrap>
           <span>时间范围：</span>
           <RangePicker
@@ -208,33 +245,39 @@ const ReportsPage = () => {
             导出Excel
           </Button>
         </Space>
+        </CardContent>
       </Card>
 
       {/* 汇总统计卡片 */}
       {report && (
         <Row gutter={16} style={{ marginBottom: 24 }}>
           <Col xs={24} sm={12} md={6}>
-            <Card>
+            <Card variant="elevated" hoverable>
+              <CardContent>
               <Statistic
                 title="商务人数"
                 value={report.summary.totalStaff}
                 prefix={<TeamOutlined />}
                 suffix="人"
               />
+              </CardContent>
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Card>
+            <Card variant="elevated" hoverable>
+              <CardContent>
               <Statistic
                 title="总成交数"
                 value={report.summary.totalClosedCount}
                 prefix={<ShoppingOutlined />}
                 suffix="单"
               />
+              </CardContent>
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Card>
+            <Card variant="elevated" hoverable>
+              <CardContent>
               <Statistic
                 title="总GMV"
                 value={Number(formatMoney(report.summary.totalGmv))}
@@ -242,10 +285,12 @@ const ReportsPage = () => {
                 suffix="元"
                 precision={2}
               />
+              </CardContent>
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Card>
+            <Card variant="elevated" hoverable>
+              <CardContent>
               <Statistic
                 title="整体ROI"
                 value={report.summary.overallRoi}
@@ -255,13 +300,15 @@ const ReportsPage = () => {
                   color: report.summary.overallRoi >= 1 ? '#52c41a' : '#ff4d4f',
                 }}
               />
+              </CardContent>
             </Card>
           </Col>
         </Row>
       )}
 
       {/* 绩效明细表格 */}
-      <Card title="绩效明细">
+      <Card variant="elevated">
+        <CardContent>
         <Spin spinning={loading}>
           <Table
             columns={columns}
@@ -317,7 +364,9 @@ const ReportsPage = () => {
             }
           />
         </Spin>
+        </CardContent>
       </Card>
+      </div>
     </div>
   );
 };

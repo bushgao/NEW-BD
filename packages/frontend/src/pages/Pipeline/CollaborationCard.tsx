@@ -1,4 +1,4 @@
-import { Card, Tag, Typography, Space, Tooltip, Button } from 'antd';
+import { Tag, Typography, Space, Tooltip, Button } from 'antd';
 import {
   UserOutlined,
   ClockCircleOutlined,
@@ -12,6 +12,7 @@ import {
   type CollaborationCard,
 } from '../../services/collaboration.service';
 import { PLATFORM_LABELS } from '../../services/influencer.service';
+import { Card, CardContent } from '../../components/ui/Card';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
@@ -76,30 +77,34 @@ const CollaborationCardComponent = ({
 
   return (
     <Card
-      size="small"
-      draggable
-      onDragStart={handleDragStart}
-      onClick={onClick}
+      variant="elevated"
+      hoverable
       style={{
         marginBottom: 8,
         cursor: 'grab',
         borderLeft: card.isOverdue ? '3px solid #ff4d4f' : undefined,
-        backgroundColor: card.isOverdue ? '#fff2f0' : '#fff',
+        backgroundColor: card.isOverdue ? 'rgba(255, 242, 240, 0.8)' : undefined,
       }}
-      bodyStyle={{ padding: 12 }}
+      onClick={onClick}
     >
-      {/* Header: Nickname and Platform */}
-      <div style={{ marginBottom: 8 }}>
-        <Space size={4}>
-          <Text strong ellipsis style={{ maxWidth: 150 }}>
-            {card.influencer.nickname}
-          </Text>
-          <Tag color={getPlatformColor(card.influencer.platform)} style={{ marginRight: 0 }}>
-            {PLATFORM_LABELS[card.influencer.platform as keyof typeof PLATFORM_LABELS] ||
-              card.influencer.platform}
-          </Tag>
-        </Space>
-      </div>
+      <div
+        draggable
+        onDragStart={handleDragStart}
+        style={{ cursor: 'grab' }}
+      >
+        <CardContent style={{ padding: 12 }}>
+          {/* Header: Nickname and Platform */}
+          <div style={{ marginBottom: 8 }}>
+            <Space size={4}>
+              <Text strong ellipsis style={{ maxWidth: 150 }}>
+                {card.influencer.nickname}
+              </Text>
+              <Tag color={getPlatformColor(card.influencer.platform)} style={{ marginRight: 0 }}>
+                {PLATFORM_LABELS[card.influencer.platform as keyof typeof PLATFORM_LABELS] ||
+                  card.influencer.platform}
+              </Tag>
+            </Space>
+          </div>
 
 
       {/* Block Reason */}
@@ -194,6 +199,8 @@ const CollaborationCardComponent = ({
           最近跟进: {dayjs(card.lastFollowUp).fromNow()}
         </div>
       )}
+        </CardContent>
+      </div>
     </Card>
   );
 };

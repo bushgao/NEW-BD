@@ -3,57 +3,65 @@
  * 设计令牌 - 定义整个应用的视觉设计规范
  */
 
-// 颜色系统
+// 颜色系统 - 参考 Sugar CRM
 export const colors = {
-  // 品牌色
+  // 品牌色 - 柔和的蓝色系
   primary: {
-    50: '#f0f9ff',
-    100: '#e0f2fe',
-    200: '#bae6fd',
-    300: '#7dd3fc',
-    400: '#38bdf8',
-    500: '#0ea5e9', // 主色
-    600: '#0284c7',
-    700: '#0369a1',
-    800: '#075985',
-    900: '#0c4a6e',
+    50: '#f0f7ff',
+    100: '#e0effe',
+    200: '#b9ddfe',
+    300: '#7cc4fd',
+    400: '#36a9fa',
+    500: '#0c8ce9', // 主色
+    600: '#0070c9',
+    700: '#005aa3',
+    800: '#004a86',
+    900: '#003d6f',
   },
   
-  // 中性色
+  // 中性色 - 更柔和的灰色
   neutral: {
-    50: '#fafafa',
-    100: '#f5f5f5',
-    200: '#e5e5e5',
-    300: '#d4d4d4',
-    400: '#a3a3a3',
-    500: '#737373',
-    600: '#525252',
-    700: '#404040',
-    800: '#262626',
-    900: '#171717',
+    50: '#fafbfc',
+    100: '#f5f7fa',
+    200: '#e8ecf1',
+    300: '#d1d9e0',
+    400: '#a8b4c0',
+    500: '#7a8a9e',
+    600: '#5a6c7d',
+    700: '#3e4c59',
+    800: '#2d3843',
+    900: '#1a2332',
   },
   
-  // 功能色
-  success: '#10b981',
-  warning: '#f59e0b',
-  error: '#ef4444',
-  info: '#3b82f6',
+  // 功能色 - 柔和明亮
+  success: '#34c759',
+  warning: '#ff9f0a',
+  error: '#ff3b30',
+  info: '#5ac8fa',
   
-  // 头像装饰色
+  // 头像装饰色 - 鲜艳的渐变色
   avatar: {
-    blue: '#60a5fa',
-    red: '#f87171',
-    yellow: '#fbbf24',
-    green: '#34d399',
-    purple: '#a78bfa',
-    pink: '#f472b6',
+    blue: '#5ac8fa',
+    red: '#ff6b6b',
+    yellow: '#ffd93d',
+    green: '#6bcf7f',
+    purple: '#bf5af2',
+    pink: '#ff2d92',
+    orange: '#ff9f0a',
+    teal: '#5fc9c9',
   },
   
-  // 背景色
+  // 背景色 - 浅灰蓝色
   background: {
     primary: '#ffffff',
-    secondary: '#f9fafb',
-    tertiary: '#f3f4f6',
+    secondary: '#f5f7fa',
+    tertiary: '#eef2f6',
+  },
+  
+  // 黑色按钮
+  button: {
+    primary: '#1a1a1a',
+    primaryHover: '#2d2d2d',
   },
 } as const;
 
@@ -106,26 +114,27 @@ export const spacing = {
   24: '6rem',    // 96px
 } as const;
 
-// 阴影系统
+// 阴影系统 - 更柔和的阴影
 export const shadows = {
   none: 'none',
-  sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-  base: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-  md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-  lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-  xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-  '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+  sm: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+  base: '0 2px 4px 0 rgba(0, 0, 0, 0.04)',
+  md: '0 4px 8px -2px rgba(0, 0, 0, 0.06)',
+  lg: '0 8px 16px -4px rgba(0, 0, 0, 0.08)',
+  xl: '0 12px 24px -6px rgba(0, 0, 0, 0.1)',
+  '2xl': '0 20px 40px -8px rgba(0, 0, 0, 0.12)',
 } as const;
 
-// 圆角系统
+// 圆角系统 - 更大的圆角
 export const borderRadius = {
   none: '0',
-  sm: '0.5rem',   // 8px
-  base: '0.75rem', // 12px
-  lg: '1rem',     // 16px
-  xl: '1.5rem',   // 24px
-  '2xl': '2rem',  // 32px
-  full: '9999px', // 完全圆形
+  sm: '0.75rem',   // 12px
+  base: '1rem',    // 16px
+  lg: '1.25rem',   // 20px
+  xl: '1.5rem',    // 24px
+  '2xl': '2rem',   // 32px
+  '3xl': '2.5rem', // 40px
+  full: '9999px',  // 完全圆形
 } as const;
 
 // 过渡动画

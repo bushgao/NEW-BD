@@ -69,7 +69,7 @@ export const Button: React.FC<ButtonProps> = ({
       case 'primary':
         return {
           ...baseStyles,
-          backgroundColor: theme.colors.primary[600],
+          backgroundColor: theme.colors.button.primary,
           color: '#ffffff',
           boxShadow: theme.shadows.sm,
         };
@@ -78,15 +78,15 @@ export const Button: React.FC<ButtonProps> = ({
           ...baseStyles,
           backgroundColor: '#ffffff',
           color: theme.colors.neutral[900],
-          border: `1px solid ${theme.colors.neutral[300]}`,
+          border: `1px solid ${theme.colors.neutral[200]}`,
           boxShadow: theme.shadows.sm,
         };
       case 'outline':
         return {
           ...baseStyles,
           backgroundColor: 'transparent',
-          color: theme.colors.primary[600],
-          border: `1px solid ${theme.colors.primary[600]}`,
+          color: theme.colors.button.primary,
+          border: `1px solid ${theme.colors.button.primary}`,
         };
       case 'ghost':
         return {
@@ -123,7 +123,7 @@ export const Button: React.FC<ButtonProps> = ({
         if (!isDisabled) {
           const target = e.currentTarget;
           if (variant === 'primary') {
-            target.style.backgroundColor = theme.colors.primary[700];
+            target.style.backgroundColor = theme.colors.button.primaryHover;
           } else if (variant === 'secondary') {
             target.style.backgroundColor = theme.colors.neutral[50];
           } else if (variant === 'danger') {
@@ -135,7 +135,7 @@ export const Button: React.FC<ButtonProps> = ({
         if (!isDisabled) {
           const target = e.currentTarget;
           if (variant === 'primary') {
-            target.style.backgroundColor = theme.colors.primary[600];
+            target.style.backgroundColor = theme.colors.button.primary;
           } else if (variant === 'secondary') {
             target.style.backgroundColor = '#ffffff';
           } else if (variant === 'danger') {

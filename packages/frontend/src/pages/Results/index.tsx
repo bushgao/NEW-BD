@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Table,
   Button,
-  Card,
   Row,
   Col,
   Select,
@@ -32,6 +31,8 @@ import {
   type ResultStats,
 } from '../../services/result.service';
 import { PLATFORM_LABELS } from '../../services/influencer.service';
+import { Card, CardContent } from '../../components/ui/Card';
+import { useTheme } from '../../theme/ThemeProvider';
 import ResultModal from './ResultModal';
 import RoiReportModal from './RoiReportModal';
 import dayjs from 'dayjs';
@@ -40,6 +41,7 @@ const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 
 const ResultsPage = () => {
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<CollaborationResult[]>([]);
   const [total, setTotal] = useState(0);
@@ -240,7 +242,41 @@ const ResultsPage = () => {
 
 
   return (
-    <div>
+    <div 
+      style={{ 
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
+        position: 'relative',
+        padding: '24px',
+      }}
+    >
+      {/* 背景装饰元素 */}
+      <div style={{
+        position: 'absolute',
+        top: '10%',
+        left: '5%',
+        width: '400px',
+        height: '400px',
+        background: 'linear-gradient(135deg, rgba(90, 200, 250, 0.08), rgba(191, 90, 242, 0.08))',
+        borderRadius: '50%',
+        filter: 'blur(80px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: '40%',
+        right: '10%',
+        width: '500px',
+        height: '500px',
+        background: 'linear-gradient(135deg, rgba(255, 107, 107, 0.08), rgba(255, 217, 61, 0.08))',
+        borderRadius: '50%',
+        filter: 'blur(100px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      
+      <div style={{ position: 'relative', zIndex: 1 }}>
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
           <Title level={4} style={{ margin: 0 }}>
@@ -263,50 +299,59 @@ const ResultsPage = () => {
       {stats && (
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col xs={12} sm={6}>
-            <Card size="small">
-              <Statistic
-                title="合作数量"
-                value={stats.totalCount}
-                suffix="个"
-              />
+            <Card variant="elevated" hoverable>
+              <CardContent>
+                <Statistic
+                  title="合作数量"
+                  value={stats.totalCount}
+                  suffix="个"
+                />
+              </CardContent>
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card size="small">
-              <Statistic
-                title="总 GMV"
-                value={stats.totalGmv / 100}
-                precision={2}
-                prefix="¥"
-              />
+            <Card variant="elevated" hoverable>
+              <CardContent>
+                <Statistic
+                  title="总 GMV"
+                  value={stats.totalGmv / 100}
+                  precision={2}
+                  prefix="¥"
+                />
+              </CardContent>
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card size="small">
-              <Statistic
-                title="总成本"
-                value={stats.totalCost / 100}
-                precision={2}
-                prefix="¥"
-              />
+            <Card variant="elevated" hoverable>
+              <CardContent>
+                <Statistic
+                  title="总成本"
+                  value={stats.totalCost / 100}
+                  precision={2}
+                  prefix="¥"
+                />
+              </CardContent>
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card size="small">
-              <Statistic
-                title="整体 ROI"
-                value={stats.overallRoi}
-                precision={2}
-                valueStyle={{ color: stats.overallRoi >= 1 ? '#52c41a' : '#ff4d4f' }}
-              />
+            <Card variant="elevated" hoverable>
+              <CardContent>
+                <Statistic
+                  title="整体 ROI"
+                  value={stats.overallRoi}
+                  precision={2}
+                  valueStyle={{ color: stats.overallRoi >= 1 ? '#52c41a' : '#ff4d4f' }}
+                />
+              </CardContent>
             </Card>
           </Col>
         </Row>
       )}
 
       {/* 筛选条件 */}
-      <Card style={{ marginBottom: 16 }}>
-        <Row gutter={[16, 16]}>
+      <Card variant="elevated" style={{ marginBottom: 16 }}>
+        <CardContent>
+          <Row gutter={[16, 16]}>
           <Col xs={24} sm={12} md={8}>
             <RangePicker
               style={{ width: '100%' }}
@@ -339,6 +384,7 @@ const ResultsPage = () => {
             />
           </Col>
         </Row>
+        </CardContent>
       </Card>
 
       {/* 数据表格 */}
@@ -371,6 +417,7 @@ const ResultsPage = () => {
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
       />
+      </div>
     </div>
   );
 };

@@ -5,11 +5,13 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Card, Descriptions, Table, Button, Modal, Form, Input, Select, Space, message, Typography, Spin, Tag, Popconfirm } from 'antd';
+import { Descriptions, Table, Button, Modal, Form, Input, Select, Space, message, Typography, Spin, Tag, Popconfirm } from 'antd';
 import { PlusOutlined, DeleteOutlined, UserOutlined, MobileOutlined } from '@ant-design/icons';
 import * as influencerPortalService from '../../services/influencer-portal.service';
 import type { InfluencerAccountInfo, InfluencerContact, AddContactInput } from '../../services/influencer-portal.service';
 import { useInfluencerPortalStore, getContactTypeName } from '../../stores/influencerPortalStore';
+import { Card, CardContent } from '../../components/ui/Card';
+import { useTheme } from '../../theme/ThemeProvider';
 
 const { Title, Text } = Typography;
 
@@ -21,6 +23,7 @@ const contactTypeOptions = [
 ];
 
 const InfluencerSettingsPage = () => {
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [account, setAccount] = useState<InfluencerAccountInfo | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -160,114 +163,155 @@ const InfluencerSettingsPage = () => {
   }
 
   return (
-    <div>
-      <Title level={4} style={{ marginBottom: 24 }}>
-        账号设置
-      </Title>
+    <div 
+      style={{ 
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
+        position: 'relative',
+        padding: '24px',
+      }}
+    >
+      {/* 背景装饰元素 */}
+      <div style={{
+        position: 'absolute',
+        top: '10%',
+        left: '5%',
+        width: '400px',
+        height: '400px',
+        background: 'linear-gradient(135deg, rgba(90, 200, 250, 0.08), rgba(191, 90, 242, 0.08))',
+        borderRadius: '50%',
+        filter: 'blur(80px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: '40%',
+        right: '10%',
+        width: '500px',
+        height: '500px',
+        background: 'linear-gradient(135deg, rgba(255, 107, 107, 0.08), rgba(255, 217, 61, 0.08))',
+        borderRadius: '50%',
+        filter: 'blur(100px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <Title level={4} style={{ marginBottom: 24 }}>
+          账号设置
+        </Title>
 
-      {/* 账号信息 */}
-      <Card title="账号信息" style={{ marginBottom: 16 }}>
-        <Descriptions column={{ xs: 1, sm: 2 }}>
-          <Descriptions.Item label="主手机号">
-            <Space>
-              <MobileOutlined />
-              {account?.primaryPhone}
-            </Space>
-          </Descriptions.Item>
-          <Descriptions.Item label="创建时间">
-            {account?.createdAt ? new Date(account.createdAt).toLocaleDateString('zh-CN') : '-'}
-          </Descriptions.Item>
-        </Descriptions>
-      </Card>
+        {/* 账号信息 */}
+        <Card variant="elevated" style={{ marginBottom: 16 }}>
+          <CardContent>
+            <div style={{ marginBottom: 16 }}>
+              <Text strong style={{ fontSize: 16 }}>账号信息</Text>
+            </div>
+            <Descriptions column={{ xs: 1, sm: 2 }}>
+              <Descriptions.Item label="主手机号">
+                <Space>
+                  <MobileOutlined />
+                  {account?.primaryPhone}
+                </Space>
+              </Descriptions.Item>
+              <Descriptions.Item label="创建时间">
+                {account?.createdAt ? new Date(account.createdAt).toLocaleDateString('zh-CN') : '-'}
+              </Descriptions.Item>
+            </Descriptions>
+          </CardContent>
+        </Card>
 
-      {/* 联系人管理 */}
-      <Card
-        title="联系人管理"
-        extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setModalVisible(true)}
-            style={{ background: '#722ed1', borderColor: '#722ed1' }}
-          >
-            添加联系人
-          </Button>
-        }
-      >
-        <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-          您可以添加助理或经纪人的手机号，让他们也能登录查看您的样品和合作信息。
-        </Text>
-        <Table
-          dataSource={account?.contacts || []}
-          columns={columns}
-          rowKey="id"
-          pagination={false}
-        />
-      </Card>
-
-      {/* 添加联系人弹窗 */}
-      <Modal
-        title="添加联系人"
-        open={modalVisible}
-        onCancel={() => {
-          setModalVisible(false);
-          form.resetFields();
-        }}
-        footer={null}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleAddContact}
-        >
-          <Form.Item
-            name="phone"
-            label="手机号"
-            rules={[
-              { required: true, message: '请输入手机号' },
-              { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' },
-            ]}
-          >
-            <Input
-              prefix={<MobileOutlined />}
-              placeholder="请输入手机号"
-              maxLength={11}
-            />
-          </Form.Item>
-          <Form.Item
-            name="name"
-            label="姓名"
-          >
-            <Input
-              prefix={<UserOutlined />}
-              placeholder="请输入姓名（选填）"
-            />
-          </Form.Item>
-          <Form.Item
-            name="contactType"
-            label="联系人类型"
-            rules={[{ required: true, message: '请选择联系人类型' }]}
-          >
-            <Select
-              placeholder="请选择联系人类型"
-              options={contactTypeOptions}
-            />
-          </Form.Item>
-          <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
-            <Space>
-              <Button onClick={() => setModalVisible(false)}>取消</Button>
+        {/* 联系人管理 */}
+        <Card variant="elevated">
+          <CardContent>
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text strong style={{ fontSize: 16 }}>联系人管理</Text>
               <Button
                 type="primary"
-                htmlType="submit"
-                loading={submitting}
+                icon={<PlusOutlined />}
+                onClick={() => setModalVisible(true)}
                 style={{ background: '#722ed1', borderColor: '#722ed1' }}
               >
-                添加
+                添加联系人
               </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
+            </div>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+              您可以添加助理或经纪人的手机号，让他们也能登录查看您的样品和合作信息。
+            </Text>
+            <Table
+              dataSource={account?.contacts || []}
+              columns={columns}
+              rowKey="id"
+              pagination={false}
+            />
+          </CardContent>
+        </Card>
+
+        {/* 添加联系人弹窗 */}
+        <Modal
+          title="添加联系人"
+          open={modalVisible}
+          onCancel={() => {
+            setModalVisible(false);
+            form.resetFields();
+          }}
+          footer={null}
+        >
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleAddContact}
+          >
+            <Form.Item
+              name="phone"
+              label="手机号"
+              rules={[
+                { required: true, message: '请输入手机号' },
+                { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' },
+              ]}
+            >
+              <Input
+                prefix={<MobileOutlined />}
+                placeholder="请输入手机号"
+                maxLength={11}
+              />
+            </Form.Item>
+            <Form.Item
+              name="name"
+              label="姓名"
+            >
+              <Input
+                prefix={<UserOutlined />}
+                placeholder="请输入姓名（选填）"
+              />
+            </Form.Item>
+            <Form.Item
+              name="contactType"
+              label="联系人类型"
+              rules={[{ required: true, message: '请选择联系人类型' }]}
+            >
+              <Select
+                placeholder="请选择联系人类型"
+                options={contactTypeOptions}
+              />
+            </Form.Item>
+            <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
+              <Space>
+                <Button onClick={() => setModalVisible(false)}>取消</Button>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={submitting}
+                  style={{ background: '#722ed1', borderColor: '#722ed1' }}
+                >
+                  添加
+                </Button>
+              </Space>
+            </Form.Item>
+          </Form>
+        </Modal>
+      </div>
     </div>
   );
 };

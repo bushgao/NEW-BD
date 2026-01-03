@@ -6,6 +6,7 @@ import { useInfluencerPortalStore } from '../stores/influencerPortalStore';
 import type { UserRole } from '@ics/shared';
 
 // Lazy load pages
+const LandingPage = lazy(() => import('../pages/LandingPage'));
 const LoginPage = lazy(() => import('../pages/Login'));
 const RegisterPage = lazy(() => import('../pages/Register'));
 const MainLayout = lazy(() => import('../layouts/MainLayout'));
@@ -17,6 +18,7 @@ const ResultsPage = lazy(() => import('../pages/Results'));
 const ReportsPage = lazy(() => import('../pages/Reports'));
 const AdminPage = lazy(() => import('../pages/Admin'));
 const NotificationsPage = lazy(() => import('../pages/Notifications'));
+const UIShowcase = lazy(() => import('../pages/UIShowcase'));
 
 // 达人端口页面
 const InfluencerLoginPage = lazy(() => import('../pages/InfluencerPortal/Login'));
@@ -109,6 +111,9 @@ const AppRoutes = () => {
   return (
     <Suspense fallback={<Loading />}>
       <Routes>
+        {/* Landing Page - Public */}
+        <Route path="/" element={<LandingPage />} />
+
         {/* Public routes */}
         <Route
           path="/login"
@@ -129,7 +134,7 @@ const AppRoutes = () => {
 
         {/* Protected routes */}
         <Route
-          path="/"
+          path="/app"
           element={
             <ProtectedRoute>
               <MainLayout />
@@ -137,7 +142,6 @@ const AppRoutes = () => {
           }
         >
           <Route index element={<RedirectToDefault />} />
-          
           {/* Dashboard - accessible by all authenticated users */}
           <Route
             path="dashboard"
@@ -214,6 +218,16 @@ const AppRoutes = () => {
             element={
               <RoleRoute allowedRoles={['PLATFORM_ADMIN', 'FACTORY_OWNER', 'BUSINESS_STAFF']}>
                 <NotificationsPage />
+              </RoleRoute>
+            }
+          />
+
+          {/* UI Showcase - All authenticated users */}
+          <Route
+            path="ui-showcase"
+            element={
+              <RoleRoute allowedRoles={['PLATFORM_ADMIN', 'FACTORY_OWNER', 'BUSINESS_STAFF']}>
+                <UIShowcase />
               </RoleRoute>
             }
           />

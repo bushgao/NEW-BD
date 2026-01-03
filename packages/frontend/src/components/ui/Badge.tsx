@@ -8,7 +8,7 @@ import React from 'react';
 import { useTheme } from '../../theme/ThemeProvider';
 
 export interface BadgeProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   variant?: 'primary' | 'success' | 'warning' | 'error' | 'info' | 'neutral';
   size?: 'sm' | 'md' | 'lg';
   dot?: boolean;
