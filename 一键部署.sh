@@ -93,7 +93,7 @@ echo ""
 echo "请在宝塔面板创建 PostgreSQL 数据库："
 echo "  1. 打开宝塔面板 -> 数据库 -> PostgreSQL"
 echo "  2. 点击「添加数据库」"
-echo "  3. 数据库名: zilo_production"
+echo "  3. 数据库名: ziloproduction"
 echo "  4. 用户名: zilo"
 echo "  5. 密码: 点击「随机密码」生成"
 echo ""
@@ -144,7 +144,7 @@ NODE_ENV=production
 PORT=3000
 
 # 数据库配置
-DATABASE_URL="postgresql://zilo:${DB_PASSWORD}@localhost:5432/zilo_production?schema=public"
+DATABASE_URL="postgresql://zilo:${DB_PASSWORD}@localhost:5432/ziloproduction?schema=public"
 
 # JWT 密钥
 JWT_SECRET="${JWT_SECRET}"
@@ -253,7 +253,7 @@ echo "  ✓ 后端端口: 3000"
 echo "  ✓ 后端服务: 运行中"
 echo ""
 echo "🔐 数据库信息："
-echo "  ✓ 数据库名: zilo_production"
+echo "  ✓ 数据库名: ziloproduction"
 echo "  ✓ 用户名: zilo"
 echo "  ✓ 密码: ${DB_PASSWORD}"
 echo ""
