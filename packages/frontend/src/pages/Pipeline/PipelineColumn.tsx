@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { Badge, Typography } from 'antd';
 import type { PipelineStage } from '@ics/shared';
 import { STAGE_COLORS, type CollaborationCard } from '../../services/collaboration.service';
-import { Card, CardContent } from '../../components/ui/Card';
+import { Card } from '../../components/ui/Card';
 import { useTheme } from '../../theme/ThemeProvider';
 import CollaborationCardComponent from './CollaborationCard';
 

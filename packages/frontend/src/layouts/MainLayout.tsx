@@ -25,7 +25,7 @@ const { Text } = Typography;
 const getMenuItems = (role: string): MenuProps['items'] => {
   const commonItems = [
     {
-      key: '/dashboard',
+      key: '/app/dashboard',
       icon: <DashboardOutlined />,
       label: '工作台',
     },
@@ -33,17 +33,17 @@ const getMenuItems = (role: string): MenuProps['items'] => {
 
   const businessItems = [
     {
-      key: '/influencers',
+      key: '/app/influencers',
       icon: <TeamOutlined />,
       label: '达人管理',
     },
     {
-      key: '/pipeline',
+      key: '/app/pipeline',
       icon: <ProjectOutlined />,
       label: '合作管道',
     },
     {
-      key: '/results',
+      key: '/app/results',
       icon: <TrophyOutlined />,
       label: '合作结果',
     },
@@ -51,12 +51,12 @@ const getMenuItems = (role: string): MenuProps['items'] => {
 
   const ownerItems = [
     {
-      key: '/samples',
+      key: '/app/samples',
       icon: <GiftOutlined />,
       label: '样品管理',
     },
     {
-      key: '/reports',
+      key: '/app/reports',
       icon: <BarChartOutlined />,
       label: '数据报表',
     },
@@ -64,7 +64,7 @@ const getMenuItems = (role: string): MenuProps['items'] => {
 
   const adminItems = [
     {
-      key: '/admin',
+      key: '/app/admin',
       icon: <SettingOutlined />,
       label: '平台管理',
     },

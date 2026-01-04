@@ -5,7 +5,7 @@ const InteractiveROI: React.FC = () => {
   const [gmv, setGmv] = useState(10000);
   const [commission, setCommission] = useState(20); // percent
   const [sampleCost, setSampleCost] = useState(500); // fixed
-  const [shipping, setShipping] = useState(150); // fixed
+  const shipping = 150; // fixed - no longer needs state
 
   const commValue = gmv * (commission / 100);
   const totalCost = commValue + sampleCost + shipping;

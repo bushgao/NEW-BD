@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FileSpreadsheet, MessageCircle, AlertTriangle, XCircle, ArrowRight } from 'lucide-react';
+import { FileSpreadsheet, MessageCircle, AlertTriangle, XCircle } from 'lucide-react';
 
 const PainPoints: React.FC = () => {
   const pains = [

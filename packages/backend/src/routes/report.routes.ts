@@ -122,7 +122,7 @@ router.get(
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const factoryId = req.user!.factoryId;
-      const staffId = req.user!.id;
+      const staffId = req.user!.userId;
       
       if (!factoryId) {
         res.status(400).json({

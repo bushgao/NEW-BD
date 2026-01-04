@@ -1,6 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Database, Calculator, Truck, Layers } from 'lucide-react';
+import { Database, Calculator, Truck } from 'lucide-react';
 
 const FeatureHighlight: React.FC = () => {
   return (

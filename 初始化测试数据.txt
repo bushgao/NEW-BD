@@ -1,0 +1,26 @@
+# 在服务器上初始化测试数据
+
+## 步骤：
+
+1. 登录服务器终端（宝塔面板 → 终端）
+
+2. 运行以下命令：
+
+cd /www/wwwroot/zilo/packages/backend
+npm run db:seed
+
+3. 等待完成，看到 "🎉 Seed completed successfully!" 表示成功
+
+## 然后就可以使用测试账号登录了：
+
+访问：https://zilohq.com/login
+
+测试账号：
+- 邮箱：staff@demo.com
+- 密码：staff123
+
+或者：
+- 邮箱：owner@demo.com  
+- 密码：owner123
+
+登录后可以看到预设的达人、样品和合作数据。
