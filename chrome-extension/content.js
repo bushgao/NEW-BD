@@ -443,6 +443,22 @@
     }
   }
 
+  // 从页面 localStorage 获取当前登录用户的 token
+  function getTokenFromPage() {
+    try {
+      const authStorage = localStorage.getItem('auth-storage');
+      if (authStorage) {
+        const authData = JSON.parse(authStorage);
+        if (authData && authData.state && authData.state.token) {
+          return authData.state.token.accessToken;
+        }
+      }
+    } catch (error) {
+      console.error('[Zilo] 获取页面 token 失败:', error);
+    }
+    return null;
+  }
+
   // 处理采集操作
   async function handleCollect() {
     const button = document.getElementById(CONFIG.buttonId);
@@ -463,10 +479,14 @@
         throw new Error('无法提取达人信息，请确保在达人详情页');
       }
 
+      // 尝试从页面获取当前登录用户的 token
+      const pageToken = getTokenFromPage();
+      
       // 发送消息到 background script
       chrome.runtime.sendMessage({
         action: 'collectInfluencer',
         data: info,
+        pageToken: pageToken, // 传递页面的 token
       }, (response) => {
         if (chrome.runtime.lastError) {
           console.error('[Zilo] 发送消息失败:', chrome.runtime.lastError);
