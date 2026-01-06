@@ -5,7 +5,8 @@
   "description": "一键采集抖音精选联盟达人信息到 Zilo 系统",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "clipboardRead"
   ],
   "host_permissions": [
     "https://buyin.jinritemai.com/*",
