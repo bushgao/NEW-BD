@@ -14,6 +14,8 @@ export interface CreateInfluencerInput {
   platform: Platform;
   platformId: string;
   phone?: string;
+  wechat?: string;
+  followers?: string;
   categories?: string[];
   tags?: string[];
   notes?: string;
@@ -24,6 +26,8 @@ export interface UpdateInfluencerInput {
   platform?: Platform;
   platformId?: string;
   phone?: string;
+  wechat?: string;
+  followers?: string;
   categories?: string[];
   tags?: string[];
   notes?: string;
@@ -57,6 +61,8 @@ export interface Influencer {
   platform: Platform;
   platformId: string;
   phone: string | null;
+  wechat: string | null;
+  followers: string | null;
   categories: string[];
   tags: string[];
   notes: string | null;
@@ -68,22 +74,9 @@ export interface Influencer {
  * Check if factory has reached influencer quota limit
  */
 async function checkInfluencerQuota(factoryId: string): Promise<void> {
-  const factory = await prisma.factory.findUnique({
-    where: { id: factoryId },
-    select: { influencerLimit: true },
-  });
-
-  if (!factory) {
-    throw createNotFoundError('工厂不存在');
-  }
-
-  const currentCount = await prisma.influencer.count({
-    where: { factoryId },
-  });
-
-  if (currentCount >= factory.influencerLimit) {
-    throw createQuotaExceededError('已达到达人数量上限，请升级套餐');
-  }
+  // 使用 platform.service 的 validateQuota 函数
+  const { validateQuota } = await import('./platform.service');
+  await validateQuota(factoryId, 'influencer');
 }
 
 /**
@@ -158,7 +151,7 @@ export async function checkDuplicate(
  * Create a new influencer
  */
 export async function create(data: CreateInfluencerInput): Promise<Influencer> {
-  const { factoryId, nickname, platform, platformId, phone, categories, tags, notes } = data;
+  const { factoryId, nickname, platform, platformId, phone, wechat, followers, categories, tags, notes } = data;
 
   // Check quota
   await checkInfluencerQuota(factoryId);
@@ -185,6 +178,8 @@ export async function create(data: CreateInfluencerInput): Promise<Influencer> {
       platform,
       platformId: platformId.trim(),
       phone: phone?.trim() || null,
+      wechat: wechat?.trim() || null,
+      followers: followers?.trim() || null,
       categories: categories || [],
       tags: tags || [],
       notes: notes?.trim() || null,
@@ -255,6 +250,8 @@ export async function update(
   if (data.platform !== undefined) updateData.platform = data.platform;
   if (data.platformId !== undefined) updateData.platformId = data.platformId.trim();
   if (data.phone !== undefined) updateData.phone = data.phone?.trim() || null;
+  if (data.wechat !== undefined) updateData.wechat = data.wechat?.trim() || null;
+  if (data.followers !== undefined) updateData.followers = data.followers?.trim() || null;
   if (data.categories !== undefined) updateData.categories = data.categories;
   if (data.tags !== undefined) updateData.tags = data.tags;
   if (data.notes !== undefined) updateData.notes = data.notes?.trim() || null;

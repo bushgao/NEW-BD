@@ -24,7 +24,8 @@
 - **Factory_Owner**: 工厂老板角色，关注样品成本、总投入、ROI、商务绩效
 - **Business_Staff**: 商务人员角色，负责达人跟进、寄样、排期、结果录入
 - **Platform_Admin**: 平台管理员角色，负责工厂审核、账号管理、收费控制
-- **Influencer**: 达人，与工厂合作进行内容创作和带货的创作者
+- **Influencer**: 达人主体，代表同一个达人/同一个内容账号主体，与工厂合作进行内容创作和带货的创作者
+- **InfluencerContact**: 达人联系人，挂在达人主体下的联系人，可为本人/商务/助理/经纪人等
 - **Sample**: 样品，工厂提供给达人用于内容创作或直播带货的产品
 - **Sample_Dispatch**: 寄样记录，商务向达人发送样品的操作记录
 - **Collaboration**: 合作记录，达人与工厂的一次完整合作（从寄样到出结果）
@@ -158,3 +159,44 @@
 3. WHEN 样品寄出超过7天未签收 THEN THE System SHALL 向负责商务发送提醒
 4. WHEN 达人已上车但超过14天未录入结果 THEN THE System SHALL 向负责商务发送提醒
 5. WHEN 用户登录系统 THEN THE System SHALL 在通知中心显示未读提醒列表
+
+### Requirement 11: 达人身份统一与多联系人管理
+
+**User Story:** As a Business_Staff / Factory_Owner, I want 将同一达人在系统中统一为一个"达人主体"，并支持该达人拥有多个联系人（达人本人/商务/助理/经纪人等），so that 不同工厂/不同商务对该达人的样品与合作信息可以在同一达人视角下聚合，避免重复达人与信息割裂。
+
+#### 定义与规则
+
+- **Influencer（达人主体）**：业务对象，代表"同一个达人/同一个内容账号主体"
+- **InfluencerContact（达人联系人）**：挂在 Influencer 下的联系人，可为"本人/商务/助理/经纪人"等
+- **统一原则**：系统以"达人主体"为唯一归属，联系人只是该主体的协作入口与沟通对象
+- **安全原则**：手机号仅用于匹配与去重，不作为登录凭证；任何"仅凭手机号即可访问达人数据"的设计均视为不合规
+
+#### Acceptance Criteria
+
+1. WHEN Business_Staff 创建/编辑达人信息 THEN THE System SHALL 支持维护一个 Influencer（达人主体），并可新增/编辑多个 InfluencerContact（联系人）
+2. WHEN 创建联系人 THEN THE System SHALL 允许设置联系人类型（本人/商务/助理/经纪人/其他）与是否为主联系人（isPrimary）
+3. WHEN Business_Staff 在寄样或建立合作时选择达人 THEN THE System SHALL 支持同时选择"达人主体 + 具体联系人"，并将样品/合作归属到达人主体（Influencer）
+4. WHEN 同一达人在不同工厂/不同商务下被多次录入 THEN THE System SHALL 提供去重策略与合并能力：
+   - 优先级建议：平台账号ID/小程序绑定身份 > 手机号 > 其他弱标识（如微信号文本）
+   - Platform_Admin SHALL 支持手动合并两个 Influencer，并将其历史样品/合作/联系人统一归并
+5. WHEN 达人侧入口（未来）发生身份绑定 THEN THE System SHALL 以不可伪造身份（如小程序 OpenID/UnionID）绑定到某个 InfluencerContact，并由该 Contact 归属的 Influencer 决定可见数据范围
+6. WHEN 一个 Influencer 存在多个联系人 THEN THE System SHALL 允许多个联系人分别绑定自己的身份进入"达人视角"，但仅能看到该 Influencer 相关的样品与合作信息，并记录审计日志（谁在何时查看/确认）
+7. IF 联系人被移除或禁用 THEN THE System SHALL 立即撤销其进入达人视角的权限，不影响 Influencer 主体与历史数据
+8. WHEN 展示达人相关信息（商务端/老板端） THEN THE System SHALL 默认展示主联系人，并允许查看该达人所有联系人列表与最近沟通记录（如有）
+
+### Requirement 12: 商务账号管理（工厂老板）
+
+**User Story:** As a Factory_Owner, I want 管理工厂的商务账号（查看、添加、禁用、删除），so that 我可以控制团队成员的访问权限并确保不超出套餐配额。
+
+#### Acceptance Criteria
+
+1. WHEN Factory_Owner 查看商务账号列表 THEN THE System SHALL 显示所有商务账号的信息（姓名、邮箱、状态、加入时间）
+2. WHEN Factory_Owner 查看商务账号列表 THEN THE System SHALL 显示当前配额使用情况（已开通 X/Y 个商务账号）
+3. WHEN Factory_Owner 添加新商务账号 THEN THE System SHALL 检查是否超出配额限制（staffLimit）
+4. IF 添加商务账号时已达配额上限 THEN THE System SHALL 拒绝操作并提示"已达到商务账号数量上限（X/Y），请升级套餐"
+5. WHEN Factory_Owner 成功添加商务账号 THEN THE System SHALL 创建用户记录、设置初始密码、发送邀请邮件（可选）
+6. WHEN Factory_Owner 禁用商务账号 THEN THE System SHALL 更新账号状态为"已禁用"，该商务无法登录但数据保留
+7. WHEN Factory_Owner 启用已禁用的商务账号 THEN THE System SHALL 恢复账号状态为"正常"，该商务可以重新登录
+8. WHEN Factory_Owner 删除商务账号 THEN THE System SHALL 显示确认对话框，说明"删除后该商务无法登录，但其创建的达人和合作记录将保留"
+9. WHEN Factory_Owner 确认删除商务账号 THEN THE System SHALL 删除用户记录，但保留该商务创建的业务数据（达人、合作、寄样记录等）
+10. WHEN Factory_Owner 查看商务账号详情 THEN THE System SHALL 显示该商务的工作统计（管理的达人数量、创建的合作数量、寄样次数）

@@ -8,6 +8,7 @@ import reportRoutes from './report.routes';
 import platformRoutes from './platform.routes';
 import importExportRoutes from './import-export.routes';
 import notificationRoutes from './notification.routes';
+import staffManagementRoutes from './staff-management.routes';
 
 // 达人端口路由（独立模块）
 import influencerAuthRoutes from './influencer-auth.routes';
@@ -53,6 +54,9 @@ router.use('/', importExportRoutes);
 
 // Notification routes
 router.use('/notifications', notificationRoutes);
+
+// Staff management routes (factory owner only)
+router.use('/staff', staffManagementRoutes);
 
 // ============================================
 // 达人端口路由（独立模块，与商务端完全隔离）

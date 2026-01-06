@@ -6,6 +6,7 @@ Influencer Collaboration System (ICS) - 一个用于管理达人合作流程和�
 
 - 🔐 **用户认证** - JWT 认证，支持多角色（平台管理员、工厂老板、商务人员）
 - 👥 **达人管理** - 达人信息录入、标签分类、批量导入
+- 🔌 **Chrome 插件** - 一键采集抖音精选联盟达人信息（新功能！）
 - 📦 **样品管理** - 样品登记、寄送跟踪、库存管理
 - 🤝 **合作管理** - 看板式合作流程管理、状态跟踪、跟进记录
 - 📊 **效果追踪** - 合作效果录入、ROI 分析
@@ -126,3 +127,63 @@ npx prisma migrate reset
 ## License
 
 MIT
+
+
+## 🔌 Chrome 浏览器插件
+
+### Zilo 达人采集助手
+
+一键采集抖音精选联盟达人信息到 Zilo 系统的 Chrome 浏览器插件。
+
+#### 功能特性
+
+- ✨ 在抖音精选联盟达人详情页自动注入"添加到 Zilo"按钮
+- 🚀 一键采集达人信息（昵称、抖音号、粉丝数、类目、等级等）
+- 📊 实时统计采集成功和失败数量
+- 🔐 安全的 Token 认证机制
+- 💾 本地存储配置信息
+
+#### 快速开始
+
+1. **安装插件**
+   - 打开 Chrome 浏览器
+   - 访问 `chrome://extensions/`
+   - 启用"开发者模式"
+   - 点击"加载已解压的扩展程序"
+   - 选择 `chrome-extension` 文件夹
+
+2. **配置插件**
+   - 在 Zilo 系统登录并获取 Token（F12 > Application > Local Storage > token）
+   - 点击插件图标 > 配置设置
+   - 填写 API 地址（`http://localhost:3000/api`）和 Token
+   - 保存配置
+
+3. **开始采集**
+   - 打开抖音精选联盟达人详情页
+   - 点击"添加到 Zilo"按钮
+   - 等待采集完成
+   - 在 Zilo 系统中查看结果
+
+#### 详细文档
+
+- 📖 [安装使用指南](docs/Chrome插件安装使用指南.md)
+- 📋 [开发完成报告](docs/Chrome插件开发完成报告.md)
+- 🧪 [测试指南](测试Chrome插件.md)
+- 📝 [开发总结](Chrome插件开发总结.md)
+- ✅ [项目交付清单](Chrome插件项目交付清单.md)
+
+#### 文件结构
+
+```
+chrome-extension/
+├── manifest.json       # 插件配置文件
+├── background.js       # 后台服务
+├── content.js          # 内容脚本
+├── content.css         # 样式文件
+├── popup.html          # 弹出窗口 UI
+├── popup.js            # 弹出窗口逻辑
+├── test-api.html       # API 测试工具
+├── icons/              # 插件图标
+└── README.md           # 插件说明
+```
+

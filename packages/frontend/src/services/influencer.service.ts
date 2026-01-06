@@ -9,6 +9,7 @@ export interface Influencer {
   platform: Platform;
   platformId: string;
   phone: string | null;
+  followers: string | null;
   categories: string[];
   tags: string[];
   notes: string | null;
@@ -21,6 +22,7 @@ export interface CreateInfluencerInput {
   platform: Platform;
   platformId: string;
   phone?: string;
+  followers?: string;
   categories?: string[];
   tags?: string[];
   notes?: string;
@@ -31,6 +33,7 @@ export interface UpdateInfluencerInput {
   platform?: Platform;
   platformId?: string;
   phone?: string;
+  followers?: string;
   categories?: string[];
   tags?: string[];
   notes?: string;

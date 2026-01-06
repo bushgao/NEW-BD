@@ -1,0 +1,32 @@
+请在浏览器控制台执行以下脚本来测试登录响应：
+
+```javascript
+// 清空控制台
+console.clear();
+
+// 测试登录
+fetch('http://localhost:3000/api/auth/login', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    email: 'staff@demo.com',
+    password: 'staff123'
+  })
+})
+.then(res => res.json())
+.then(data => {
+  console.log('=== 登录响应 ===');
+  console.log(JSON.stringify(data, null, 2));
+  console.log('\n=== 用户角色 ===');
+  console.log('user.role:', data.data?.user?.role);
+  console.log('typeof user.role:', typeof data.data?.user?.role);
+  console.log('================');
+})
+.catch(err => {
+  console.error('登录失败:', err);
+});
+```
+
+请将输出截图发给我。

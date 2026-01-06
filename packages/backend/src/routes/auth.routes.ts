@@ -73,6 +73,12 @@ router.post(
     try {
       const { email, password, name, role, factoryId, factoryName } = req.body;
 
+      // 如果是商务人员加入工厂，检查工厂的商务账号配额
+      if (role === 'BUSINESS_STAFF' && factoryId) {
+        const { validateQuota } = await import('../services/platform.service');
+        await validateQuota(factoryId, 'staff');
+      }
+
       const result = await authService.register({
         email,
         password,

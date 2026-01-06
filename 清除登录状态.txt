@@ -1,0 +1,25 @@
+# 清除登录状态的方法
+
+## 方法 1：在浏览器 Console 中执行
+打开浏览器开发者工具（F12），在 Console 标签中执行：
+
+```javascript
+localStorage.clear();
+location.reload();
+```
+
+## 方法 2：手动清除 localStorage
+1. 打开开发者工具（F12）
+2. 切换到 Application 标签
+3. 左侧找到 Storage → Local Storage → http://localhost:5173
+4. 删除所有项目
+5. 刷新页面
+
+## 方法 3：使用隐私模式/无痕模式
+直接使用浏览器的隐私模式访问 http://localhost:5173/register
+
+## 方法 4：在应用内退出登录
+1. 访问 http://localhost:5173/app/admin
+2. 点击右上角用户头像
+3. 点击"退出登录"
+4. 然后访问 http://localhost:5173/register

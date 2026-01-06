@@ -132,6 +132,8 @@ model Influencer {
   platform   Platform
   platformId String
   phone      String?
+  wechat     String?  // 微信号
+  followers  String?  // 粉丝数（存储为字符串，如 "12000"）
   categories String[]
   tags       String[]
   notes      String?

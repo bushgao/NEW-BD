@@ -15,19 +15,20 @@ interface LoginFormValues {
 const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { setAuth } = useAuthStore();
+  const { setAuth, loginAsDemo } = useAuthStore();
   const [form] = Form.useForm();
 
   const handleSubmit = async (values: LoginFormValues) => {
     setLoading(true);
     try {
       const response = await authService.login(values);
-      
+
       if (response.success && response.data) {
         const { user, tokens } = response.data;
+        
         setAuth(user, tokens);
         message.success('登录成功');
-        
+
         // Redirect based on role
         const defaultPath = getDefaultPathForRole(user.role);
         navigate(defaultPath, { replace: true });
@@ -69,7 +70,7 @@ const LoginPage = () => {
           opacity: 0.1,
           maskImage: 'radial-gradient(ellipse 60% 50% at 50% 0%, #000 70%, transparent 100%)',
         }} />
-        
+
         {/* 动画光球 */}
         <div style={{
           position: 'absolute',
@@ -376,6 +377,29 @@ const LoginPage = () => {
                 达人登录入口
               </Button>
             </Link>
+
+            <Button
+              block
+              size="large"
+              onClick={() => {
+                loginAsDemo('FACTORY_OWNER');
+                navigate('/app/dashboard');
+                message.success('已进入演示模式');
+              }}
+              style={{
+                height: '48px',
+                borderRadius: '12px',
+                fontSize: '15px',
+                fontWeight: 700,
+                border: 'none',
+                background: '#334155',
+                color: '#ffffff',
+                boxShadow: '0 4px 12px rgba(30, 41, 59, 0.2)',
+              }}
+              icon={<AppstoreOutlined />}
+            >
+              直接预览 (演示模式)
+            </Button>
           </div>
 
           {/* 页脚文字 */}
