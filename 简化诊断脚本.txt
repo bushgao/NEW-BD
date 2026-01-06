@@ -1,0 +1,37 @@
+请在浏览器控制台（F12）中复制粘贴并执行以下命令：
+
+```javascript
+// 清空控制台
+console.clear();
+
+// 诊断脚本
+console.log('=== 侧边栏菜单诊断 ===\n');
+
+// 1. 检查 localStorage
+const authData = localStorage.getItem('auth-storage');
+if (authData) {
+  const parsed = JSON.parse(authData);
+  console.log('✅ localStorage 数据存在');
+  console.log('用户信息:', parsed.state?.user);
+  console.log('用户角色:', parsed.state?.user?.role);
+  console.log('角色类型:', typeof parsed.state?.user?.role);
+  console.log('是否认证:', parsed.state?.isAuthenticated);
+  
+  // 检查角色
+  const role = parsed.state?.user?.role;
+  if (role === 'BUSINESS_STAFF') {
+    console.log('\n✅ 角色正确: BUSINESS_STAFF');
+  } else if (role) {
+    console.log('\n❌ 角色错误:', role, '（应该是 BUSINESS_STAFF）');
+  } else {
+    console.log('\n❌ 角色未定义');
+  }
+} else {
+  console.log('❌ localStorage 中没有认证数据');
+}
+
+console.log('\n=== 诊断完成 ===');
+console.log('请将此输出截图发给我');
+```
+
+执行后，请截图发给我。

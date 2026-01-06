@@ -1,0 +1,27 @@
+请刷新页面后，在浏览器控制台执行以下命令：
+
+```javascript
+// 清空控制台
+console.clear();
+
+// 等待 1 秒后检查
+setTimeout(() => {
+  console.log('=== 菜单调试 ===');
+  
+  // 查看控制台中的 "Menu items length" 输出
+  console.log('请查看上面的 "Menu items length" 输出');
+  console.log('应该是 4，如果是 1 则说明菜单生成有问题');
+  
+  // 检查实际渲染的菜单项
+  const menuItems = document.querySelectorAll('.ant-menu-item');
+  console.log('实际渲染的菜单项数量:', menuItems.length);
+  
+  menuItems.forEach((item, index) => {
+    console.log(`菜单项 ${index + 1}:`, item.textContent);
+  });
+  
+  console.log('=== 调试完成 ===');
+}, 1000);
+```
+
+请将输出截图发给我。

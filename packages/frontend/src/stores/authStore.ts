@@ -8,6 +8,18 @@ export interface User {
   name: string;
   role: UserRole;
   factoryId?: string;
+  factory?: {
+    id: string;
+    name: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+    planType: 'FREE' | 'PROFESSIONAL' | 'ENTERPRISE';
+    staffLimit: number;
+    influencerLimit: number;
+    _count?: {
+      staff: number;
+      influencers: number;
+    };
+  };
 }
 
 interface AuthState {
@@ -16,9 +28,11 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   setAuth: (user: User, token: AuthToken) => void;
+  setUser: (user: User) => void;
   setLoading: (loading: boolean) => void;
   logout: () => void;
   updateToken: (token: AuthToken) => void;
+  loginAsDemo: (role?: UserRole) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -35,6 +49,7 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
           isLoading: false,
         }),
+      setUser: (user) => set({ user }),
       setLoading: (isLoading) => set({ isLoading }),
       logout: () =>
         set({
@@ -44,6 +59,17 @@ export const useAuthStore = create<AuthState>()(
           isLoading: false,
         }),
       updateToken: (token) => set({ token }),
+      loginAsDemo: (role: UserRole = 'FACTORY_OWNER') => set({
+        isAuthenticated: true,
+        token: { accessToken: 'demo-token', refreshToken: 'demo-refresh', expiresIn: 3600 },
+        user: {
+          id: 'demo-user-id',
+          name: 'Demo User',
+          email: 'demo@example.com',
+          role: role,
+          factoryId: 'demo-factory',
+        }
+      }),
     }),
     {
       name: 'auth-storage',

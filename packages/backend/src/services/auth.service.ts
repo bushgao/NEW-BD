@@ -31,6 +31,18 @@ export interface UserWithoutPassword {
   factoryId: string | null;
   createdAt: Date;
   updatedAt: Date;
+  factory?: {
+    id: string;
+    name: string;
+    status: string;
+    planType: string;
+    staffLimit: number;
+    influencerLimit: number;
+    _count?: {
+      staff: number;
+      influencers: number;
+    };
+  };
 }
 
 /**
@@ -177,7 +189,28 @@ export async function login(data: LoginInput): Promise<{ user: UserWithoutPasswo
   // Find user by email
   const user = await prisma.user.findUnique({
     where: { email },
-    include: { ownedFactory: true, factory: true },
+    include: { 
+      ownedFactory: {
+        include: {
+          _count: {
+            select: {
+              staff: true,
+              influencers: true,
+            },
+          },
+        },
+      }, 
+      factory: {
+        include: {
+          _count: {
+            select: {
+              staff: true,
+              influencers: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   if (!user) {
@@ -190,10 +223,31 @@ export async function login(data: LoginInput): Promise<{ user: UserWithoutPasswo
     throw createUnauthorizedError('邮箱或密码错误');
   }
 
-  // Determine factoryId based on role
+  // Determine factoryId and factory info based on role
   let factoryId = user.factoryId;
+  let factoryInfo = undefined;
+  
   if (user.role === 'FACTORY_OWNER' && user.ownedFactory) {
     factoryId = user.ownedFactory.id;
+    factoryInfo = {
+      id: user.ownedFactory.id,
+      name: user.ownedFactory.name,
+      status: user.ownedFactory.status,
+      planType: user.ownedFactory.planType,
+      staffLimit: user.ownedFactory.staffLimit,
+      influencerLimit: user.ownedFactory.influencerLimit,
+      _count: user.ownedFactory._count,
+    };
+  } else if (user.role === 'BUSINESS_STAFF' && user.factory) {
+    factoryInfo = {
+      id: user.factory.id,
+      name: user.factory.name,
+      status: user.factory.status,
+      planType: user.factory.planType,
+      staffLimit: user.factory.staffLimit,
+      influencerLimit: user.factory.influencerLimit,
+      _count: user.factory._count,
+    };
   }
 
   const userWithoutPassword: UserWithoutPassword = {
@@ -204,6 +258,7 @@ export async function login(data: LoginInput): Promise<{ user: UserWithoutPasswo
     factoryId,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
+    factory: factoryInfo,
   };
 
   const tokens = generateTokens(userWithoutPassword);
@@ -273,17 +328,59 @@ export async function refreshToken(refreshTokenStr: string): Promise<AuthToken> 
 export async function getCurrentUser(userId: string): Promise<UserWithoutPassword> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { ownedFactory: true },
+    include: { 
+      ownedFactory: {
+        include: {
+          _count: {
+            select: {
+              staff: true,
+              influencers: true,
+            },
+          },
+        },
+      },
+      factory: {
+        include: {
+          _count: {
+            select: {
+              staff: true,
+              influencers: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   if (!user) {
     throw createUnauthorizedError('用户不存在');
   }
 
-  // Determine factoryId based on role
+  // Determine factoryId and factory info based on role
   let factoryId = user.factoryId;
+  let factoryInfo = undefined;
+  
   if (user.role === 'FACTORY_OWNER' && user.ownedFactory) {
     factoryId = user.ownedFactory.id;
+    factoryInfo = {
+      id: user.ownedFactory.id,
+      name: user.ownedFactory.name,
+      status: user.ownedFactory.status,
+      planType: user.ownedFactory.planType,
+      staffLimit: user.ownedFactory.staffLimit,
+      influencerLimit: user.ownedFactory.influencerLimit,
+      _count: user.ownedFactory._count,
+    };
+  } else if (user.role === 'BUSINESS_STAFF' && user.factory) {
+    factoryInfo = {
+      id: user.factory.id,
+      name: user.factory.name,
+      status: user.factory.status,
+      planType: user.factory.planType,
+      staffLimit: user.factory.staffLimit,
+      influencerLimit: user.factory.influencerLimit,
+      _count: user.factory._count,
+    };
   }
 
   return {
@@ -294,5 +391,6 @@ export async function getCurrentUser(userId: string): Promise<UserWithoutPasswor
     factoryId,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
+    factory: factoryInfo,
   };
 }

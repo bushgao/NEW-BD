@@ -296,6 +296,66 @@ interface ReportService {
   // 导出报表
   exportReport(reportType: ReportType, params: ExportParams): Promise<Buffer>;
 }
+```
+
+### 6. 商务账号管理服务 (StaffManagementService)
+
+```typescript
+interface StaffManagementService {
+  // 获取工厂商务账号列表
+  listStaff(factoryId: string, pagination: Pagination): Promise<PaginatedResult<StaffMember>>;
+  // 获取商务账号详情（含工作统计）
+  getStaffDetail(staffId: string): Promise<StaffDetail>;
+  // 创建商务账号（检查配额）
+  createStaff(factoryId: string, data: CreateStaffInput): Promise<StaffMember>;
+  // 更新商务账号状态（启用/禁用）
+  updateStaffStatus(staffId: string, status: 'ACTIVE' | 'DISABLED'): Promise<StaffMember>;
+  // 删除商务账号（保留业务数据）
+  deleteStaff(staffId: string): Promise<void>;
+  // 检查配额使用情况
+  getQuotaUsage(factoryId: string): Promise<QuotaUsage>;
+}
+
+interface StaffMember {
+  id: string;
+  name: string;
+  email: string;
+  status: 'ACTIVE' | 'DISABLED';
+  factoryJoinedAt: Date;
+  createdAt: Date;
+}
+
+interface StaffDetail extends StaffMember {
+  // 工作统计
+  stats: {
+    influencerCount: number; // 管理的达人数量
+    collaborationCount: number; // 创建的合作数量
+    dispatchCount: number; // 寄样次数
+    closedDeals: number; // 成交数量
+    totalGmv: number; // 总GMV
+  };
+}
+
+interface CreateStaffInput {
+  name: string;
+  email: string;
+  password: string; // 初始密码
+}
+
+interface QuotaUsage {
+  staff: {
+    current: number; // 当前商务账号数量
+    limit: number; // 配额上限
+    available: number; // 剩余配额
+    isReached: boolean; // 是否达到上限
+  };
+  influencer: {
+    current: number; // 当前达人数量
+    limit: number; // 配额上限
+    available: number; // 剩余配额
+    isReached: boolean; // 是否达到上限
+  };
+}
 
 interface FactoryDashboard {
   // 关键指标
@@ -584,6 +644,26 @@ erDiagram
 - 如果上车状态为已上车 且 发布时间 + 14天 < 当前时间 且 无结果记录，应触发结果录入提醒
 
 **Validates: Requirements 10.1, 10.2, 10.3, 10.4**
+
+### Property 15: 商务账号配额检查正确性
+
+*For any* 工厂和其套餐配置，当尝试创建新商务账号时：
+- 如果当前商务账号数量 < staffLimit，应允许创建
+- 如果当前商务账号数量 >= staffLimit，应拒绝创建并返回配额超限错误
+- 配额使用情况应实时反映当前状态（current, limit, available, isReached）
+
+**Validates: Requirements 12.2, 12.3, 12.4**
+
+### Property 16: 商务账号删除数据保留
+
+*For any* 商务账号和其创建的业务数据（达人、合作、寄样记录），当删除该商务账号时：
+- 商务账号的用户记录应被删除
+- 该商务创建的达人记录应保留（factoryId 不变）
+- 该商务创建的合作记录应保留（businessStaffId 保留但用户不可登录）
+- 该商务创建的寄样记录应保留
+- 工厂老板和其他商务仍可查看这些业务数据
+
+**Validates: Requirements 12.8, 12.9**
 
 ## Error Handling
 

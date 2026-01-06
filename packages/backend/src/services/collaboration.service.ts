@@ -103,7 +103,13 @@ export async function createCollaboration(data: CreateCollaborationInput) {
 
   // 验证商务人员存在且属于该工厂
   const staff = await prisma.user.findFirst({
-    where: { id: businessStaffId, factoryId },
+    where: { 
+      id: businessStaffId,
+      OR: [
+        { factoryId },
+        { ownedFactory: { id: factoryId } }
+      ]
+    },
   });
 
   if (!staff) {

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>模拟抖音精选联盟达人详情页 - 测试用</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .author-header {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    .author-name {
+      font-size: 28px;
+      font-weight: bold;
+      margin: 0 0 20px 0;
+      color: #333;
+    }
+    .info-item {
+      margin: 12px 0;
+      font-size: 16px;
+      color: #666;
+    }
+    .info-label {
+      display: inline-block;
+      width: 100px;
+      font-weight: 500;
+      color: #999;
+    }
+    .douyin-id, .fans, .category, .level {
+      padding: 8px 0;
+    }
+    .notice {
+      background: #e6f7ff;
+      border: 1px solid #91d5ff;
+      border-radius: 4px;
+      padding: 15px;
+      margin: 20px 0;
+      color: #0050b3;
+    }
+    .notice h3 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+    }
+    .notice ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    .notice li {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="notice">
+    <h3>📌 测试说明</h3>
+    <p>这是一个模拟的抖音精选联盟达人详情页，用于测试 Zilo 达人采集插件。</p>
+    <ul>
+      <li>✅ 插件应该会在页面右上角注入"添加到 Zilo"按钮</li>
+      <li>✅ 点击按钮后会提取下方的达人信息</li>
+      <li>✅ 信息会通过 API 发送到 Zilo 系统</li>
+      <li>⚠️ 请确保已配置插件（API 地址和 Token）</li>
+      <li>⚠️ 请确保后端服务正在运行（http://localhost:3000）</li>
+    </ul>
+  </div>
+
+  <div class="author-header">
+    <h1 class="author-name">美食达人小王</h1>
+    
+    <div class="info-item douyin-id">
+      <span class="info-label">抖音号：</span>
+      <span>123456789</span>
+    </div>
+    
+    <div class="info-item fans">
+      <span class="info-label">粉丝数：</span>
+      <span>12.5万</span>
+    </div>
+    
+    <div class="info-item category">
+      <span class="info-label">主推类目：</span>
+      <span>生鲜</span>
+    </div>
+    
+    <div class="info-item level">
+      <span class="info-label">等级：</span>
+      <span>LV3</span>
+    </div>
+  </div>
+
+  <div class="notice" style="margin-top: 30px; background: #fff7e6; border-color: #ffd591; color: #ad6800;">
+    <h3>🔍 调试方法</h3>
+    <ul>
+      <li>按 F12 打开开发者工具</li>
+      <li>查看 Console 标签，寻找 [Zilo] 开头的日志</li>
+      <li>查看 Network 标签，检查 API 请求</li>
+      <li>如果按钮没出现，检查插件是否启用</li>
+    </ul>
+  </div>
+</body>
+</html>

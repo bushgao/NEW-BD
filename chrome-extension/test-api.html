@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zilo API 测试工具</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      font-size: 28px;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 32px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+      border: 1px solid #d9d9d9;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    textarea {
+      min-height: 120px;
+      font-family: 'Courier New', monospace;
+      resize: vertical;
+    }
+
+    .button {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 500;
+      color: #ffffff;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 12px;
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .button:active {
+      transform: translateY(0);
+    }
+
+    .button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .result {
+      margin-top: 24px;
+      padding: 16px;
+      background: #f5f7fa;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+
+    .result h3 {
+      font-size: 16px;
+      color: #333;
+      margin-bottom: 12px;
+    }
+
+    .result pre {
+      background: #ffffff;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .success {
+      border-left-color: #52c41a;
+    }
+
+    .error {
+      border-left-color: #ff4d4f;
+    }
+
+    .help-text {
+      font-size: 12px;
+      color: #999;
+      margin-top: 4px;
+    }
+
+    .example {
+      background: #f0f2f5;
+      padding: 12px;
+      border-radius: 6px;
+      margin-top: 8px;
+      font-size: 13px;
+      font-family: 'Courier New', monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Zilo API 测试工具</h1>
+    <p class="subtitle">测试 Chrome 插件与 Zilo 后端的连接</p>
+
+    <div class="form-group">
+      <label>API 地址</label>
+      <input type="text" id="apiUrl" value="http://localhost:3000/api" placeholder="http://localhost:3000/api">
+      <div class="help-text">Zilo 后端 API 地址</div>
+    </div>
+
+    <div class="form-group">
+      <label>登录令牌 (Token)</label>
+      <input type="password" id="token" placeholder="请输入您的登录令牌">
+      <div class="help-text">
+        在 Zilo 系统登录后，按 F12 > Application > Local Storage > token
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>测试数据 (JSON)</label>
+      <textarea id="testData">{
+  "nickname": "测试达人",
+  "platform": "DOUYIN",
+  "platformId": "test123456",
+  "phone": "13800138000",
+  "categories": ["生鲜"],
+  "tags": ["LV3"],
+  "notes": "粉丝数: 125000\n通过浏览器插件采集"
+}</textarea>
+      <div class="help-text">修改测试数据以测试不同场景</div>
+    </div>
+
+    <button class="button" id="testBtn">🚀 测试 API 连接</button>
+    <button class="button" id="healthBtn" style="background: linear-gradient(135deg, #52c41a 0%, #73d13d 100%);">
+      ❤️ 检查服务健康状态
+    </button>
+
+    <div id="result" style="display: none;"></div>
+
+    <div class="example">
+      <strong>💡 使用提示：</strong><br>
+      1. 确保 Zilo 后端服务正在运行 (npm run dev)<br>
+      2. 在 Zilo 系统中登录并获取 Token<br>
+      3. 填写 Token 后点击"测试 API 连接"<br>
+      4. 查看返回结果，确认连接正常
+    </div>
+  </div>
+
+  <script>
+    const apiUrlInput = document.getElementById('apiUrl');
+    const tokenInput = document.getElementById('token');
+    const testDataInput = document.getElementById('testData');
+    const testBtn = document.getElementById('testBtn');
+    const healthBtn = document.getElementById('healthBtn');
+    const resultDiv = document.getElementById('result');
+
+    // 显示结果
+    function showResult(title, data, isSuccess = true) {
+      resultDiv.style.display = 'block';
+      resultDiv.className = `result ${isSuccess ? 'success' : 'error'}`;
+      resultDiv.innerHTML = `
+        <h3>${title}</h3>
+        <pre>${JSON.stringify(data, null, 2)}</pre>
+      `;
+    }
+
+    // 测试健康状态
+    healthBtn.addEventListener('click', async () => {
+      healthBtn.disabled = true;
+      healthBtn.textContent = '检查中...';
+
+      try {
+        const apiUrl = apiUrlInput.value.trim().replace(/\/api$/, '');
+        const response = await fetch(`${apiUrl}/health`);
+        const data = await response.json();
+
+        if (response.ok) {
+          showResult('✅ 服务健康状态 - 正常', data, true);
+        } else {
+          showResult('❌ 服务健康状态 - 异常', data, false);
+        }
+      } catch (error) {
+        showResult('❌ 连接失败', {
+          error: error.message,
+          tip: '请确保后端服务正在运行'
+        }, false);
+      } finally {
+        healthBtn.disabled = false;
+        healthBtn.textContent = '❤️ 检查服务健康状态';
+      }
+    });
+
+    // 测试 API
+    testBtn.addEventListener('click', async () => {
+      const apiUrl = apiUrlInput.value.trim();
+      const token = tokenInput.value.trim();
+      const testDataStr = testDataInput.value.trim();
+
+      // 验证输入
+      if (!apiUrl) {
+        alert('请输入 API 地址');
+        return;
+      }
+
+      if (!token) {
+        alert('请输入登录令牌');
+        return;
+      }
+
+      let testData;
+      try {
+        testData = JSON.parse(testDataStr);
+      } catch (error) {
+        alert('测试数据格式错误，请检查 JSON 格式');
+        return;
+      }
+
+      // 发送请求
+      testBtn.disabled = true;
+      testBtn.textContent = '测试中...';
+
+      try {
+        const response = await fetch(`${apiUrl}/influencers`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(testData),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          showResult('✅ API 测试成功', {
+            status: response.status,
+            statusText: response.statusText,
+            data: result,
+          }, true);
+        } else {
+          showResult('❌ API 测试失败', {
+            status: response.status,
+            statusText: response.statusText,
+            error: result,
+          }, false);
+        }
+      } catch (error) {
+        showResult('❌ 请求失败', {
+          error: error.message,
+          tip: '请检查网络连接和后端服务状态'
+        }, false);
+      } finally {
+        testBtn.disabled = false;
+        testBtn.textContent = '🚀 测试 API 连接';
+      }
+    });
+
+    // 从 localStorage 加载配置
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedApiUrl = localStorage.getItem('testApiUrl');
+      const savedToken = localStorage.getItem('testToken');
+
+      if (savedApiUrl) apiUrlInput.value = savedApiUrl;
+      if (savedToken) tokenInput.value = savedToken;
+    });
+
+    // 保存配置到 localStorage
+    apiUrlInput.addEventListener('change', () => {
+      localStorage.setItem('testApiUrl', apiUrlInput.value);
+    });
+
+    tokenInput.addEventListener('change', () => {
+      localStorage.setItem('testToken', tokenInput.value);
+    });
+  </script>
+</body>
+</html>

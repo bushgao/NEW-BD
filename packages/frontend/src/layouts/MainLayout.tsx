@@ -60,6 +60,11 @@ const getMenuItems = (role: string): MenuProps['items'] => {
       icon: <BarChartOutlined />,
       label: '数据报表',
     },
+    {
+      key: '/app/team',
+      icon: <TeamOutlined />,
+      label: '团队管理',
+    },
   ];
 
   const adminItems = [
@@ -70,16 +75,23 @@ const getMenuItems = (role: string): MenuProps['items'] => {
     },
   ];
 
+  let result;
   switch (role) {
     case 'PLATFORM_ADMIN':
-      return [...commonItems, ...adminItems];
+      result = [...commonItems, ...adminItems];
+      break;
     case 'FACTORY_OWNER':
-      return [...commonItems, ...businessItems, ...ownerItems];
+      result = [...commonItems, ...businessItems, ...ownerItems];
+      break;
     case 'BUSINESS_STAFF':
-      return [...commonItems, ...businessItems];
+      result = [...commonItems, ...businessItems];
+      break;
     default:
-      return commonItems;
+      result = commonItems;
   }
+  
+  console.log('🔍 getMenuItems returning:', result);
+  return result;
 };
 
 const MainLayout = () => {

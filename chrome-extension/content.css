@@ -1,0 +1,101 @@
+/* Zilo 达人采集按钮样式 */
+
+.zilo-collect-button {
+  position: fixed;
+  top: 100px;
+  right: 20px;
+  z-index: 9999;
+  
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  
+  padding: 12px 24px;
+  
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 8px;
+  
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  user-select: none;
+}
+
+.zilo-collect-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+}
+
+.zilo-collect-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.zilo-collect-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.zilo-collect-button svg {
+  flex-shrink: 0;
+}
+
+/* 通知样式 */
+.zilo-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  
+  padding: 16px 24px;
+  
+  font-size: 14px;
+  color: #ffffff;
+  
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  
+  opacity: 1;
+  transition: opacity 0.3s ease;
+  
+  max-width: 400px;
+  word-wrap: break-word;
+}
+
+.zilo-notification-success {
+  background: linear-gradient(135deg, #52c41a 0%, #73d13d 100%);
+}
+
+.zilo-notification-error {
+  background: linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%);
+}
+
+.zilo-notification-info {
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .zilo-collect-button {
+    top: auto;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+  
+  .zilo-notification {
+    top: auto;
+    bottom: 80px;
+    right: 20px;
+    max-width: calc(100vw - 40px);
+  }
+}

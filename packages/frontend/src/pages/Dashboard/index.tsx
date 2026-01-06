@@ -37,6 +37,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
+import api from '../../services/api';
 import {
   getFactoryDashboard,
   getBusinessStaffDashboard,
@@ -100,8 +101,24 @@ const Dashboard = () => {
     }
   };
 
+  // 刷新用户信息（获取最新的工厂状态）
+  const refreshUserInfo = async () => {
+    try {
+      const response = await api.get('/auth/me');
+      if (response.data?.success && response.data?.data?.user) {
+        useAuthStore.getState().setUser(response.data.data.user);
+      }
+    } catch (error) {
+      console.error('Failed to refresh user info:', error);
+    }
+  };
+
   useEffect(() => {
-    loadDashboard();
+    // 只有工厂老板和商务人员需要加载看板数据和刷新用户信息
+    if (isFactoryOwner || isBusinessStaff) {
+      loadDashboard();
+      refreshUserInfo(); // 刷新用户信息以获取最新的工厂状态
+    }
   }, [period, isFactoryOwner, isBusinessStaff]);
 
   // 渲染变化指标
@@ -116,25 +133,125 @@ const Dashboard = () => {
     );
   };
 
-  // 非工厂老板和商务人员显示简单欢迎页面
+  // 非工厂老板和商务人员显示简单欢迎页面（平台管理员）
   if (!isFactoryOwner && !isBusinessStaff) {
     return (
-      <div>
-        <Title level={4}>欢迎回来,{user?.name}</Title>
-        <Card style={{ marginTop: 24 }}>
-          <Title level={5}>快速开始</Title>
-          <p>您可以使用以下功能:</p>
-          <ul>
-            <li>达人管理 - 添加和管理达人信息</li>
-            <li>合作管道 - 追踪合作进度</li>
-            <li>合作结果 - 录入和查看合作结果</li>
-          </ul>
-        </Card>
+      <div 
+        style={{ 
+          minHeight: '100vh',
+          background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
+          position: 'relative',
+          padding: '24px',
+        }}
+      >
+        {/* 背景装饰元素 */}
+        <div style={{
+          position: 'absolute',
+          top: '10%',
+          left: '5%',
+          width: '400px',
+          height: '400px',
+          background: 'linear-gradient(135deg, rgba(90, 200, 250, 0.08), rgba(191, 90, 242, 0.08))',
+          borderRadius: '50%',
+          filter: 'blur(80px)',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }} />
+        
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <Title level={4}>欢迎回来, {user?.name}</Title>
+          <Card variant="elevated" style={{ marginTop: 24 }}>
+            <CardContent>
+              <Title level={5}>平台管理</Title>
+              <p>作为平台管理员，您可以使用以下功能:</p>
+              <List
+                dataSource={[
+                  {
+                    icon: <TeamOutlined style={{ color: '#1890ff' }} />,
+                    title: '工厂管理',
+                    description: '审核和管理工厂账号',
+                    path: '/app/admin',
+                  },
+                  {
+                    icon: <UserOutlined style={{ color: '#52c41a' }} />,
+                    title: '套餐配置',
+                    description: '配置不同套餐的功能和配额',
+                    path: '/app/admin',
+                  },
+                ]}
+                renderItem={(item) => (
+                  <List.Item
+                    actions={[
+                      <Button type="link" onClick={() => navigate(item.path)}>
+                        前往
+                      </Button>,
+                    ]}
+                  >
+                    <List.Item.Meta
+                      avatar={item.icon}
+                      title={item.title}
+                      description={item.description}
+                    />
+                  </List.Item>
+                )}
+              />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   // 商务人员仪表盘
+  // 如果正在加载或数据为空，显示加载状态
+  if (isBusinessStaff && loading) {
+    return (
+      <div 
+        style={{ 
+          minHeight: '100vh',
+          background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '16px',
+        }}
+      >
+        <Spin size="large" />
+        <Text style={{ fontSize: 16, color: theme.colors.neutral[600] }}>
+          加载看板数据中...
+        </Text>
+      </div>
+    );
+  }
+
+  // 如果不是加载状态但数据为空，显示错误提示
+  if (isBusinessStaff && !staffDashboard) {
+    return (
+      <div 
+        style={{ 
+          minHeight: '100vh',
+          background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
+          padding: '24px',
+        }}
+      >
+        <Card variant="elevated">
+          <CardContent>
+            <Empty
+              description="无法加载看板数据，请刷新页面重试"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            >
+              <Button type="primary" onClick={() => loadDashboard()}>
+                重新加载
+              </Button>
+            </Empty>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // 商务人员仪表盘 - 有数据时显示
   if (isBusinessStaff && staffDashboard) {
     const activityIcons = {
       stage_change: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
@@ -143,8 +260,38 @@ const Dashboard = () => {
       result: <TrophyOutlined style={{ color: '#eb2f96' }} />,
     };
 
+    // 工厂状态横幅配置
+    const factoryStatus = user?.factory?.status;
+    const factoryStatusConfig = {
+      PENDING: {
+        color: '#faad14',
+        bgColor: '#fff7e6',
+        borderColor: '#ffd591',
+        icon: <ClockCircleOutlined />,
+        title: '工厂审核中',
+        message: '您的工厂正在审核中，审核通过后即可使用全部功能',
+      },
+      REJECTED: {
+        color: '#ff4d4f',
+        bgColor: '#fff1f0',
+        borderColor: '#ffa39e',
+        icon: <WarningOutlined />,
+        title: '工厂审核未通过',
+        message: '您的工厂审核未通过，请联系平台管理员了解详情',
+      },
+      SUSPENDED: {
+        color: '#ff4d4f',
+        bgColor: '#fff1f0',
+        borderColor: '#ffa39e',
+        icon: <WarningOutlined />,
+        title: '工厂已暂停',
+        message: '您的工厂已被暂停使用，请联系平台管理员',
+      },
+    };
+
+    const statusConfig = factoryStatus && factoryStatus !== 'APPROVED' ? factoryStatusConfig[factoryStatus] : null;
+
     return (
-      <Spin spinning={loading}>
         <div 
           style={{ 
             minHeight: '100vh',
@@ -180,6 +327,30 @@ const Dashboard = () => {
           }} />
           
           <div style={{ position: 'relative', zIndex: 1 }}>
+          {/* 工厂状态横幅 */}
+          {statusConfig && (
+            <AntCard
+              style={{
+                marginBottom: 24,
+                backgroundColor: statusConfig.bgColor,
+                borderColor: statusConfig.borderColor,
+              }}
+            >
+              <Space>
+                <span style={{ color: statusConfig.color, fontSize: 20 }}>
+                  {statusConfig.icon}
+                </span>
+                <div>
+                  <Text strong style={{ color: statusConfig.color, fontSize: 16 }}>
+                    {statusConfig.title}
+                  </Text>
+                  <br />
+                  <Text type="secondary">{statusConfig.message}</Text>
+                </div>
+              </Space>
+            </AntCard>
+          )}
+
           {/* 标题和周期切换 */}
           <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
             <Col>
@@ -593,68 +764,236 @@ const Dashboard = () => {
           )}
           </div>
         </div>
-      </Spin>
     );
   }
 
   // 工厂老板仪表盘
-  const pipelineTotal = factoryDashboard
-    ? Object.values(factoryDashboard.pipelineDistribution).reduce((a, b) => a + b, 0)
-    : 0;
-
-  return (
-    <Spin spinning={loading}>
+  // 如果正在加载或数据为空，显示加载状态
+  if (isFactoryOwner && loading) {
+    return (
       <div 
         style={{ 
           minHeight: '100vh',
           background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
-          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '16px',
+        }}
+      >
+        <Spin size="large" />
+        <Text style={{ fontSize: 16, color: theme.colors.neutral[600] }}>
+          加载看板数据中...
+        </Text>
+      </div>
+    );
+  }
+
+  // 如果不是加载状态但数据为空，显示错误提示
+  if (isFactoryOwner && !factoryDashboard) {
+    return (
+      <div 
+        style={{ 
+          minHeight: '100vh',
+          background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
           padding: '24px',
         }}
       >
-        {/* 背景装饰元素 */}
-        <div style={{
-          position: 'absolute',
-          top: '10%',
-          left: '5%',
-          width: '400px',
-          height: '400px',
-          background: 'linear-gradient(135deg, rgba(90, 200, 250, 0.08), rgba(191, 90, 242, 0.08))',
-          borderRadius: '50%',
-          filter: 'blur(80px)',
-          pointerEvents: 'none',
-          zIndex: 0,
-        }} />
-        <div style={{
-          position: 'absolute',
-          top: '40%',
-          right: '10%',
-          width: '500px',
-          height: '500px',
-          background: 'linear-gradient(135deg, rgba(255, 107, 107, 0.08), rgba(255, 217, 61, 0.08))',
-          borderRadius: '50%',
-          filter: 'blur(100px)',
-          pointerEvents: 'none',
-          zIndex: 0,
-        }} />
-        
-        <div style={{ position: 'relative', zIndex: 1 }}>
-        {/* 标题和周期切换 */}
-        <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
-          <Col>
-            <Title level={4} style={{ margin: 0 }}>
-              欢迎回来,{user?.name}
-            </Title>
+        <Card variant="elevated">
+          <CardContent>
+            <Empty
+              description="无法加载看板数据，请刷新页面重试"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            >
+              <Button type="primary" onClick={() => loadDashboard()}>
+                重新加载
+              </Button>
+            </Empty>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const pipelineTotal = factoryDashboard
+    ? Object.values(factoryDashboard.pipelineDistribution).reduce((a, b) => a + b, 0)
+    : 0;
+
+  // 工厂状态横幅配置
+  const factoryStatus = user?.factory?.status;
+  const factoryStatusConfig = {
+    PENDING: {
+      color: '#faad14',
+      bgColor: '#fff7e6',
+      borderColor: '#ffd591',
+      icon: <ClockCircleOutlined />,
+      title: '工厂审核中',
+      message: '您的工厂正在审核中，审核通过后即可使用全部功能',
+    },
+    REJECTED: {
+      color: '#ff4d4f',
+      bgColor: '#fff1f0',
+      borderColor: '#ffa39e',
+      icon: <WarningOutlined />,
+      title: '工厂审核未通过',
+      message: '您的工厂审核未通过，请联系平台管理员了解详情',
+    },
+    SUSPENDED: {
+      color: '#ff4d4f',
+      bgColor: '#fff1f0',
+      borderColor: '#ffa39e',
+      icon: <WarningOutlined />,
+      title: '工厂已暂停',
+      message: '您的工厂已被暂停使用，请联系平台管理员',
+    },
+  };
+
+  const statusConfig = factoryStatus && factoryStatus !== 'APPROVED' ? factoryStatusConfig[factoryStatus] : null;
+
+  // 配额信息
+  const staffCount = user?.factory?._count?.staff || 0;
+  const staffLimit = user?.factory?.staffLimit || 0;
+  const influencerCount = user?.factory?._count?.influencers || 0;
+  const influencerLimit = user?.factory?.influencerLimit || 0;
+  const planTypeLabels = {
+    FREE: '免费版',
+    PROFESSIONAL: '专业版',
+    ENTERPRISE: '企业版',
+  };
+  const planType = user?.factory?.planType || 'FREE';
+
+  return (
+    <div 
+      style={{ 
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
+        position: 'relative',
+        padding: '24px',
+      }}
+    >
+      {/* 背景装饰元素 */}
+      <div style={{
+        position: 'absolute',
+        top: '10%',
+        left: '5%',
+        width: '400px',
+        height: '400px',
+        background: 'linear-gradient(135deg, rgba(90, 200, 250, 0.08), rgba(191, 90, 242, 0.08))',
+        borderRadius: '50%',
+        filter: 'blur(80px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: '40%',
+        right: '10%',
+        width: '500px',
+        height: '500px',
+        background: 'linear-gradient(135deg, rgba(255, 107, 107, 0.08), rgba(255, 217, 61, 0.08))',
+        borderRadius: '50%',
+        filter: 'blur(100px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      
+      <div style={{ position: 'relative', zIndex: 1 }}>
+      {/* 工厂状态横幅 */}
+      {statusConfig && (
+        <AntCard
+          style={{
+            marginBottom: 24,
+            backgroundColor: statusConfig.bgColor,
+            borderColor: statusConfig.borderColor,
+          }}
+        >
+          <Space>
+            <span style={{ color: statusConfig.color, fontSize: 20 }}>
+              {statusConfig.icon}
+            </span>
+            <div>
+              <Text strong style={{ color: statusConfig.color, fontSize: 16 }}>
+                {statusConfig.title}
+              </Text>
+              <br />
+              <Text type="secondary">{statusConfig.message}</Text>
+            </div>
+          </Space>
+        </AntCard>
+      )}
+
+      {/* 标题和周期切换 */}
+      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+        <Col>
+          <Title level={4} style={{ margin: 0 }}>
+            欢迎回来,{user?.name}
+          </Title>
+          <Text type="secondary">
+            当前套餐：{planTypeLabels[planType as keyof typeof planTypeLabels]}
+          </Text>
+        </Col>
+        <Col>
+          <Segmented
+            options={[
+              { label: '本周', value: 'week' },
+              { label: '本月', value: 'month' },
+            ]}
+            value={period}
+            onChange={(value) => setPeriod(value as 'week' | 'month')}
+          />
+        </Col>
+      </Row>
+
+        {/* 配额使用情况 */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          <Col xs={24} sm={12}>
+            <Card variant="elevated">
+              <CardContent>
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text strong>商务账号配额</Text>
+                    <Text type={staffCount >= staffLimit ? 'danger' : 'secondary'}>
+                      {staffCount} / {staffLimit}
+                    </Text>
+                  </div>
+                  <Progress
+                    percent={(staffCount / staffLimit) * 100}
+                    strokeColor={staffCount >= staffLimit ? '#ff4d4f' : '#1890ff'}
+                    showInfo={false}
+                  />
+                  {staffCount >= staffLimit && (
+                    <Text type="danger" style={{ fontSize: 12 }}>
+                      已达上限，请升级套餐
+                    </Text>
+                  )}
+                </Space>
+              </CardContent>
+            </Card>
           </Col>
-          <Col>
-            <Segmented
-              options={[
-                { label: '本周', value: 'week' },
-                { label: '本月', value: 'month' },
-              ]}
-              value={period}
-              onChange={(value) => setPeriod(value as 'week' | 'month')}
-            />
+          <Col xs={24} sm={12}>
+            <Card variant="elevated">
+              <CardContent>
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text strong>达人数量配额</Text>
+                    <Text type={influencerCount >= influencerLimit ? 'danger' : 'secondary'}>
+                      {influencerCount} / {influencerLimit}
+                    </Text>
+                  </div>
+                  <Progress
+                    percent={(influencerCount / influencerLimit) * 100}
+                    strokeColor={influencerCount >= influencerLimit ? '#ff4d4f' : '#52c41a'}
+                    showInfo={false}
+                  />
+                  {influencerCount >= influencerLimit && (
+                    <Text type="danger" style={{ fontSize: 12 }}>
+                      已达上限，请升级套餐
+                    </Text>
+                  )}
+                </Space>
+              </CardContent>
+            </Card>
           </Col>
         </Row>
 
@@ -1158,7 +1497,6 @@ const Dashboard = () => {
         </Row>
         </div>
       </div>
-    </Spin>
   );
 };
 

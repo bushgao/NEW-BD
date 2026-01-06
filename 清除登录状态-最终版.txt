@@ -1,0 +1,45 @@
+# 清除登录状态 - 最终版
+
+## 问题根源
+找到了！问题在 Dashboard 页面的 `refreshUserInfo` 函数中：
+- 该函数调用 `/auth/me` 接口获取最新用户信息
+- 但是错误地将整个 API 响应 `{ success: true, data: { user: {...} } }` 传递给了 `setUser()`
+- 导致 localStorage 中存储的 user 对象变成了 `{ success: true, data: { user: {...} } }`
+- 所以 `user?.role` 访问的是 `undefined`，菜单只显示默认的"工作台"
+
+## 已修复的文件
+1. `packages/frontend/src/pages/Dashboard/index.tsx` - 修复 refreshUserInfo 函数，正确提取 user 对象
+2. `packages/frontend/src/stores/authStore.ts` - 移除临时的调试和修复代码
+3. `packages/frontend/src/pages/Login/index.tsx` - 移除调试代码
+4. `packages/frontend/src/layouts/MainLayout.tsx` - 移除调试代码
+
+## 清除步骤
+
+### 方法1：浏览器控制台（推荐）
+1. 打开浏览器开发者工具（F12）
+2. 切换到 Console 标签
+3. 输入以下命令并回车：
+   ```javascript
+   localStorage.removeItem('auth-storage')
+   location.reload()
+   ```
+
+### 方法2：Application 标签
+1. 打开浏览器开发者工具（F12）
+2. 切换到 Application 标签
+3. 左侧找到 Local Storage
+4. 点击你的网站域名
+5. 找到 auth-storage 并删除
+6. 刷新页面（F5）
+
+## 测试步骤
+1. 清除 localStorage
+2. 重新登录（使用 owner@demo.com / owner123 或 staff@demo.com / staff123）
+3. 登录后应该能看到完整的菜单（不只是"工作台"）
+4. 菜单应该保持显示，不会消失
+
+## 为什么之前的修复没用？
+之前我们在 authStore 中添加了数据修复逻辑，但是：
+1. Dashboard 的 `refreshUserInfo` 每次都会重新写入错误的数据
+2. 所以即使修复了，也会被立即覆盖
+3. 现在修复了源头，问题应该彻底解决了

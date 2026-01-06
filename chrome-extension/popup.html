@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zilo 达人采集助手</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 360px;
+      min-height: 400px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+      color: #ffffff;
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 12px;
+      background: #ffffff;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 12px;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+      border-radius: 8px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 600;
+      color: #667eea;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      background: #f5f7fa;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+
+    .status-label {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .status-value {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #52c41a;
+    }
+
+    .status-dot.error {
+      background: #ff4d4f;
+    }
+
+    .button {
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #ffffff;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 8px;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .button:active {
+      transform: translateY(0);
+    }
+
+    .button.secondary {
+      background: #ffffff;
+      color: #667eea;
+      border: 1px solid #667eea;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 1px solid #d9d9d9;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+    }
+
+    .help-text {
+      font-size: 12px;
+      color: #999;
+      margin-top: 4px;
+    }
+
+    .link {
+      color: #667eea;
+      text-decoration: none;
+      font-size: 12px;
+      display: inline-block;
+      margin-top: 8px;
+    }
+
+    .link:hover {
+      text-decoration: underline;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .message {
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    .message.success {
+      background: #f6ffed;
+      border: 1px solid #b7eb8f;
+      color: #52c41a;
+    }
+
+    .message.error {
+      background: #fff2f0;
+      border: 1px solid #ffccc7;
+      color: #ff4d4f;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">Z</div>
+      <h1>Zilo 达人采集助手</h1>
+      <div class="subtitle">一键采集抖音精选联盟达人</div>
+    </div>
+
+    <!-- 主视图 -->
+    <div id="mainView">
+      <div class="card">
+        <div class="status">
+          <span class="status-label">连接状态</span>
+          <span class="status-value">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">检查中...</span>
+          </span>
+        </div>
+
+        <div class="stats">
+          <div class="stat-item">
+            <div class="stat-value" id="totalCollected">0</div>
+            <div class="stat-label">已采集</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="totalErrors">0</div>
+            <div class="stat-label">失败</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <button class="button" id="settingsBtn">⚙️ 配置设置</button>
+        <button class="button secondary" id="helpBtn">📖 使用帮助</button>
+      </div>
+    </div>
+
+    <!-- 设置视图 -->
+    <div id="settingsView" class="hidden">
+      <div class="card">
+        <div id="message" class="message hidden"></div>
+
+        <div class="form-group">
+          <label class="form-label">API 地址</label>
+          <input type="text" class="form-input" id="apiUrl" placeholder="http://localhost:3000/api">
+          <div class="help-text">Zilo 后端 API 地址</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">登录令牌</label>
+          <input type="password" class="form-input" id="token" placeholder="请输入您的登录令牌">
+          <div class="help-text">
+            在 Zilo 系统中登录后，打开浏览器开发者工具 (F12)，在 Application > Local Storage 中找到 "token" 字段的值
+          </div>
+        </div>
+
+        <button class="button" id="saveBtn">💾 保存配置</button>
+        <button class="button secondary" id="backBtn">← 返回</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,118 +1,150 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Calculator, TrendingUp } from 'lucide-react';
 
 const InteractiveROI: React.FC = () => {
-  const [gmv, setGmv] = useState(10000);
-  const [commission, setCommission] = useState(20); // percent
-  const [sampleCost, setSampleCost] = useState(500); // fixed
-  const shipping = 150; // fixed - no longer needs state
+  const [investment, setInvestment] = useState(50000);
+  const [profitMargin, setProfitMargin] = useState(25);
+  const [efficiency, setEfficiency] = useState(1); // 1 = 100%
 
-  const commValue = gmv * (commission / 100);
-  const totalCost = commValue + sampleCost + shipping;
-  const profit = gmv - totalCost;
-  const roi = totalCost > 0 ? (gmv / totalCost).toFixed(2) : '0';
+  const [lostProfit, setLostProfit] = useState(0);
+  const [recoveredProfit, setRecoveredProfit] = useState(0);
+
+  useEffect(() => {
+    // Mock calculation logic
+    // Assume Zilo helps recover 15% of waste + efficiency boost
+    const baseWaste = investment * 0.2; // 20% waste in samples/hidden costs
+    const recovered = baseWaste * 0.6 * efficiency;
+    setLostProfit(baseWaste);
+    setRecoveredProfit(recovered * 1.5); // Multiplier for efficiency gain
+  }, [investment, profitMargin, efficiency]);
 
   return (
-    <section className="py-24 bg-white relative overflow-hidden">
-      {/* Decorative bg elements */}
-      <div className="absolute left-0 top-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100/50 via-white to-white -z-10"></div>
+    <section className="py-24 relative overflow-hidden">
+      <div className="container mx-auto px-6 relative z-10">
+        <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-2xl ring-1 ring-white/5">
+          <div className="grid lg:grid-cols-2 gap-16">
 
-      <div className="container mx-auto px-6">
-        <div className="max-w-6xl mx-auto bg-white border border-slate-200 rounded-[2.5rem] p-8 md:p-16 shadow-2xl shadow-slate-200/50">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            {/* Controls */}
             <div>
-              <h2 className="text-3xl md:text-4xl font-black mb-6 text-slate-900">
-                看清你的 <span className="text-brand-600">真实净利</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 text-brand-300 text-xs font-bold border border-brand-500/20 mb-6">
+                <Calculator className="w-4 h-4" />
+                <span>ROI 计算器</span>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-black mb-6 text-white">
+                你的钱到底 <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-purple-400">
+                  漏掉了多少？
+                </span>
               </h2>
-              <p className="text-slate-600 mb-10 text-lg leading-relaxed">
-                调整滑块，看看 Zilo 如何通过计入隐形成本，自动计算每次合作的真实价值。
+              <p className="text-slate-400 mb-10">
+                拖动下方滑块，看看使用 Zilo 系统化管理后，你能从混乱中挽回多少净利润。
               </p>
-              
+
               <div className="space-y-8">
                 <div>
-                  <div className="flex justify-between mb-3">
-                    <label className="text-sm font-bold text-slate-700">销售额 (GMV)</label>
-                    <span className="text-brand-600 font-mono font-bold bg-brand-50 px-2 py-1 rounded">¥{gmv.toLocaleString()}</span>
+                  <div className="flex justify-between mb-4">
+                    <label className="text-sm font-bold text-slate-300">月度 推广预算投入</label>
+                    <span className="text-brand-300 font-mono font-bold">¥{investment.toLocaleString()}</span>
                   </div>
-                  <input 
-                    type="range" min="1000" max="50000" step="500" 
-                    value={gmv} onChange={(e) => setGmv(Number(e.target.value))}
-                    className="w-full h-3 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-brand-500 hover:accent-brand-400"
+                  <input
+                    type="range"
+                    min="10000" max="500000" step="5000"
+                    value={investment}
+                    onChange={(e) => setInvestment(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-500 hover:accent-brand-400"
                   />
                 </div>
 
                 <div>
-                  <div className="flex justify-between mb-3">
-                    <label className="text-sm font-bold text-slate-700">佣金比例 (Commission)</label>
-                    <span className="text-purple-600 font-mono font-bold bg-purple-50 px-2 py-1 rounded">{commission}%</span>
+                  <div className="flex justify-between mb-4">
+                    <label className="text-sm font-bold text-slate-300">团队 执行效率提升</label>
+                    <span className="text-brand-300 font-mono font-bold">{(efficiency * 100).toFixed(0)}%</span>
                   </div>
-                  <input 
-                    type="range" min="0" max="50" step="1" 
-                    value={commission} onChange={(e) => setCommission(Number(e.target.value))}
-                    className="w-full h-3 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-purple-500 hover:accent-purple-400"
+                  <input
+                    type="range"
+                    min="1" max="2" step="0.1"
+                    value={efficiency}
+                    onChange={(e) => setEfficiency(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-500 hover:accent-brand-400"
                   />
-                </div>
-
-                <div>
-                   <div className="flex justify-between mb-3">
-                    <label className="text-sm font-bold text-slate-700">样品成本 (COGS)</label>
-                    <span className="text-pink-600 font-mono font-bold bg-pink-50 px-2 py-1 rounded">¥{sampleCost}</span>
+                  <div className="flex justify-between text-xs text-slate-500 mt-2">
+                    <span>现状 (100%)</span>
+                    <span>Zilo 加持 (200%)</span>
                   </div>
-                  <input 
-                    type="range" min="0" max="2000" step="50" 
-                    value={sampleCost} onChange={(e) => setSampleCost(Number(e.target.value))}
-                    className="w-full h-3 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-pink-500 hover:accent-pink-400"
-                  />
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-900 text-white rounded-3xl p-10 flex flex-col justify-center relative overflow-hidden shadow-2xl">
-               <div className="absolute top-0 right-0 p-8 opacity-10">
-                  <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                     <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                  </svg>
-               </div>
+            {/* Result Display */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-brand-500/20 blur-[100px] rounded-full opacity-40" />
+              <div className="relative bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-md">
+                <h3 className="text-slate-300 font-bold mb-8">预估每年挽回利润</h3>
 
-               <div className="space-y-5 relative z-10">
-                  <div className="flex justify-between items-center text-sm font-medium text-slate-400">
-                    <span>总收入 (Revenue)</span>
-                    <span className="text-white font-bold text-base">+ ¥{gmv.toLocaleString()}</span>
-                  </div>
-                  <div className="h-px bg-slate-800" />
-                  <div className="flex justify-between items-center text-sm font-medium text-slate-400">
-                    <span>佣金支出</span>
-                    <span className="text-red-400">- ¥{commValue.toLocaleString()}</span>
-                  </div>
-                   <div className="flex justify-between items-center text-sm font-medium text-slate-400">
-                    <span>产品成本</span>
-                    <span className="text-red-400">- ¥{sampleCost.toLocaleString()}</span>
-                  </div>
-                   <div className="flex justify-between items-center text-sm font-medium text-slate-400">
-                    <span>物流履约</span>
-                    <span className="text-red-400">- ¥{shipping.toLocaleString()}</span>
-                  </div>
-                  
-                  <div className="h-px bg-slate-700 my-6" />
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-5xl md:text-6xl font-black text-white tracking-tight">
+                    ¥{Math.round(recoveredProfit * 12).toLocaleString()}
+                  </span>
+                  <span className="text-green-400 font-bold text-sm bg-green-500/10 px-2 py-1 rounded border border-green-500/20">
+                    +{(recoveredProfit * 12 / investment * 10).toFixed(1)}% 净利提升
+                  </span>
+                </div>
+                <p className="text-slate-400 text-sm mb-10">
+                  *基于平均达人样品回收率和人效提升数据估算
+                </p>
 
-                  <div className="flex justify-between items-end">
-                    <span className="text-xl font-bold text-white">净利润 (Profit)</span>
-                    <motion.span 
-                      key={profit}
-                      initial={{ scale: 1.2, color: '#fff' }}
-                      animate={{ scale: 1, color: profit > 0 ? '#4ade80' : '#f87171' }}
-                      className="text-5xl font-black tracking-tight"
-                    >
-                      ¥{profit.toLocaleString()}
-                    </motion.span>
-                  </div>
-                  <div className="text-right">
-                    <span className={`inline-block text-sm font-bold px-3 py-1.5 rounded-full ${Number(roi) > 1 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                      ROI: {roi}x
-                    </span>
-                  </div>
-               </div>
+                <div className="space-y-4">
+                  <motion.div
+                    key={investment}
+                    initial={{ width: 0 }}
+                    whileInView={{ width: '100%' }}
+                    viewport={{ once: true }}
+                    className="bg-slate-800/50 rounded-lg p-4 border border-white/5"
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm text-slate-400">样品损耗节省</span>
+                      <span className="text-white font-mono">¥{Math.round(recoveredProfit * 0.4 * 12).toLocaleString()}</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-700 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: '40%' }}
+                        transition={{ duration: 1 }}
+                        className="h-full bg-blue-500"
+                      />
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    key={efficiency}
+                    viewport={{ once: true }}
+                    className="bg-slate-800/50 rounded-lg p-4 border border-white/5"
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm text-slate-400">人效提升产出</span>
+                      <span className="text-white font-mono">¥{Math.round(recoveredProfit * 0.6 * 12).toLocaleString()}</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-700 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: '60%' }}
+                        transition={{ duration: 1, delay: 0.2 }}
+                        className="h-full bg-purple-500"
+                      />
+                    </div>
+                  </motion.div>
+                </div>
+
+                <div className="mt-8 pt-8 border-t border-white/5 text-center">
+                  <button className="w-full py-4 rounded-xl bg-brand-500 hover:bg-brand-400 text-white font-bold transition-all shadow-[0_4px_20px_rgba(99,102,241,0.4)] hover:shadow-[0_4px_25px_rgba(99,102,241,0.6)] flex items-center justify-center gap-2 group">
+                    <TrendingUp className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    获取详细 ROI 分析报告
+                  </button>
+                </div>
+              </div>
             </div>
+
           </div>
         </div>
       </div>

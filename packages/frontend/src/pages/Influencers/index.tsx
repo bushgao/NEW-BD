@@ -12,6 +12,7 @@ import {
   Popconfirm,
   Typography,
   Tooltip,
+  Alert,
 } from 'antd';
 import {
   PlusOutlined,
@@ -20,6 +21,7 @@ import {
   EditOutlined,
   DeleteOutlined,
   TagsOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { Platform } from '@ics/shared';
@@ -34,15 +36,19 @@ import {
 } from '../../services/influencer.service';
 import { Card, CardContent } from '../../components/ui/Card';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useAuthStore } from '../../stores/authStore';
 import InfluencerModal from './InfluencerModal';
 import ImportModal from './ImportModal';
 import TagsModal from './TagsModal';
+// QuickAddModal 已废弃，改用 Chrome 浏览器插件实现达人采集
+// import QuickAddModal, { type QuickAddData } from './QuickAddModal';
 import { ExportButton } from '../Import';
 
 const { Title } = Typography;
 
 const InfluencersPage = () => {
   const { theme } = useTheme();
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<Influencer[]>([]);
   const [total, setTotal] = useState(0);
@@ -57,6 +63,12 @@ const InfluencersPage = () => {
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [tagsModalVisible, setTagsModalVisible] = useState(false);
   const [tagsInfluencer, setTagsInfluencer] = useState<Influencer | null>(null);
+  // const [quickAddModalVisible, setQuickAddModalVisible] = useState(false);
+
+  // 配额检查
+  const influencerCount = user?.factory?._count?.influencers || 0;
+  const influencerLimit = user?.factory?.influencerLimit || 0;
+  const isQuotaReached = influencerCount >= influencerLimit;
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -136,6 +148,10 @@ const InfluencersPage = () => {
   };
 
   const handleAdd = () => {
+    if (isQuotaReached) {
+      message.warning('已达到达人数量上限，请升级套餐');
+      return;
+    }
     setEditingInfluencer(null);
     setModalVisible(true);
   };
@@ -171,6 +187,28 @@ const InfluencersPage = () => {
     }
   };
 
+  // 快速添加功能已废弃，改用 Chrome 浏览器插件
+  // const handleQuickAdd = () => {
+  //   if (isQuotaReached) {
+  //     message.warning('已达到达人数量上限，请升级套餐');
+  //     return;
+  //   }
+  //   setQuickAddModalVisible(true);
+  // };
+
+  // const handleQuickAddSuccess = async (data: QuickAddData) => {
+  //   try {
+  //     const { createInfluencer } = await import('../../services/influencer.service');
+  //     await createInfluencer(data);
+  //     message.success('达人添加成功');
+  //     setQuickAddModalVisible(false);
+  //     fetchData();
+  //     fetchMetadata();
+  //   } catch (error: any) {
+  //     message.error(error.response?.data?.error?.message || '添加失败');
+  //   }
+  // };
+
   const columns: ColumnsType<Influencer> = [
     {
       title: '昵称',
@@ -194,6 +232,29 @@ const InfluencersPage = () => {
       key: 'platformId',
       width: 150,
       ellipsis: true,
+    },
+    {
+      title: '粉丝数',
+      dataIndex: 'followers',
+      key: 'followers',
+      width: 120,
+      render: (followers: string | null) => {
+        if (!followers) return '-';
+        // 格式化显示粉丝数
+        const num = parseInt(followers);
+        if (isNaN(num)) return followers;
+        if (num >= 10000) {
+          return (num / 10000).toFixed(1) + '万';
+        }
+        return num.toLocaleString();
+      },
+    },
+    {
+      title: '微信号',
+      dataIndex: 'wechat',
+      key: 'wechat',
+      width: 130,
+      render: (wechat: string | null) => wechat || '-',
     },
     {
       title: '手机号',
@@ -310,19 +371,35 @@ const InfluencersPage = () => {
       }} />
       
       <div style={{ position: 'relative', zIndex: 1 }}>
+      {/* 配额警告 */}
+      {isQuotaReached && (
+        <Alert
+          message="达人数量已达上限"
+          description={`当前已添加 ${influencerCount}/${influencerLimit} 个达人，请升级套餐以添加更多达人。`}
+          type="warning"
+          icon={<WarningOutlined />}
+          showIcon
+          closable
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
           <Title level={4} style={{ margin: 0 }}>
             达人管理
           </Title>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            已添加 {influencerCount}/{influencerLimit} 个达人
+          </Typography.Text>
         </Col>
         <Col>
           <Space>
             <ExportButton types={['influencers']} buttonText="导出" showDateRange={false} />
-            <Button icon={<UploadOutlined />} onClick={() => setImportModalVisible(true)}>
+            <Button icon={<UploadOutlined />} onClick={() => setImportModalVisible(true)} disabled={isQuotaReached}>
               批量导入
             </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd} disabled={isQuotaReached}>
               添加达人
             </Button>
           </Space>
@@ -409,6 +486,13 @@ const InfluencersPage = () => {
         onClose={handleTagsClose}
         allTags={allTags}
       />
+
+      {/* QuickAddModal 已废弃，改用 Chrome 浏览器插件实现达人采集 */}
+      {/* <QuickAddModal
+        visible={quickAddModalVisible}
+        onCancel={() => setQuickAddModalVisible(false)}
+        onSuccess={handleQuickAddSuccess}
+      /> */}
       </div>
     </div>
   );

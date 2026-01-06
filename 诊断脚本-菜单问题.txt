@@ -1,0 +1,55 @@
+请在浏览器控制台（F12）执行以下脚本来诊断菜单问题：
+
+=== 步骤 1：查看 localStorage 中的完整数据 ===
+```javascript
+const authData = localStorage.getItem('auth-storage');
+console.log('=== localStorage 原始数据 ===');
+console.log(authData);
+
+if (authData) {
+  const parsed = JSON.parse(authData);
+  console.log('=== 解析后的数据 ===');
+  console.log(parsed);
+  console.log('=== state.user ===');
+  console.log(parsed.state?.user);
+  console.log('=== state.user.role ===');
+  console.log(parsed.state?.user?.role);
+}
+```
+
+=== 步骤 2：查看 React 组件中的状态 ===
+刷新页面后，查看控制台中的 "=== MainLayout Debug ===" 输出
+
+=== 步骤 3：手动测试菜单生成 ===
+```javascript
+// 测试菜单生成函数
+const testRole = 'BUSINESS_STAFF';
+console.log('测试角色:', testRole);
+
+const commonItems = [
+  {
+    key: '/app/dashboard',
+    label: '工作台',
+  },
+];
+
+const businessItems = [
+  {
+    key: '/app/influencers',
+    label: '达人管理',
+  },
+  {
+    key: '/app/pipeline',
+    label: '合作管道',
+  },
+  {
+    key: '/app/results',
+    label: '合作结果',
+  },
+];
+
+const menuItems = [...commonItems, ...businessItems];
+console.log('应该显示的菜单项:', menuItems);
+```
+
+请将以上三个步骤的输出结果截图发给我。

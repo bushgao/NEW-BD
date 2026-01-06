@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Zilo 达人采集助手",
+  "version": "1.0.0",
+  "description": "一键采集抖音精选联盟达人信息到 Zilo 系统",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://buyin.jinritemai.com/*",
+    "https://fxg.jinritemai.com/*",
+    "https://*.jinritemai.com/*",
+    "http://localhost:3000/*",
+    "http://localhost:5173/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://buyin.jinritemai.com/*",
+        "https://fxg.jinritemai.com/*",
+        "https://*.jinritemai.com/*",
+        "file:///*"
+      ],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

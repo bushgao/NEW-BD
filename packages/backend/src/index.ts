@@ -14,8 +14,35 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
+// CORS 配置 - 支持前端和 Chrome 插件
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  // Chrome 插件使用 chrome-extension:// 协议
+];
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // 允许没有 origin 的请求（如 Postman、Chrome 插件）
+    if (!origin) return callback(null, true);
+    
+    // 允许 chrome-extension:// 协议
+    if (origin.startsWith('chrome-extension://')) {
+      return callback(null, true);
+    }
+    
+    // 检查是否在允许列表中
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // 生产环境可以从环境变量读取
+    if (process.env.CORS_ORIGIN && origin === process.env.CORS_ORIGIN) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
 }));
 app.use(express.json());

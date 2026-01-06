@@ -19,6 +19,7 @@ const ReportsPage = lazy(() => import('../pages/Reports'));
 const AdminPage = lazy(() => import('../pages/Admin'));
 const NotificationsPage = lazy(() => import('../pages/Notifications'));
 const UIShowcase = lazy(() => import('../pages/UIShowcase'));
+const TeamPage = lazy(() => import('../pages/Team'));
 
 // 达人端口页面
 const InfluencerLoginPage = lazy(() => import('../pages/InfluencerPortal/Login'));
@@ -198,6 +199,16 @@ const AppRoutes = () => {
             element={
               <RoleRoute allowedRoles={['FACTORY_OWNER']}>
                 <ReportsPage />
+              </RoleRoute>
+            }
+          />
+
+          {/* Team Management - Factory Owner only */}
+          <Route
+            path="team"
+            element={
+              <RoleRoute allowedRoles={['FACTORY_OWNER']}>
+                <TeamPage />
               </RoleRoute>
             }
           />

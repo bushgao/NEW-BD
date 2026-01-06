@@ -48,6 +48,8 @@ const createInfluencerValidation = [
     .withMessage('无效的平台类型'),
   body('platformId').trim().notEmpty().withMessage('请输入平台账号ID'),
   body('phone').optional().trim(),
+  body('wechat').optional().trim(),
+  body('followers').optional().trim(),
   body('categories').optional().isArray().withMessage('类目必须是数组'),
   body('tags').optional().isArray().withMessage('标签必须是数组'),
   body('notes').optional().trim(),
@@ -61,6 +63,8 @@ const updateInfluencerValidation = [
     .withMessage('无效的平台类型'),
   body('platformId').optional().trim().notEmpty().withMessage('平台账号ID不能为空'),
   body('phone').optional().trim(),
+  body('wechat').optional().trim(),
+  body('followers').optional().trim(),
   body('categories').optional().isArray().withMessage('类目必须是数组'),
   body('tags').optional().isArray().withMessage('标签必须是数组'),
   body('notes').optional().trim(),
@@ -292,7 +296,7 @@ router.post(
         throw createBadRequestError('用户未关联工厂');
       }
 
-      const { nickname, platform, platformId, phone, categories, tags, notes } = req.body;
+      const { nickname, platform, platformId, phone, wechat, followers, categories, tags, notes } = req.body;
 
       const influencer = await influencerService.create({
         factoryId,
@@ -300,6 +304,8 @@ router.post(
         platform,
         platformId,
         phone,
+        wechat,
+        followers,
         categories,
         tags,
         notes,
@@ -334,13 +340,15 @@ router.put(
         throw createBadRequestError('用户未关联工厂');
       }
 
-      const { nickname, platform, platformId, phone, categories, tags, notes } = req.body;
+      const { nickname, platform, platformId, phone, wechat, followers, categories, tags, notes } = req.body;
 
       const influencer = await influencerService.update(req.params.id, factoryId, {
         nickname,
         platform,
         platformId,
         phone,
+        wechat,
+        followers,
         categories,
         tags,
         notes,

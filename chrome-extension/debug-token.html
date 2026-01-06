@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Token 调试工具</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 30px;
+    }
+    .section {
+      margin-bottom: 30px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #555;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: monospace;
+    }
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    button {
+      background: #1890ff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    button:hover {
+      background: #40a9ff;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .success {
+      background: #f6ffed;
+      border: 1px solid #b7eb8f;
+      color: #52c41a;
+    }
+    .error {
+      background: #fff2f0;
+      border: 1px solid #ffccc7;
+      color: #ff4d4f;
+    }
+    .info {
+      background: #e6f7ff;
+      border: 1px solid #91d5ff;
+      color: #1890ff;
+    }
+    .step {
+      background: #fafafa;
+      padding: 15px;
+      border-left: 3px solid #1890ff;
+      margin-bottom: 15px;
+    }
+    .step-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #1890ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Token 调试工具</h1>
+    
+    <div class="step">
+      <div class="step-title">第一步：获取 Token</div>
+      <div>
+        1. 打开 Zilo 系统：<a href="http://localhost:5173" target="_blank">http://localhost:5173</a><br>
+        2. 使用工厂老板账号登录：owner@demo.com / owner123<br>
+        3. 按 F12 打开开发者工具<br>
+        4. Application > Local Storage > http://localhost:5173<br>
+        5. 复制 token 的值，粘贴到下面
+      </div>
+    </div>
+
+    <div class="section">
+      <label for="apiUrl">API 地址：</label>
+      <input type="text" id="apiUrl" value="http://localhost:3000/api" />
+    </div>
+
+    <div class="section">
+      <label for="token">Token（从 Local Storage 复制）：</label>
+      <textarea id="token" placeholder="粘贴 token 到这里..."></textarea>
+    </div>
+
+    <button onclick="testToken()">🧪 测试 Token</button>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    async function testToken() {
+      const apiUrl = document.getElementById('apiUrl').value.trim();
+      const token = document.getElementById('token').value.trim();
+      const resultDiv = document.getElementById('result');
+
+      if (!token) {
+        resultDiv.innerHTML = '<div class="result error">❌ 请先输入 Token</div>';
+        return;
+      }
+
+      resultDiv.innerHTML = '<div class="result info">⏳ 正在测试...</div>';
+
+      try {
+        // 测试 1: 验证 Token 格式
+        console.log('Token:', token);
+        console.log('Token 长度:', token.length);
+
+        // 测试 2: 尝试解析 JWT
+        let tokenPayload = null;
+        try {
+          const parts = token.split('.');
+          if (parts.length === 3) {
+            const payload = JSON.parse(atob(parts[1]));
+            tokenPayload = payload;
+            console.log('Token Payload:', payload);
+          }
+        } catch (e) {
+          console.error('Token 解析失败:', e);
+        }
+
+        // 测试 3: 调用 API
+        const response = await fetch(`${apiUrl}/influencers?page=1&pageSize=10`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+
+        let html = '';
+
+        if (response.ok) {
+          html += '<div class="result success">';
+          html += '✅ Token 验证成功！\n\n';
+          html += '用户信息：\n';
+          if (tokenPayload) {
+            html += `- 用户 ID: ${tokenPayload.userId}\n`;
+            html += `- 角色: ${tokenPayload.role}\n`;
+            html += `- 工厂 ID: ${tokenPayload.factoryId || '无'}\n`;
+            html += `- 邮箱: ${tokenPayload.email}\n`;
+          }
+          html += '\nAPI 响应：\n';
+          html += JSON.stringify(data, null, 2);
+          html += '</div>';
+        } else {
+          html += '<div class="result error">';
+          html += '❌ Token 验证失败\n\n';
+          html += `状态码: ${response.status}\n`;
+          html += `错误信息: ${data.error?.message || JSON.stringify(data)}\n\n`;
+          
+          if (tokenPayload) {
+            html += 'Token 内容：\n';
+            html += JSON.stringify(tokenPayload, null, 2);
+          }
+          html += '</div>';
+        }
+
+        resultDiv.innerHTML = html;
+
+      } catch (error) {
+        resultDiv.innerHTML = `<div class="result error">❌ 请求失败\n\n${error.message}\n\n请确保后端服务正在运行：http://localhost:3000</div>`;
+        console.error('测试失败:', error);
+      }
+    }
+
+    // 自动填充 token（如果有）
+    window.addEventListener('load', () => {
+      const savedToken = localStorage.getItem('debug_token');
+      if (savedToken) {
+        document.getElementById('token').value = savedToken;
+      }
+    });
+
+    // 保存 token
+    document.getElementById('token').addEventListener('blur', (e) => {
+      const token = e.target.value.trim();
+      if (token) {
+        localStorage.setItem('debug_token', token);
+      }
+    });
+  </script>
+</body>
+</html>
