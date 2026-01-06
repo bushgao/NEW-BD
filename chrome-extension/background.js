@@ -44,13 +44,18 @@ function parseFollowers(followersStr) {
 }
 
 // 处理达人采集
-async function collectInfluencer(data) {
+async function collectInfluencer(data, pageToken) {
   try {
     const config = await getConfig();
     
-    if (!config.token) {
-      throw new Error('请先在插件设置中配置登录令牌');
+    // 优先使用页面传来的 token（当前登录用户），如果没有则使用插件配置的 token
+    const token = pageToken || config.token;
+    
+    if (!token) {
+      throw new Error('请先登录系统或在插件设置中配置登录令牌');
     }
+
+    console.log('[Zilo Background] 使用 token:', pageToken ? '页面 token（当前登录用户）' : '插件配置 token');
 
     // 准备请求数据
     const requestData = {
@@ -81,7 +86,7 @@ async function collectInfluencer(data) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.token}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(requestData),
     });
@@ -140,8 +145,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('[Zilo Background] 收到消息:', request);
   
   if (request.action === 'collectInfluencer') {
-    // 异步处理
-    collectInfluencer(request.data).then(sendResponse);
+    // 异步处理，传递页面 token
+    collectInfluencer(request.data, request.pageToken).then(sendResponse);
     return true; // 保持消息通道开启
   }
   
