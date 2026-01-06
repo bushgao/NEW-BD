@@ -366,14 +366,14 @@
     }
   }
 
-  // 自动点击眼睛图标显示联系方式
+  // 自动点击所有眼睛图标显示联系方式
   async function clickEyeIcon() {
     try {
-      console.log('[Zilo] 正在查找眼睛图标...');
+      console.log('[Zilo] 正在查找所有眼睛图标...');
       
-      let eyeIcon = null;
+      const eyeIcons = [];
       
-      // 策略1：查找16x16的小图标（根据你提供的信息）
+      // 策略1：查找所有16x16的小图标
       const allImages = document.querySelectorAll('img');
       for (const img of allImages) {
         const rect = img.getBoundingClientRect();
@@ -382,67 +382,55 @@
           // 检查是否在联系方式区域附近
           const parent = img.closest('[class*="contact"], [class*="info"], [class*="detail"]');
           if (parent || img.src.includes('elabpic.com')) {
-            eyeIcon = img;
+            eyeIcons.push(img);
             console.log('[Zilo] 找到眼睛图标 (16x16 img):', img.src.substring(0, 50));
-            break;
           }
         }
       }
       
-      // 策略2：如果没找到img，尝试查找SVG
-      if (!eyeIcon) {
-        const allSvgs = document.querySelectorAll('svg');
-        for (const svg of allSvgs) {
-          const rect = svg.getBoundingClientRect();
-          if (rect.width >= 14 && rect.width <= 20 && rect.height >= 14 && rect.height <= 20) {
-            const parent = svg.closest('[class*="contact"], [class*="info"], [class*="detail"]');
-            if (parent) {
-              eyeIcon = svg;
-              console.log('[Zilo] 找到眼睛图标 (16x16 svg)');
-              break;
-            }
-          }
-        }
-      }
-      
-      // 策略3：查找联系方式字段附近的可点击元素
-      if (!eyeIcon) {
-        const keywords = ['手机号', '微信号', '联系方式'];
-        for (const keyword of keywords) {
-          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
-          let node;
-          while (node = walker.nextNode()) {
-            if (node.textContent.includes(keyword)) {
-              let parent = node.parentElement;
-              for (let i = 0; i < 3 && parent; i++) {
-                // 查找附近的小图标
-                const nearbyImages = parent.querySelectorAll('img');
-                for (const img of nearbyImages) {
-                  const rect = img.getBoundingClientRect();
-                  if (rect.width > 10 && rect.width < 30 && rect.height > 10 && rect.height < 30) {
-                    eyeIcon = img;
-                    console.log('[Zilo] 找到眼睛图标 (联系方式附近)');
-                    break;
+      // 策略2：查找联系方式字段附近的所有可点击元素
+      const keywords = ['手机号', '微信号'];
+      for (const keyword of keywords) {
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        while (node = walker.nextNode()) {
+          if (node.textContent.includes(keyword)) {
+            let parent = node.parentElement;
+            for (let i = 0; i < 3 && parent; i++) {
+              // 查找附近的小图标
+              const nearbyImages = parent.querySelectorAll('img');
+              for (const img of nearbyImages) {
+                const rect = img.getBoundingClientRect();
+                if (rect.width > 10 && rect.width < 30 && rect.height > 10 && rect.height < 30) {
+                  // 避免重复添加
+                  if (!eyeIcons.includes(img)) {
+                    eyeIcons.push(img);
+                    console.log(`[Zilo] 找到眼睛图标 (${keyword}附近)`);
                   }
                 }
-                if (eyeIcon) break;
-                parent = parent.parentElement;
               }
+              parent = parent.parentElement;
             }
-            if (eyeIcon) break;
           }
-          if (eyeIcon) break;
         }
       }
       
-      if (eyeIcon) {
-        // 点击眼睛图标（如果是img，点击其父元素）
-        const clickTarget = eyeIcon.tagName === 'IMG' ? eyeIcon.parentElement : eyeIcon;
-        clickTarget.click();
-        console.log('[Zilo] 已点击眼睛图标，等待联系方式显示...');
+      if (eyeIcons.length > 0) {
+        console.log(`[Zilo] 共找到 ${eyeIcons.length} 个眼睛图标，开始点击...`);
         
-        // 等待 2 秒让联系方式显示
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // 点击所有找到的眼睛图标
+        for (let i = 0; i < eyeIcons.length; i++) {
+          const eyeIcon = eyeIcons[i];
+          const clickTarget = eyeIcon.tagName === 'IMG' ? eyeIcon.parentElement : eyeIcon;
+          clickTarget.click();
+          console.log(`[Zilo] 已点击第 ${i + 1} 个眼睛图标`);
+          
+          // 每次点击后等待 500ms
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        // 最后再等待 1.5 秒让所有联系方式显示
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
         return true;
       } else {
