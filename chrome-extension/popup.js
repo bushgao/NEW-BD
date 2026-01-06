@@ -11,6 +11,7 @@ const settingsBtn = document.getElementById('settingsBtn');
 const helpBtn = document.getElementById('helpBtn');
 const saveBtn = document.getElementById('saveBtn');
 const backBtn = document.getElementById('backBtn');
+const pasteTokenBtn = document.getElementById('pasteTokenBtn');
 const apiUrlInput = document.getElementById('apiUrl');
 const tokenInput = document.getElementById('token');
 const messageDiv = document.getElementById('message');
@@ -117,11 +118,35 @@ function showHelp() {
   chrome.tabs.create({ url: helpUrl });
 }
 
+// 从剪贴板粘贴 Token
+async function pasteToken() {
+  try {
+    const text = await navigator.clipboard.readText();
+    
+    if (!text || text.trim().length === 0) {
+      showMessage('剪贴板为空', 'error');
+      return;
+    }
+    
+    // 验证 Token 格式（JWT 通常是三段用.分隔）
+    if (text.includes('.') && text.split('.').length === 3) {
+      tokenInput.value = text.trim();
+      showMessage('Token 已粘贴！请点击"保存配置"', 'success');
+    } else {
+      showMessage('剪贴板内容不是有效的 Token', 'error');
+    }
+  } catch (error) {
+    console.error('粘贴失败:', error);
+    showMessage('粘贴失败：' + error.message, 'error');
+  }
+}
+
 // 事件监听
 settingsBtn.addEventListener('click', showSettingsView);
 helpBtn.addEventListener('click', showHelp);
 saveBtn.addEventListener('click', saveConfig);
 backBtn.addEventListener('click', showMainView);
+pasteTokenBtn.addEventListener('click', pasteToken);
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {

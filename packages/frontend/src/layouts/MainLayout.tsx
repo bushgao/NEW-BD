@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Avatar, Dropdown, Typography } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, Typography, Button, message } from 'antd';
 import {
   DashboardOutlined,
   TeamOutlined,
@@ -13,6 +13,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   TrophyOutlined,
+  SyncOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useAuthStore } from '../stores/authStore';
@@ -96,9 +97,10 @@ const getMenuItems = (role: string): MenuProps['items'] => {
 
 const MainLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuthStore();
+  const { user, logout, token } = useAuthStore();
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
     navigate(key);
@@ -107,6 +109,40 @@ const MainLayout = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  // 复制 Token 到剪贴板（用于同步到 Chrome 插件）
+  const handleSyncToExtension = async () => {
+    if (!token) {
+      message.error('未找到登录令牌');
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      // 复制 Token 到剪贴板
+      await navigator.clipboard.writeText(token.accessToken);
+      
+      // 显示成功提示
+      message.success({
+        content: (
+          <div>
+            <div>✅ Token 已复制到剪贴板！</div>
+            <div style={{ fontSize: 12, marginTop: 4, color: '#666' }}>
+              请打开 Chrome 插件 → 点击"设置" → 粘贴到"登录令牌"输入框 → 保存
+            </div>
+          </div>
+        ),
+        duration: 5,
+      });
+      
+      console.log('✅ Token 已复制，当前用户:', user?.name);
+    } catch (error) {
+      console.error('复制失败:', error);
+      message.error('复制失败，请手动复制');
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const userMenuItems: MenuProps['items'] = [
@@ -165,6 +201,14 @@ const MainLayout = () => {
             {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <Button 
+              icon={<SyncOutlined />} 
+              onClick={handleSyncToExtension}
+              loading={syncing}
+              size="small"
+            >
+              同步插件
+            </Button>
             <NotificationBadge />
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
