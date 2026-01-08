@@ -1,7 +1,10 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { query, validationResult } from 'express-validator';
 import { authenticate, requireRoles } from '../middleware/auth.middleware';
+import { checkPermission, checkStaffDataAccess } from '../middleware/permission.middleware';
 import * as reportService from '../services/report.service';
+import * as trendService from '../services/trend.service';
+import prisma from '../lib/prisma';
 
 const router = Router();
 
@@ -63,6 +66,68 @@ router.get(
       res.json({
         success: true,
         data: report,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// ==================== 趋势数据 ====================
+
+/**
+ * GET /api/reports/dashboard/trends
+ * 获取趋势数据
+ * @permission advanced.viewCostData - 如果查看成本数据，需要此权限
+ */
+router.get(
+  '/dashboard/trends',
+  requireRoles('FACTORY_OWNER', 'PLATFORM_ADMIN'),
+  [
+    query('period').isIn(['week', 'month', 'quarter']).withMessage('周期参数无效'),
+    query('dataType').isIn(['gmv', 'cost', 'roi']).withMessage('数据类型参数无效'),
+  ],
+  validateRequest,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const factoryId = req.user!.factoryId;
+      if (!factoryId) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
+        });
+        return;
+      }
+
+      const period = req.query.period as 'week' | 'month' | 'quarter';
+      const dataType = req.query.dataType as 'gmv' | 'cost' | 'roi';
+      
+      // 如果查看成本数据，需要检查权限
+      if (dataType === 'cost' && req.user!.role === 'BUSINESS_STAFF') {
+        const userWithPermissions = await prisma.user.findUnique({
+          where: { id: req.user!.userId },
+          select: { permissions: true },
+        });
+        
+        const permissions = userWithPermissions?.permissions as any;
+        if (!permissions?.advanced?.viewCostData) {
+          res.status(403).json({
+            success: false,
+            error: { 
+              code: 'PERMISSION_DENIED', 
+              message: '您没有权限查看成本数据',
+              details: { permission: 'advanced.viewCostData' }
+            },
+          });
+          return;
+        }
+      }
+      
+      const trendData = await trendService.getTrendData(factoryId, period, dataType);
+
+      res.json({
+        success: true,
+        data: trendData,
       });
     } catch (error) {
       next(error);
@@ -282,4 +347,443 @@ router.get(
   }
 );
 
+// ==================== ROI 分析数据 ====================
+
+/**
+ * GET /api/reports/dashboard/roi-analysis
+ * 获取 ROI 分析数据
+ */
+router.get(
+  '/dashboard/roi-analysis',
+  requireRoles('FACTORY_OWNER', 'PLATFORM_ADMIN'),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const factoryId = req.user!.factoryId;
+      if (!factoryId) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
+        });
+        return;
+      }
+
+      const roiAnalysis = await reportService.getRoiAnalysis(factoryId);
+
+      res.json({
+        success: true,
+        data: roiAnalysis,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// ==================== 管道漏斗数据 ====================
+
+/**
+ * GET /api/reports/dashboard/pipeline-funnel
+ * 获取管道漏斗数据
+ */
+router.get(
+  '/dashboard/pipeline-funnel',
+  requireRoles('FACTORY_OWNER', 'PLATFORM_ADMIN'),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const factoryId = req.user!.factoryId;
+      if (!factoryId) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
+        });
+        return;
+      }
+
+      const pipelineFunnel = await reportService.getPipelineFunnel(factoryId);
+
+      res.json({
+        success: true,
+        data: pipelineFunnel,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// ==================== 商务对比分析 ====================
+
+/**
+ * GET /api/reports/staff/comparison
+ * 获取商务对比分析数据
+ */
+router.get(
+  '/staff/comparison',
+  requireRoles('FACTORY_OWNER', 'PLATFORM_ADMIN'),
+  [
+    query('staffIds').isString().withMessage('商务ID列表参数无效'),
+  ],
+  validateRequest,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const factoryId = req.user!.factoryId;
+      if (!factoryId) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
+        });
+        return;
+      }
+
+      // 解析商务ID列表（逗号分隔）
+      const staffIdsStr = req.query.staffIds as string;
+      const staffIds = staffIdsStr.split(',').filter(id => id.trim());
+
+      if (staffIds.length < 2 || staffIds.length > 3) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_PARAMS', message: '请选择2-3个商务进行对比' },
+        });
+        return;
+      }
+
+      const comparison = await reportService.getStaffComparison(factoryId, staffIds);
+
+      res.json({
+        success: true,
+        data: comparison,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// ==================== 每日摘要数据 ====================
+
+/**
+ * GET /api/reports/dashboard/daily-summary
+ * 获取每日摘要数据（用于快捷操作面板）
+ * Requirements: FR-1.3
+ */
+router.get(
+  '/dashboard/daily-summary',
+  requireRoles('FACTORY_OWNER', 'PLATFORM_ADMIN'),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const factoryId = req.user!.factoryId;
+      if (!factoryId) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
+        });
+        return;
+      }
+
+      const dailySummary = await reportService.getDailySummary(factoryId);
+
+      res.json({
+        success: true,
+        data: dailySummary,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+
+// ==================== 商务工作质量评分 ====================
+
+/**
+ * GET /api/reports/staff/:staffId/quality-score
+ * 获取商务工作质量评分
+ * Requirements: FR-1.2
+ * @permission dataVisibility.viewOthersPerformance - 如果查看其他商务的数据，需要此权限
+ */
+router.get(
+  '/staff/:staffId/quality-score',
+  requireRoles('FACTORY_OWNER', 'BUSINESS_STAFF', 'PLATFORM_ADMIN'),
+  checkStaffDataAccess(),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { staffId } = req.params;
+      const factoryId = req.user!.factoryId;
+
+      if (!factoryId) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
+        });
+        return;
+      }
+
+      // 验证商务是否属于该工厂
+      const staff = await prisma.user.findFirst({
+        where: {
+          id: staffId,
+          factoryId,
+          role: 'BUSINESS_STAFF'
+        }
+      });
+
+      if (!staff) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'STAFF_NOT_FOUND', message: '商务人员不存在或不属于该工厂' },
+        });
+        return;
+      }
+
+      const qualityScore = await reportService.getStaffQualityScore(staffId, factoryId);
+
+      res.json({
+        success: true,
+        data: qualityScore,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+
+// ==================== 商务工作日历 ====================
+
+/**
+ * GET /api/reports/staff/:staffId/calendar
+ * 获取商务工作日历数据
+ * Requirements: FR-1.2
+ * @permission dataVisibility.viewOthersPerformance - 如果查看其他商务的数据，需要此权限
+ */
+router.get(
+  '/staff/:staffId/calendar',
+  requireRoles('FACTORY_OWNER', 'BUSINESS_STAFF', 'PLATFORM_ADMIN'),
+  checkStaffDataAccess(),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { staffId } = req.params;
+      const { month } = req.query;
+      const factoryId = req.user!.factoryId;
+
+      if (!factoryId) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
+        });
+        return;
+      }
+
+      if (!month || typeof month !== 'string') {
+        res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_MONTH', message: '请提供有效的月份参数 (格式: YYYY-MM)' },
+        });
+        return;
+      }
+
+      // 验证月份格式
+      const monthRegex = /^\d{4}-\d{2}$/;
+      if (!monthRegex.test(month)) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_MONTH_FORMAT', message: '月份格式错误，应为 YYYY-MM' },
+        });
+        return;
+      }
+
+      // 验证商务是否属于该工厂
+      const staff = await prisma.user.findFirst({
+        where: {
+          id: staffId,
+          factoryId,
+          role: 'BUSINESS_STAFF'
+        }
+      });
+
+      if (!staff) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'STAFF_NOT_FOUND', message: '商务人员不存在或不属于该工厂' },
+        });
+        return;
+      }
+
+      const calendarData = await reportService.getStaffCalendar(staffId, factoryId, month);
+
+      res.json({
+        success: true,
+        data: calendarData,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+
+// ==================== 智能提醒系统 ====================
+
+/**
+ * GET /api/reports/dashboard/alerts
+ * 获取智能提醒列表
+ * Requirements: FR-1.3
+ */
+router.get(
+  '/dashboard/alerts',
+  requireRoles('FACTORY_OWNER', 'BUSINESS_STAFF', 'PLATFORM_ADMIN'),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const factoryId = req.user!.factoryId;
+      const userId = req.user!.userId;
+
+      if (!factoryId) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
+        });
+        return;
+      }
+
+      const alerts = await reportService.getSmartAlerts(factoryId, userId);
+
+      res.json({
+        success: true,
+        data: alerts,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * PUT /api/reports/dashboard/alerts/:alertId/read
+ * 标记提醒为已读
+ * Requirements: FR-1.3
+ */
+router.put(
+  '/dashboard/alerts/:alertId/read',
+  requireRoles('FACTORY_OWNER', 'BUSINESS_STAFF', 'PLATFORM_ADMIN'),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { alertId } = req.params;
+      const userId = req.user!.userId;
+
+      await reportService.markAlertAsRead(alertId, userId);
+
+      res.json({
+        success: true,
+        message: '已标记为已读',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * PUT /api/reports/dashboard/alerts/read-all
+ * 标记所有提醒为已读
+ * Requirements: FR-1.3
+ */
+router.put(
+  '/dashboard/alerts/read-all',
+  requireRoles('FACTORY_OWNER', 'BUSINESS_STAFF', 'PLATFORM_ADMIN'),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const factoryId = req.user!.factoryId;
+      const userId = req.user!.userId;
+
+      if (!factoryId) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
+        });
+        return;
+      }
+
+      await reportService.markAllAlertsAsRead(userId, factoryId);
+
+      res.json({
+        success: true,
+        message: '已全部标记为已读',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// ==================== 今日工作清单 ====================
+
+/**
+ * GET /api/reports/my-dashboard/today-todos
+ * 获取今日待办事项
+ * Requirements: FR-2.4
+ */
+router.get(
+  '/my-dashboard/today-todos',
+  requireRoles('BUSINESS_STAFF', 'FACTORY_OWNER'),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const factoryId = req.user!.factoryId;
+      const staffId = req.user!.userId;
+
+      if (!factoryId) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
+        });
+        return;
+      }
+
+      const todosData = await reportService.getTodayTodos(factoryId, staffId);
+
+      res.json({
+        success: true,
+        data: todosData,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * GET /api/reports/my-dashboard/work-stats
+ * 获取工作统计
+ * Requirements: FR-2.4
+ */
+router.get(
+  '/my-dashboard/work-stats',
+  requireRoles('BUSINESS_STAFF', 'FACTORY_OWNER'),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const factoryId = req.user!.factoryId;
+      const staffId = req.user!.userId;
+      const period = (req.query.period as 'today' | 'week' | 'month') || 'week';
+
+      if (!factoryId) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
+        });
+        return;
+      }
+
+      const workStatsData = await reportService.getWorkStats(factoryId, staffId, period);
+
+      res.json({
+        success: true,
+        data: workStatsData,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 export default router;
+
+

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>直接测试智能建议</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1890ff;
+            border-bottom: 3px solid #1890ff;
+            padding-bottom: 10px;
+        }
+        .step {
+            margin: 20px 0;
+            padding: 20px;
+            background: #fafafa;
+            border-left: 4px solid #1890ff;
+            border-radius: 4px;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #1890ff;
+        }
+        button {
+            padding: 10px 24px;
+            margin: 5px;
+            background: #1890ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        button:hover {
+            background: #40a9ff;
+        }
+        button:disabled {
+            background: #d9d9d9;
+            cursor: not-allowed;
+        }
+        .result {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        .success {
+            background: #f6ffed;
+            border: 1px solid #b7eb8f;
+            color: #52c41a;
+        }
+        .error {
+            background: #fff2f0;
+            border: 1px solid #ffccc7;
+            color: #ff4d4f;
+        }
+        .info {
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+            color: #1890ff;
+        }
+        .warning {
+            background: #fffbe6;
+            border: 1px solid #ffe58f;
+            color: #faad14;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border: 1px solid #d9d9d9;
+        }
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .suggestion-card {
+            background: white;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .suggestion-card h4 {
+            margin: 0 0 10px 0;
+            color: #1890ff;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-right: 8px;
+        }
+        .badge-high {
+            background: #f6ffed;
+            color: #52c41a;
+            border: 1px solid #b7eb8f;
+        }
+        .badge-medium {
+            background: #fff7e6;
+            color: #fa8c16;
+            border: 1px solid #ffd591;
+        }
+        .badge-low {
+            background: #fafafa;
+            color: #8c8c8c;
+            border: 1px solid #d9d9d9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 智能建议功能 - 直接测试</h1>
+        
+        <div class="step">
+            <h3>步骤 1: 获取认证信息</h3>
+            <button onclick="step1()">🔑 获取 Token</button>
+            <div id="step1Result"></div>
+        </div>
+
+        <div class="step">
+            <h3>步骤 2: 获取达人列表</h3>
+            <button onclick="step2()" id="btn2" disabled>👥 获取达人列表</button>
+            <div id="step2Result"></div>
+        </div>
+
+        <div class="step">
+            <h3>步骤 3: 选择达人并测试建议</h3>
+            <select id="influencerSelect" disabled>
+                <option value="">请先获取达人列表</option>
+            </select>
+            <br><br>
+            <button onclick="testAll()" id="btn3" disabled>🚀 测试全部建议（样品+报价+排期）</button>
+            <div id="step3Result"></div>
+        </div>
+
+        <div class="step">
+            <h3>📊 测试结果汇总</h3>
+            <div id="summary"></div>
+        </div>
+    </div>
+
+    <script>
+        let token = '';
+        let influencers = [];
+        let testResults = {
+            sample: null,
+            price: null,
+            schedule: null
+        };
+
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const className = type;
+            element.innerHTML = `<div class="result ${className}">${message}</div>`;
+        }
+
+        function step1() {
+            token = localStorage.getItem('token');
+            
+            if (token) {
+                log('step1Result', `✅ Token 已获取<br><small>${token.substring(0, 50)}...</small>`, 'success');
+                document.getElementById('btn2').disabled = false;
+            } else {
+                log('step1Result', '❌ 未找到 Token<br>请先登录系统：<a href="http://localhost:5173" target="_blank">打开登录页面</a>', 'error');
+            }
+        }
+
+        async function step2() {
+            log('step2Result', '⏳ 正在获取达人列表...', 'info');
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/influencers?page=1&pageSize=50', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.success && data.data && data.data.data) {
+                    influencers = data.data.data;
+                    
+                    const select = document.getElementById('influencerSelect');
+                    select.innerHTML = '<option value="">请选择达人</option>';
+                    select.disabled = false;
+                    
+                    influencers.forEach(inf => {
+                        const option = document.createElement('option');
+                        option.value = inf.id;
+                        option.textContent = `${inf.nickname} (${inf.platform})`;
+                        select.appendChild(option);
+                    });
+
+                    log('step2Result', `✅ 成功获取 ${influencers.length} 个达人`, 'success');
+                    document.getElementById('btn3').disabled = false;
+                } else {
+                    log('step2Result', `❌ 获取失败<br><pre>${JSON.stringify(data, null, 2)}</pre>`, 'error');
+                }
+            } catch (error) {
+                log('step2Result', `❌ 请求失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAll() {
+            const influencerId = document.getElementById('influencerSelect').value;
+            
+            if (!influencerId) {
+                alert('请先选择达人');
+                return;
+            }
+
+            log('step3Result', '⏳ 正在测试全部建议类型...', 'info');
+            
+            const types = ['sample', 'price', 'schedule'];
+            let html = '';
+
+            for (const type of types) {
+                try {
+                    const url = `http://localhost:3001/api/collaborations/suggestions?influencerId=${influencerId}&type=${type}`;
+                    
+                    const response = await fetch(url, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+                    testResults[type] = data;
+
+                    if (data.success) {
+                        const suggestions = data.data.suggestions || [];
+                        html += `<div class="suggestion-card">
+                            <h4>✅ ${getTypeName(type)} (${suggestions.length} 条建议)</h4>`;
+                        
+                        if (suggestions.length > 0) {
+                            suggestions.forEach(s => {
+                                const badgeClass = s.confidence === 'high' ? 'badge-high' : 
+                                                  s.confidence === 'medium' ? 'badge-medium' : 'badge-low';
+                                const confidenceText = s.confidence === 'high' ? '强烈推荐' :
+                                                      s.confidence === 'medium' ? '建议' : '可选';
+                                
+                                html += `
+                                    <div style="margin: 10px 0; padding: 10px; background: #fafafa; border-radius: 4px;">
+                                        <span class="badge ${badgeClass}">${confidenceText}</span>
+                                        <strong>${s.label}</strong>
+                                        <br>
+                                        <small style="color: #8c8c8c;">💡 ${s.reason}</small>
+                                    </div>
+                                `;
+                            });
+                        } else {
+                            html += '<p style="color: #8c8c8c;">暂无建议（可能是该达人没有历史数据）</p>';
+                        }
+                        
+                        html += '</div>';
+                    } else {
+                        html += `<div class="suggestion-card">
+                            <h4>❌ ${getTypeName(type)} 失败</h4>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>`;
+                    }
+                } catch (error) {
+                    html += `<div class="suggestion-card">
+                        <h4>❌ ${getTypeName(type)} 错误</h4>
+                        <p>${error.message}</p>
+                    </div>`;
+                }
+            }
+
+            document.getElementById('step3Result').innerHTML = html;
+            updateSummary();
+        }
+
+        function getTypeName(type) {
+            const names = {
+                'sample': '样品建议',
+                'price': '报价建议',
+                'schedule': '排期建议'
+            };
+            return names[type] || type;
+        }
+
+        function updateSummary() {
+            const total = Object.values(testResults).filter(r => r !== null).length;
+            const success = Object.values(testResults).filter(r => r && r.success).length;
+            const totalSuggestions = Object.values(testResults)
+                .filter(r => r && r.success)
+                .reduce((sum, r) => sum + (r.data.suggestions?.length || 0), 0);
+
+            let html = `
+                <div class="result ${success === total ? 'success' : 'warning'}">
+                    <h4>测试完成</h4>
+                    <p>✅ 成功: ${success}/${total}</p>
+                    <p>💡 总建议数: ${totalSuggestions}</p>
+                </div>
+            `;
+
+            if (totalSuggestions === 0) {
+                html += `
+                    <div class="result warning">
+                        <h4>⚠️ 注意</h4>
+                        <p>没有获取到任何建议，可能的原因：</p>
+                        <ul>
+                            <li>该达人没有历史合作记录</li>
+                            <li>数据库中没有样品数据</li>
+                            <li>后端算法返回空结果</li>
+                        </ul>
+                        <p><strong>这是正常的！</strong> 智能建议基于历史数据，新达人或新系统可能没有足够的数据。</p>
+                    </div>
+                `;
+            }
+
+            document.getElementById('summary').innerHTML = html;
+        }
+
+        // 页面加载时自动执行步骤1
+        window.onload = function() {
+            console.log('🚀 页面加载完成');
+            step1();
+        };
+    </script>
+</body>
+</html>

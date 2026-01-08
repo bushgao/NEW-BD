@@ -325,3 +325,46 @@ export async function addFollowUp(
   });
   return response.data.data.followUp;
 }
+
+
+/**
+ * 获取智能建议
+ */
+export async function getCollaborationSuggestions(
+  influencerId: string,
+  type: 'sample' | 'price' | 'schedule'
+): Promise<CollaborationSuggestion> {
+  const params = new URLSearchParams();
+  params.append('influencerId', influencerId);
+  params.append('type', type);
+
+  const response = await api.get(`/collaborations/suggestions?${params.toString()}`);
+  return response.data.data;
+}
+
+export interface CollaborationSuggestion {
+  type: 'sample' | 'price' | 'schedule';
+  suggestions: {
+    field: string;
+    value: any;
+    label: string;
+    reason: string;
+    confidence: 'high' | 'medium' | 'low';
+  }[];
+}
+
+/**
+ * 批量更新合作记录
+ */
+export async function batchUpdateCollaborations(
+  ids: string[],
+  operation: 'dispatch' | 'updateStage' | 'setDeadline',
+  data: any
+): Promise<{ updated: number; failed: number; errors: any[] }> {
+  const response = await api.post('/collaborations/batch-update', {
+    ids,
+    operation,
+    data,
+  });
+  return response.data.data;
+}

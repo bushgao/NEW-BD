@@ -572,3 +572,792 @@ export async function getPlatformDetailedStats(startDate?: Date, endDate?: Date)
     }, {} as Record<string, number>),
   };
 }
+
+// ============ Factory Staff Management ============
+
+export interface FactoryStaffMember {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: Date;
+  _count?: {
+    influencers: number;
+    collaborations: number;
+  };
+}
+
+export interface StaffWorkStats {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  factoryId: string;
+  factoryName: string;
+  createdAt: Date;
+  influencersAdded: number;
+  collaborationsCreated: number;
+  collaborationsCompleted: number;
+  successRate: number;
+}
+
+/**
+ * 获取工厂的商务列表
+ */
+export async function getFactoryStaff(factoryId: string): Promise<FactoryStaffMember[]> {
+  const factory = await prisma.factory.findUnique({
+    where: { id: factoryId },
+  });
+
+  if (!factory) {
+    throw createNotFoundError('工厂不存在');
+  }
+
+  const staff = await prisma.user.findMany({
+    where: {
+      factoryId,
+      role: 'BUSINESS_STAFF',
+    },
+    include: {
+      _count: {
+        select: {
+          createdInfluencers: true,
+          collaborations: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  // 重新映射字段名以匹配前端期望
+  return staff.map(s => ({
+    ...s,
+    _count: {
+      influencers: s._count.createdInfluencers,
+      collaborations: s._count.collaborations,
+    },
+  })) as FactoryStaffMember[];
+}
+
+/**
+ * 获取商务的工作统计
+ */
+export async function getStaffWorkStats(staffId: string): Promise<StaffWorkStats> {
+  const staff = await prisma.user.findUnique({
+    where: { id: staffId },
+    include: {
+      factory: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!staff) {
+    throw createNotFoundError('商务人员不存在');
+  }
+
+  if (staff.role !== 'BUSINESS_STAFF') {
+    throw createBadRequestError('该用户不是商务人员');
+  }
+
+  // 统计添加的达人数
+  const influencersAdded = await prisma.influencer.count({
+    where: { createdBy: staffId },
+  });
+
+  // 统计创建的合作数
+  const collaborationsCreated = await prisma.collaboration.count({
+    where: { businessStaffId: staffId },
+  });
+
+  // 统计完成的合作数（有结果的）
+  const collaborationsCompleted = await prisma.collaboration.count({
+    where: {
+      businessStaffId: staffId,
+      result: {
+        isNot: null,
+      },
+    },
+  });
+
+  // 计算成功率
+  const successRate = collaborationsCreated > 0
+    ? (collaborationsCompleted / collaborationsCreated) * 100
+    : 0;
+
+  return {
+    id: staff.id,
+    name: staff.name,
+    email: staff.email,
+    role: staff.role,
+    factoryId: staff.factoryId!,
+    factoryName: staff.factory!.name,
+    createdAt: staff.createdAt,
+    influencersAdded,
+    collaborationsCreated,
+    collaborationsCompleted,
+    successRate: Math.round(successRate * 10) / 10, // 保留1位小数
+  };
+}
+
+/**
+ * 获取商务添加的达人列表
+ */
+export async function getStaffInfluencers(
+  staffId: string,
+  pagination: Pagination
+): Promise<PaginatedResult<any>> {
+  const { page, pageSize } = pagination;
+
+  const [influencers, total] = await Promise.all([
+    prisma.influencer.findMany({
+      where: { createdBy: staffId },
+      include: {
+        _count: {
+          select: {
+            collaborations: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.influencer.count({ where: { createdBy: staffId } }),
+  ]);
+
+  return {
+    data: influencers,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+/**
+ * 获取商务的合作列表
+ */
+export async function getStaffCollaborations(
+  staffId: string,
+  pagination: Pagination
+): Promise<PaginatedResult<any>> {
+  const { page, pageSize } = pagination;
+
+  const [collaborations, total] = await Promise.all([
+    prisma.collaboration.findMany({
+      where: { businessStaffId: staffId },
+      include: {
+        influencer: {
+          select: {
+            id: true,
+            nickname: true,
+            platform: true,
+          },
+        },
+        result: {
+          select: {
+            id: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.collaboration.count({ where: { businessStaffId: staffId } }),
+  ]);
+
+  return {
+    data: collaborations,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+// ============ Influencer Management (Platform Admin) ============
+
+import type {
+  InfluencerSourceType,
+  VerificationStatus,
+  InfluencerWithDetails,
+  InfluencerStats,
+} from '@ics/shared';
+
+export interface InfluencerFilter {
+  keyword?: string;
+  platform?: string;
+  factoryId?: string;
+  sourceType?: InfluencerSourceType;
+  verificationStatus?: VerificationStatus;
+  createdBy?: string;
+}
+
+/**
+ * 获取所有达人列表（平台级别）
+ */
+export async function listAllInfluencers(
+  filter: InfluencerFilter,
+  pagination: Pagination
+): Promise<PaginatedResult<InfluencerWithDetails>> {
+  const { keyword, platform, factoryId, sourceType, verificationStatus, createdBy } = filter;
+  const { page, pageSize } = pagination;
+
+  const where: Record<string, unknown> = {};
+
+  // 关键词搜索
+  if (keyword) {
+    where.OR = [
+      { nickname: { contains: keyword, mode: 'insensitive' } },
+      { platformId: { contains: keyword, mode: 'insensitive' } },
+      { phone: { contains: keyword, mode: 'insensitive' } },
+    ];
+  }
+
+  // 平台筛选
+  if (platform) {
+    where.platform = platform;
+  }
+
+  // 工厂筛选
+  if (factoryId) {
+    where.factoryId = factoryId;
+  }
+
+  // 来源类型筛选
+  if (sourceType) {
+    where.sourceType = sourceType;
+  }
+
+  // 认证状态筛选
+  if (verificationStatus) {
+    where.verificationStatus = verificationStatus;
+  }
+
+  // 添加人筛选
+  if (createdBy) {
+    where.createdBy = createdBy;
+  }
+
+  const [influencers, total] = await Promise.all([
+    prisma.influencer.findMany({
+      where,
+      include: {
+        factory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+        verifier: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        _count: {
+          select: {
+            collaborations: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.influencer.count({ where }),
+  ]);
+
+  return {
+    data: influencers as unknown as InfluencerWithDetails[],
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+/**
+ * 获取达人详情（平台级别）
+ */
+export async function getInfluencerDetail(influencerId: string) {
+  const influencer = await prisma.influencer.findUnique({
+    where: { id: influencerId },
+    include: {
+      factory: {
+        include: {
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      },
+      creator: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+        },
+      },
+      verifier: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      collaborations: {
+        select: {
+          id: true,
+          stage: true,
+          createdAt: true,
+          businessStaff: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          result: {
+            select: {
+              id: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      },
+    },
+  });
+
+  if (!influencer) {
+    throw createNotFoundError('达人不存在');
+  }
+
+  // 格式化合作记录
+  const collaborations = influencer.collaborations.map((collab) => ({
+    id: collab.id,
+    stage: collab.stage,
+    businessStaff: collab.businessStaff,
+    createdAt: collab.createdAt,
+    hasResult: !!collab.result,
+  }));
+
+  return {
+    ...influencer,
+    collaborations,
+  };
+}
+
+/**
+ * 认证达人
+ */
+export async function verifyInfluencer(
+  influencerId: string,
+  adminId: string,
+  status: 'VERIFIED' | 'REJECTED',
+  note?: string
+) {
+  const influencer = await prisma.influencer.findUnique({
+    where: { id: influencerId },
+    include: {
+      factory: {
+        include: {
+          owner: true,
+        },
+      },
+      creator: true,
+    },
+  });
+
+  if (!influencer) {
+    throw createNotFoundError('达人不存在');
+  }
+
+  // 如果是拒绝认证，备注必填
+  if (status === 'REJECTED' && !note) {
+    throw createBadRequestError('拒绝认证时必须填写原因');
+  }
+
+  // 获取管理员信息
+  const admin = await prisma.user.findUnique({
+    where: { id: adminId },
+    select: { name: true, role: true },
+  });
+
+  if (!admin || admin.role !== 'PLATFORM_ADMIN') {
+    throw createBadRequestError('只有平台管理员可以进行认证操作');
+  }
+
+  // 构建认证历史记录
+  const historyEntry = {
+    action: status,
+    verifiedBy: adminId,
+    verifiedByName: admin.name,
+    verifiedAt: new Date(),
+    note: note || undefined,
+  };
+
+  // 获取现有历史记录
+  const existingHistory = influencer.verificationHistory as any;
+  const entries = existingHistory?.entries || [];
+  entries.push(historyEntry);
+
+  // 更新达人认证状态
+  const updated = await prisma.influencer.update({
+    where: { id: influencerId },
+    data: {
+      verificationStatus: status,
+      verifiedAt: new Date(),
+      verifiedBy: adminId,
+      verificationNote: note || null,
+      verificationHistory: {
+        entries,
+      },
+    },
+  });
+
+  // 发送通知给工厂老板
+  await prisma.notification.create({
+    data: {
+      userId: influencer.factory.ownerId,
+      type: 'INFLUENCER_VERIFICATION',
+      title: status === 'VERIFIED' ? '达人认证通过' : '达人认证失败',
+      content: `达人 ${influencer.nickname} 的认证${status === 'VERIFIED' ? '已通过' : '未通过'}${note ? `，原因：${note}` : ''}`,
+      relatedId: influencerId,
+    },
+  });
+
+  // 如果有添加人，也发送通知
+  if (influencer.createdBy && influencer.createdBy !== influencer.factory.ownerId) {
+    await prisma.notification.create({
+      data: {
+        userId: influencer.createdBy,
+        type: 'INFLUENCER_VERIFICATION',
+        title: status === 'VERIFIED' ? '达人认证通过' : '达人认证失败',
+        content: `您添加的达人 ${influencer.nickname} 的认证${status === 'VERIFIED' ? '已通过' : '未通过'}${note ? `，原因：${note}` : ''}`,
+        relatedId: influencerId,
+      },
+    });
+  }
+
+  return updated;
+}
+
+/**
+ * 获取达人统计数据
+ */
+export async function getInfluencerStats(startDate?: Date, endDate?: Date): Promise<InfluencerStats> {
+  const dateFilter = startDate && endDate ? {
+    createdAt: {
+      gte: startDate,
+      lte: endDate,
+    },
+  } : {};
+
+  // 总数
+  const total = await prisma.influencer.count({ where: dateFilter });
+
+  // 按来源统计
+  const bySource = await prisma.influencer.groupBy({
+    by: ['sourceType'],
+    where: dateFilter,
+    _count: true,
+  });
+
+  // 按认证状态统计
+  const byVerificationStatus = await prisma.influencer.groupBy({
+    by: ['verificationStatus'],
+    where: dateFilter,
+    _count: true,
+  });
+
+  // 按平台统计
+  const byPlatform = await prisma.influencer.groupBy({
+    by: ['platform'],
+    where: dateFilter,
+    _count: true,
+  });
+
+  // 按工厂统计（前10）
+  const byFactory = await prisma.influencer.groupBy({
+    by: ['factoryId'],
+    where: dateFilter,
+    _count: true,
+    orderBy: {
+      _count: {
+        factoryId: 'desc',
+      },
+    },
+    take: 10,
+  });
+
+  // 获取工厂名称
+  const factoryIds = byFactory.map((f) => f.factoryId);
+  const factories = await prisma.factory.findMany({
+    where: { id: { in: factoryIds } },
+    select: { id: true, name: true },
+  });
+
+  const factoryMap = new Map(factories.map((f) => [f.id, f.name]));
+
+  // 来源质量分析
+  const sourceQuality = await Promise.all(
+    ['PLATFORM', 'FACTORY', 'STAFF'].map(async (sourceType) => {
+      const totalCount = await prisma.influencer.count({
+        where: { ...dateFilter, sourceType: sourceType as InfluencerSourceType },
+      });
+
+      const verifiedCount = await prisma.influencer.count({
+        where: {
+          ...dateFilter,
+          sourceType: sourceType as InfluencerSourceType,
+          verificationStatus: 'VERIFIED',
+        },
+      });
+
+      const collaborationsCount = await prisma.collaboration.count({
+        where: {
+          influencer: {
+            sourceType: sourceType as InfluencerSourceType,
+          },
+        },
+      });
+
+      const successfulCollaborations = await prisma.collaboration.count({
+        where: {
+          influencer: {
+            sourceType: sourceType as InfluencerSourceType,
+          },
+          result: {
+            isNot: null,
+          },
+        },
+      });
+
+      return {
+        sourceType: sourceType as InfluencerSourceType,
+        total: totalCount,
+        verified: verifiedCount,
+        verificationRate: totalCount > 0 ? verifiedCount / totalCount : 0,
+        collaborations: collaborationsCount,
+        successRate: collaborationsCount > 0 ? successfulCollaborations / collaborationsCount : 0,
+      };
+    })
+  );
+
+  return {
+    total,
+    bySourceType: {
+      PLATFORM: bySource.find((s) => s.sourceType === 'PLATFORM')?._count || 0,
+      FACTORY: bySource.find((s) => s.sourceType === 'FACTORY')?._count || 0,
+      STAFF: bySource.find((s) => s.sourceType === 'STAFF')?._count || 0,
+    },
+    byVerificationStatus: {
+      UNVERIFIED: byVerificationStatus.find((s) => s.verificationStatus === 'UNVERIFIED')?._count || 0,
+      VERIFIED: byVerificationStatus.find((s) => s.verificationStatus === 'VERIFIED')?._count || 0,
+      REJECTED: byVerificationStatus.find((s) => s.verificationStatus === 'REJECTED')?._count || 0,
+    },
+    byPlatform: {
+      DOUYIN: byPlatform.find((p) => p.platform === 'DOUYIN')?._count || 0,
+      KUAISHOU: byPlatform.find((p) => p.platform === 'KUAISHOU')?._count || 0,
+      XIAOHONGSHU: byPlatform.find((p) => p.platform === 'XIAOHONGSHU')?._count || 0,
+      WEIBO: byPlatform.find((p) => p.platform === 'WEIBO')?._count || 0,
+      OTHER: byPlatform.find((p) => p.platform === 'OTHER')?._count || 0,
+    },
+    topFactories: byFactory.map((f) => ({
+      factoryId: f.factoryId,
+      factoryName: factoryMap.get(f.factoryId) || '未知工厂',
+      count: f._count,
+    })),
+    sourceQuality,
+  };
+}
+
+// ============ User Management ============
+
+export interface UserListItem {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  factoryId?: string;
+  factoryName?: string;
+  isActive: boolean;
+  createdAt: Date;
+  lastLoginAt?: Date;
+}
+
+export interface UserListFilter {
+  search?: string;
+  role?: string;
+  isActive?: boolean;
+}
+
+/**
+ * 获取所有用户列表（平台管理员）
+ */
+export async function listAllUsers(
+  filter: UserListFilter,
+  pagination: Pagination
+): Promise<PaginatedResult<UserListItem>> {
+  const { search, role, isActive } = filter;
+  const { page, pageSize } = pagination;
+
+  const where: Record<string, unknown> = {};
+
+  // 搜索姓名或邮箱
+  if (search) {
+    where.OR = [
+      { name: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } },
+    ];
+  }
+
+  // 角色筛选
+  if (role) {
+    where.role = role;
+  }
+
+  // 状态筛选
+  if (isActive !== undefined) {
+    where.isActive = isActive;
+  }
+
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      include: {
+        factory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.user.count({ where }),
+  ]);
+
+  // 格式化返回数据
+  const formattedUsers = users.map(user => ({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    factoryId: user.factoryId || undefined,
+    factoryName: user.factory?.name || undefined,
+    isActive: user.isActive,
+    createdAt: user.createdAt,
+    lastLoginAt: user.lastLoginAt || undefined,
+  }));
+
+  return {
+    data: formattedUsers as UserListItem[],
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+/**
+ * 获取用户详情
+ */
+export async function getUserDetail(userId: string): Promise<UserListItem> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      factory: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    throw createNotFoundError('用户不存在');
+  }
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    factoryId: user.factoryId || undefined,
+    factoryName: user.factory?.name || undefined,
+    isActive: user.isActive,
+    createdAt: user.createdAt,
+    lastLoginAt: user.lastLoginAt || undefined,
+  };
+}
+
+/**
+ * 切换用户状态（启用/禁用）
+ */
+export async function toggleUserStatus(
+  userId: string,
+  isActive: boolean,
+  adminId: string
+): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw createNotFoundError('用户不存在');
+  }
+
+  // 不能禁用平台管理员
+  if (user.role === 'PLATFORM_ADMIN' && !isActive) {
+    throw createBadRequestError('不能禁用平台管理员账号');
+  }
+
+  // 不能禁用自己
+  if (userId === adminId) {
+    throw createBadRequestError('不能禁用自己的账号');
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      isActive,
+      disabledAt: isActive ? null : new Date(),
+      disabledBy: isActive ? null : adminId,
+    },
+  });
+
+  // 发送通知给用户
+  if (user.role !== 'PLATFORM_ADMIN') {
+    await prisma.notification.create({
+      data: {
+        userId,
+        type: 'SYSTEM',
+        title: isActive ? '账号已启用' : '账号已禁用',
+        content: isActive 
+          ? '您的账号已被管理员启用，现在可以正常使用系统功能。'
+          : '您的账号已被管理员禁用，如有疑问请联系管理员。',
+      },
+    });
+  }
+}

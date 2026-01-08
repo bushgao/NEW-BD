@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>检查 LocalStorage - Auth Token</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+        }
+        .label {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 LocalStorage 诊断工具</h1>
+        
+        <div class="section">
+            <div class="label">说明：</div>
+            <p>此工具用于检查浏览器 LocalStorage 中存储的认证信息。请在登录后的页面打开此文件。</p>
+        </div>
+
+        <div class="section">
+            <div class="label">操作步骤：</div>
+            <ol>
+                <li>在浏览器中打开应用并登录</li>
+                <li>在同一个浏览器标签页中打开此 HTML 文件（或在新标签页打开）</li>
+                <li>点击下方的"检查 LocalStorage"按钮</li>
+            </ol>
+        </div>
+
+        <button onclick="checkLocalStorage()">🔍 检查 LocalStorage</button>
+        <button onclick="clearAuthStorage()">🗑️ 清除认证信息</button>
+        <button onclick="location.reload()">🔄 刷新页面</button>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function checkLocalStorage() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            // Check for auth-storage key
+            const authStorageKey = 'auth-storage';
+            const authData = localStorage.getItem(authStorageKey);
+
+            if (!authData) {
+                resultsDiv.innerHTML = `
+                    <div class="section">
+                        <div class="status error">
+                            ❌ 未找到认证信息
+                            <p>LocalStorage 中没有 'auth-storage' 键。请确保：</p>
+                            <ul>
+                                <li>您已经登录</li>
+                                <li>在同一个域名下打开此文件</li>
+                                <li>浏览器允许 LocalStorage</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Parse the data
+            let parsed;
+            try {
+                parsed = JSON.parse(authData);
+            } catch (e) {
+                resultsDiv.innerHTML = `
+                    <div class="section">
+                        <div class="status error">
+                            ❌ 数据解析失败
+                            <p>无法解析 JSON 数据：${e.message}</p>
+                        </div>
+                        <div class="label">原始数据：</div>
+                        <pre>${authData}</pre>
+                    </div>
+                `;
+                return;
+            }
+
+            // Check structure
+            const state = parsed.state || parsed;
+            const token = state.token;
+            const user = state.user;
+            const isAuthenticated = state.isAuthenticated;
+
+            let html = '<div class="section"><div class="status success">✅ 找到认证信息</div></div>';
+
+            // Check authentication status
+            html += '<div class="section">';
+            html += '<div class="label">认证状态：</div>';
+            if (isAuthenticated) {
+                html += '<div class="status success">✅ 已认证 (isAuthenticated: true)</div>';
+            } else {
+                html += '<div class="status error">❌ 未认证 (isAuthenticated: false)</div>';
+            }
+            html += '</div>';
+
+            // Check user
+            html += '<div class="section">';
+            html += '<div class="label">用户信息：</div>';
+            if (user) {
+                html += '<div class="status success">✅ 用户信息存在</div>';
+                html += '<pre>' + JSON.stringify(user, null, 2) + '</pre>';
+            } else {
+                html += '<div class="status error">❌ 用户信息不存在</div>';
+            }
+            html += '</div>';
+
+            // Check token - THIS IS THE CRITICAL PART
+            html += '<div class="section">';
+            html += '<div class="label">Token 信息：</div>';
+            if (token) {
+                if (token.accessToken) {
+                    html += '<div class="status success">✅ accessToken 存在</div>';
+                    html += '<p><strong>accessToken:</strong> ' + token.accessToken.substring(0, 50) + '...</p>';
+                } else {
+                    html += '<div class="status error">❌ accessToken 为 null 或不存在</div>';
+                }
+                
+                if (token.refreshToken) {
+                    html += '<p><strong>refreshToken:</strong> ' + token.refreshToken.substring(0, 50) + '...</p>';
+                } else {
+                    html += '<div class="status warning">⚠️ refreshToken 为 null 或不存在</div>';
+                }
+                
+                if (token.expiresIn) {
+                    html += '<p><strong>expiresIn:</strong> ' + token.expiresIn + ' 秒</p>';
+                }
+                
+                html += '<div class="label">完整 Token 对象：</div>';
+                html += '<pre>' + JSON.stringify(token, null, 2) + '</pre>';
+            } else {
+                html += '<div class="status error">❌ Token 对象不存在</div>';
+            }
+            html += '</div>';
+
+            // Show full data
+            html += '<div class="section">';
+            html += '<div class="label">完整 LocalStorage 数据：</div>';
+            html += '<pre>' + JSON.stringify(parsed, null, 2) + '</pre>';
+            html += '</div>';
+
+            // Show all localStorage keys
+            html += '<div class="section">';
+            html += '<div class="label">所有 LocalStorage 键：</div>';
+            html += '<ul>';
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                html += '<li><strong>' + key + '</strong></li>';
+            }
+            html += '</ul>';
+            html += '</div>';
+
+            resultsDiv.innerHTML = html;
+        }
+
+        function clearAuthStorage() {
+            if (confirm('确定要清除认证信息吗？这将登出当前用户。')) {
+                localStorage.removeItem('auth-storage');
+                alert('认证信息已清除！');
+                location.reload();
+            }
+        }
+
+        // Auto-check on load
+        window.onload = function() {
+            checkLocalStorage();
+        };
+    </script>
+</body>
+</html>

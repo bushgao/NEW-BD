@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkpoint Task 35 - 工作台验证</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+    
+    .content {
+      padding: 30px;
+    }
+    
+    .test-section {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 20px;
+    }
+    
+    .test-section h2 {
+      color: #333;
+      font-size: 20px;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .test-section h2 .icon {
+      font-size: 24px;
+    }
+    
+    .test-list {
+      list-style: none;
+      margin-top: 15px;
+    }
+    
+    .test-list li {
+      padding: 12px 15px;
+      background: white;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-left: 4px solid #e0e0e0;
+    }
+    
+    .test-list li.passed {
+      border-left-color: #52c41a;
+    }
+    
+    .test-list li.failed {
+      border-left-color: #ff4d4f;
+    }
+    
+    .test-list li.warning {
+      border-left-color: #faad14;
+    }
+    
+    .status-icon {
+      font-size: 20px;
+      min-width: 24px;
+    }
+    
+    .test-details {
+      flex: 1;
+    }
+    
+    .test-name {
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 4px;
+    }
+    
+    .test-info {
+      font-size: 13px;
+      color: #666;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 15px 30px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+    
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+    
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+    
+    .summary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 12px;
+      padding: 25px;
+      margin-top: 30px;
+    }
+    
+    .summary h2 {
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+    
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+    }
+    
+    .summary-item {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .summary-value {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .summary-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+    
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .instructions {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 25px;
+    }
+    
+    .instructions h3 {
+      color: #856404;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+    
+    .instructions ol {
+      margin-left: 20px;
+      color: #856404;
+    }
+    
+    .instructions li {
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+    
+    .alert {
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .alert-success {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+    
+    .alert-error {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+    }
+    
+    .alert-warning {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      color: #856404;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎯 Checkpoint Task 35 - 工作台验证</h1>
+      <p>测试今日清单、工作统计、快捷入口功能</p>
+    </div>
+    
+    <div class="content">
+      <div class="instructions">
+        <h3>📋 测试说明</h3>
+        <ol>
+          <li>确保已登录系统（商务人员或工厂老板账号）</li>
+          <li>点击"开始测试"按钮执行自动化测试</li>
+          <li>测试将验证今日清单、工作统计、快捷入口三大功能</li>
+          <li>查看测试结果，确认所有功能正常工作</li>
+          <li>如有问题，请查看详细错误信息</li>
+        </ol>
+      </div>
+      
+      <div class="button-group">
+        <button class="btn btn-primary" onclick="runTests()" id="runBtn">
+          <span>🚀</span>
+          <span>开始测试</span>
+        </button>
+        <button class="btn btn-secondary" onclick="clearResults()" id="clearBtn">
+          <span>🔄</span>
+          <span>清除结果</span>
+        </button>
+      </div>
+      
+      <div id="results"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE_URL = 'http://localhost:3000/api';
+    let testResults = {
+      passed: [],
+      failed: [],
+      warnings: []
+    };
+
+    function showLoading() {
+      document.getElementById('results').innerHTML = `
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>正在执行测试，请稍候...</p>
+        </div>
+      `;
+    }
+
+    function logTest(name, passed, details = '') {
+      const result = { name, details, timestamp: new Date().toISOString() };
+      if (passed) {
+        testResults.passed.push(result);
+      } else {
+        testResults.failed.push(result);
+      }
+    }
+
+    function logWarning(message) {
+      testResults.warnings.push({ message, timestamp: new Date().toISOString() });
+    }
+
+    async function getAuthToken() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('未找到认证 Token，请先登录');
+      }
+      return token;
+    }
+
+    async function apiRequest(endpoint, options = {}) {
+      const token = await getAuthToken();
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...options.headers
+        }
+      });
+      
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`API 请求失败 (${response.status}): ${error}`);
+      }
+      
+      return response.json();
+    }
+
+    async function testTodayTodoList() {
+      try {
+        const response = await apiRequest('/reports/my-dashboard/today-todos');
+        logTest('今日清单 API 响应', response.success);
+        
+        if (response.data) {
+          const hasValidStructure = 
+            Array.isArray(response.data.todos) &&
+            response.data.summary &&
+            typeof response.data.summary.total === 'number';
+          
+          logTest('今日清单数据结构', hasValidStructure, 
+            `待办总数: ${response.data.summary.total}, 已完成: ${response.data.summary.completed}`);
+          
+          if (response.data.todos.length > 0) {
+            const firstTodo = response.data.todos[0];
+            const hasValidTodo = firstTodo.id && firstTodo.type && firstTodo.title;
+            logTest('待办事项数据完整', hasValidTodo);
+          } else {
+            logWarning('当前没有待办事项');
+          }
+        }
+      } catch (error) {
+        logTest('今日清单功能', false, error.message);
+      }
+    }
+
+    async function testWorkStats() {
+      const periods = ['today', 'week', 'month'];
+      
+      for (const period of periods) {
+        try {
+          const response = await apiRequest(`/reports/my-dashboard/work-stats?period=${period}`);
+          logTest(`工作统计 (${period})`, response.success);
+          
+          if (response.data && response.data.stats) {
+            const stats = response.data.stats;
+            const hasValidStats = 
+              typeof stats.leadsAdded === 'number' &&
+              typeof stats.gmv === 'number' &&
+              typeof stats.goalProgress === 'number';
+            
+            logTest(`工作统计数据 (${period})`, hasValidStats,
+              `建联: ${stats.leadsAdded}, GMV: ${stats.gmv}, 目标: ${stats.goalProgress}%`);
+          }
+        } catch (error) {
+          logTest(`工作统计 (${period})`, false, error.message);
+        }
+      }
+    }
+
+    async function testQuickActions() {
+      try {
+        const influencersResponse = await apiRequest('/influencers?page=1&pageSize=1');
+        logTest('快速添加达人 API', influencersResponse.success);
+        
+        const collaborationsResponse = await apiRequest('/collaborations?page=1&pageSize=1');
+        logTest('快速创建合作 API', collaborationsResponse.success);
+        
+        const samplesResponse = await apiRequest('/samples?page=1&pageSize=1');
+        logTest('快速寄样 API', samplesResponse.success);
+      } catch (error) {
+        logTest('快捷入口功能', false, error.message);
+      }
+    }
+
+    async function runTests() {
+      const runBtn = document.getElementById('runBtn');
+      const clearBtn = document.getElementById('clearBtn');
+      
+      runBtn.disabled = true;
+      clearBtn.disabled = true;
+      
+      testResults = { passed: [], failed: [], warnings: [] };
+      showLoading();
+      
+      try {
+        await getAuthToken();
+        
+        await testTodayTodoList();
+        await testWorkStats();
+        await testQuickActions();
+        
+        displayResults();
+      } catch (error) {
+        document.getElementById('results').innerHTML = `
+          <div class="alert alert-error">
+            <strong>❌ 测试失败</strong><br>
+            ${error.message}
+          </div>
+        `;
+      } finally {
+        runBtn.disabled = false;
+        clearBtn.disabled = false;
+      }
+    }
+
+    function displayResults() {
+      const passRate = testResults.passed.length / 
+        (testResults.passed.length + testResults.failed.length) * 100;
+      
+      let html = '';
+      
+      // Summary
+      html += `
+        <div class="summary">
+          <h2>📊 测试总结</h2>
+          <div class="summary-grid">
+            <div class="summary-item">
+              <div class="summary-value">${testResults.passed.length}</div>
+              <div class="summary-label">✅ 通过</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-value">${testResults.failed.length}</div>
+              <div class="summary-label">❌ 失败</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-value">${testResults.warnings.length}</div>
+              <div class="summary-label">⚠️ 警告</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-value">${passRate.toFixed(0)}%</div>
+              <div class="summary-label">📈 通过率</div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Passed tests
+      if (testResults.passed.length > 0) {
+        html += `
+          <div class="test-section">
+            <h2><span class="icon">✅</span> 通过的测试 (${testResults.passed.length})</h2>
+            <ul class="test-list">
+        `;
+        testResults.passed.forEach(test => {
+          html += `
+            <li class="passed">
+              <span class="status-icon">✅</span>
+              <div class="test-details">
+                <div class="test-name">${test.name}</div>
+                ${test.details ? `<div class="test-info">${test.details}</div>` : ''}
+              </div>
+            </li>
+          `;
+        });
+        html += `</ul></div>`;
+      }
+      
+      // Failed tests
+      if (testResults.failed.length > 0) {
+        html += `
+          <div class="test-section">
+            <h2><span class="icon">❌</span> 失败的测试 (${testResults.failed.length})</h2>
+            <ul class="test-list">
+        `;
+        testResults.failed.forEach(test => {
+          html += `
+            <li class="failed">
+              <span class="status-icon">❌</span>
+              <div class="test-details">
+                <div class="test-name">${test.name}</div>
+                ${test.details ? `<div class="test-info">${test.details}</div>` : ''}
+              </div>
+            </li>
+          `;
+        });
+        html += `</ul></div>`;
+      }
+      
+      // Warnings
+      if (testResults.warnings.length > 0) {
+        html += `
+          <div class="test-section">
+            <h2><span class="icon">⚠️</span> 警告信息 (${testResults.warnings.length})</h2>
+            <ul class="test-list">
+        `;
+        testResults.warnings.forEach(warning => {
+          html += `
+            <li class="warning">
+              <span class="status-icon">⚠️</span>
+              <div class="test-details">
+                <div class="test-name">${warning.message}</div>
+              </div>
+            </li>
+          `;
+        });
+        html += `</ul></div>`;
+      }
+      
+      // Overall status
+      if (testResults.failed.length === 0) {
+        html = `<div class="alert alert-success">
+          <strong>🎉 所有测试通过！</strong><br>
+          工作台功能验证完成，所有功能正常工作！
+        </div>` + html;
+      } else if (passRate >= 80) {
+        html = `<div class="alert alert-warning">
+          <strong>✅ 大部分测试通过</strong><br>
+          工作台功能基本可用，但存在 ${testResults.failed.length} 个问题需要关注。
+        </div>` + html;
+      } else {
+        html = `<div class="alert alert-error">
+          <strong>⚠️ 存在较多问题</strong><br>
+          建议修复失败的测试后重新验证。
+        </div>` + html;
+      }
+      
+      document.getElementById('results').innerHTML = html;
+    }
+
+    function clearResults() {
+      document.getElementById('results').innerHTML = '';
+      testResults = { passed: [], failed: [], warnings: [] };
+    }
+  </script>
+</body>
+</html>

@@ -18,6 +18,8 @@ import {
 } from '@ant-design/icons';
 import FactoryList from './FactoryList';
 import PlanConfigList from './PlanConfigList';
+import InfluencerManagement from './InfluencerManagement';
+import InfluencerStatsPanel from './InfluencerStatsPanel';
 import {
   getPlatformStats,
   type PlatformStats,
@@ -31,7 +33,7 @@ const AdminPage = () => {
   const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<PlatformStats | null>(null);
-  const [activeTab, setActiveTab] = useState('factories');
+  const [activeTab, setActiveTab] = useState('overview');
 
   // 加载平台统计数据
   const loadStats = async () => {
@@ -53,9 +55,19 @@ const AdminPage = () => {
 
   const tabItems = [
     {
+      key: 'overview',
+      label: '数据概览',
+      children: <InfluencerStatsPanel />,
+    },
+    {
       key: 'factories',
       label: '工厂管理',
       children: <FactoryList onRefresh={loadStats} />,
+    },
+    {
+      key: 'influencers',
+      label: '达人管理',
+      children: <InfluencerManagement />,
     },
     {
       key: 'plans',

@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { body, param, validationResult } from 'express-validator';
 import * as sampleService from '../services/sample.service';
 import { authenticate, requireFactoryMember, requireRoles } from '../middleware/auth.middleware';
+import { checkPermission } from '../middleware/permission.middleware';
 import { createBadRequestError } from '../middleware/errorHandler';
 import type { ApiResponse } from '@ics/shared';
 import type { ReceivedStatus, OnboardStatus } from '@prisma/client';
@@ -171,13 +172,13 @@ router.get(
 /**
  * @route POST /api/samples
  * @desc 创建样品
- * @access Private (工厂老板)
+ * @access Private (工厂老板 或 有样品管理权限的商务)
  */
 router.post(
   '/',
   authenticate,
   requireFactoryMember,
-  requireRoles('FACTORY_OWNER'),
+  checkPermission('operations.manageSamples'),
   createSampleValidation,
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
@@ -212,13 +213,13 @@ router.post(
 /**
  * @route PUT /api/samples/:id
  * @desc 更新样品
- * @access Private (工厂老板)
+ * @access Private (工厂老板 或 有样品管理权限的商务)
  */
 router.put(
   '/:id',
   authenticate,
   requireFactoryMember,
-  requireRoles('FACTORY_OWNER'),
+  checkPermission('operations.manageSamples'),
   idParamValidation,
   updateSampleValidation,
   handleValidationErrors,
@@ -253,13 +254,13 @@ router.put(
 /**
  * @route DELETE /api/samples/:id
  * @desc 删除样品
- * @access Private (工厂老板)
+ * @access Private (工厂老板 或 有样品管理权限的商务)
  */
 router.delete(
   '/:id',
   authenticate,
   requireFactoryMember,
-  requireRoles('FACTORY_OWNER'),
+  checkPermission('operations.manageSamples'),
   idParamValidation,
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {

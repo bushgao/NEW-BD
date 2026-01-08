@@ -17,6 +17,11 @@ enum UserRole {
   BUSINESS_STAFF
 }
 
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
 enum FactoryStatus {
   PENDING
   APPROVED
@@ -79,17 +84,43 @@ enum ProfitStatus {
   HIGH_PROFIT
 }
 
+enum InfluencerSourceType {
+  PLATFORM
+  FACTORY
+  STAFF
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  VERIFIED
+  REJECTED
+}
+
 
 // Models
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
+  id           String     @id @default(uuid())
+  email        String     @unique
   passwordHash String
   name         String
   role         UserRole
   factoryId    String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  
+  // 新增：权限配置（商务人员权限管理）
+  permissions  Json?      @default("{}")
+  
+  // 新增：个人偏好设置（看板布局、筛选条件等）
+  preferences  Json?      @default("{}")
+  
+  // 新增：账号状态（启用/禁用）
+  status       UserStatus @default(ACTIVE)
+  
+  isActive     Boolean    @default(true)
+  lastLoginAt  DateTime?
+  disabledAt   DateTime?
+  disabledBy   String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   // Relations
   factory         Factory?          @relation("FactoryStaff", fields: [factoryId], references: [id])
@@ -98,6 +129,8 @@ model User {
   sampleDispatches SampleDispatch[]
   followUpRecords FollowUpRecord[]
   notifications   Notification[]
+  createdInfluencers  Influencer[]  @relation("InfluencerCreator")
+  verifiedInfluencers Influencer[]  @relation("InfluencerVerifier")
 
   @@index([email])
   @@index([factoryId])
@@ -118,6 +151,7 @@ model Factory {
   owner          User            @relation("FactoryOwner", fields: [ownerId], references: [id])
   staff          User[]          @relation("FactoryStaff")
   influencers    Influencer[]
+  influencerGroups InfluencerGroup[]
   samples        Sample[]
   collaborations Collaboration[]
 
@@ -137,17 +171,57 @@ model Influencer {
   categories String[]
   tags       String[]
   notes      String?
+  
+  // Source tracking
+  createdBy            String?              // 添加人ID
+  sourceType           InfluencerSourceType @default(STAFF)  // 来源类型
+  
+  // Verification
+  verificationStatus   VerificationStatus   @default(UNVERIFIED)  // 认证状态
+  verifiedAt           DateTime?            // 认证时间
+  verifiedBy           String?              // 认证人ID
+  verificationNote     String?              // 认证备注
+  verificationHistory  Json?                // 认证历史记录
+  
+  // Group management
+  groupId              String?              // 分组ID
+  
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   // Relations
   factory        Factory         @relation(fields: [factoryId], references: [id])
   collaborations Collaboration[]
+  creator        User?           @relation("InfluencerCreator", fields: [createdBy], references: [id])
+  verifier       User?           @relation("InfluencerVerifier", fields: [verifiedBy], references: [id])
+  group          InfluencerGroup? @relation(fields: [groupId], references: [id])
 
   @@unique([factoryId, platform, platformId])
   @@index([factoryId])
   @@index([nickname])
   @@index([phone])
+  @@index([createdBy])
+  @@index([sourceType])
+  @@index([verificationStatus])
+  @@index([groupId])
+}
+
+model InfluencerGroup {
+  id          String   @id @default(uuid())
+  factoryId   String
+  name        String
+  color       String   @default("#1890ff")
+  description String?
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  factory     Factory      @relation(fields: [factoryId], references: [id])
+  influencers Influencer[]
+
+  @@index([factoryId])
+  @@index([createdBy])
 }
 
 

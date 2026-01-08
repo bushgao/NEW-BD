@@ -46,6 +46,7 @@ export interface InfluencerFilter {
   tags?: string[];
   pipelineStage?: PipelineStage;
   businessStaffId?: string;
+  groupId?: string | null;
   page?: number;
   pageSize?: number;
 }
@@ -225,5 +226,47 @@ export async function executeImport(
   const response = await api.post('/influencers/import/execute', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
+  return response.data.data;
+}
+
+/**
+ * Get smart influencer recommendations
+ */
+export async function getSmartRecommendations(): Promise<any[]> {
+  const response = await api.get('/influencers/recommendations');
+  return response.data.data.recommendations;
+}
+
+/**
+ * Batch add tags to influencers
+ */
+export async function batchAddTags(influencerIds: string[], tags: string[]): Promise<void> {
+  await api.post('/influencers/batch/tags', { influencerIds, tags });
+}
+
+/**
+ * Export selected influencers
+ */
+export async function exportInfluencers(influencerIds: string[]): Promise<Blob> {
+  const response = await api.post('/influencers/export', 
+    { influencerIds },
+    { responseType: 'blob' }
+  );
+  return response.data;
+}
+
+/**
+ * Get influencer collaboration history
+ */
+export async function getInfluencerCollaborationHistory(influencerId: string): Promise<any[]> {
+  const response = await api.get(`/influencers/${influencerId}/collaboration-history`);
+  return response.data.data;
+}
+
+/**
+ * Get influencer ROI statistics
+ */
+export async function getInfluencerROIStats(influencerId: string): Promise<any> {
+  const response = await api.get(`/influencers/${influencerId}/roi-stats`);
   return response.data.data;
 }

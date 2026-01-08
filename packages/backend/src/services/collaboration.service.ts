@@ -275,12 +275,30 @@ export async function deleteCollaboration(id: string, factoryId: string) {
 export async function listCollaborations(
   factoryId: string,
   filter: CollaborationFilter,
-  pagination: { page: number; pageSize: number }
+  pagination: { page: number; pageSize: number },
+  userId?: string,
+  userRole?: string
 ) {
   const { stage, businessStaffId, influencerId, isOverdue, keyword } = filter;
   const { page, pageSize } = pagination;
 
   const where: any = { factoryId };
+
+  // 权限过滤：基础商务只能看到自己的合作
+  if (userId && userRole === 'BUSINESS_STAFF') {
+    // 从数据库获取用户权限
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { permissions: true },
+    });
+
+    const permissions = user?.permissions as any;
+    
+    // 如果没有查看其他商务合作的权限，只显示自己的
+    if (!permissions?.dataVisibility?.viewOthersCollaborations) {
+      where.businessStaffId = userId;
+    }
+  }
 
   if (stage) where.stage = stage;
   if (businessStaffId) where.businessStaffId = businessStaffId;
@@ -528,6 +546,64 @@ export async function getOverdueCollaborations(
 // ==================== 跟进记录 ====================
 
 /**
+ * 获取跟进模板列表
+ */
+export async function getFollowUpTemplates() {
+  // 返回预定义的跟进模板
+  // 在实际应用中，这些模板可以存储在数据库中，允许用户自定义
+  return [
+    {
+      id: '1',
+      name: '初次联系',
+      content: '您好，我是{公司名称}的商务，看到您的账号内容很不错，想和您聊聊合作的事情。',
+      category: '初次接触',
+    },
+    {
+      id: '2',
+      name: '报价跟进',
+      content: '您好，关于上次的合作报价，不知道您考虑得怎么样了？如果有任何问题，欢迎随时沟通。',
+      category: '报价阶段',
+    },
+    {
+      id: '3',
+      name: '样品确认',
+      content: '您好，样品已经寄出，预计{天数}天内送达。收到后请及时确认，有任何问题随时联系我。',
+      category: '寄样阶段',
+    },
+    {
+      id: '4',
+      name: '排期提醒',
+      content: '您好，想确认一下视频的发布时间，我们这边需要提前做好准备工作。',
+      category: '排期阶段',
+    },
+    {
+      id: '5',
+      name: '发布确认',
+      content: '您好，看到视频已经发布了，效果很不错！麻烦您把视频链接和数据发给我，方便我们这边统计。',
+      category: '发布阶段',
+    },
+    {
+      id: '6',
+      name: '礼貌催促',
+      content: '您好，不好意思打扰一下，想跟进一下之前聊的合作事宜，期待您的回复。',
+      category: '通用',
+    },
+    {
+      id: '7',
+      name: '感谢回复',
+      content: '好的，收到！感谢您的及时回复，我们会尽快安排。',
+      category: '通用',
+    },
+    {
+      id: '8',
+      name: '节日问候',
+      content: '您好，{节日}快乐！祝您工作顺利，期待我们的合作。',
+      category: '通用',
+    },
+  ];
+}
+
+/**
  * 添加跟进记录
  */
 export async function addFollowUp(
@@ -681,9 +757,27 @@ export const BLOCK_REASON_NAMES: Record<BlockReason, string> = {
  */
 export async function getPipelineView(
   factoryId: string,
-  filter?: { businessStaffId?: string; keyword?: string }
+  filter?: { businessStaffId?: string; keyword?: string },
+  userId?: string,
+  userRole?: string
 ): Promise<PipelineView> {
   const where: any = { factoryId };
+
+  // 权限过滤：基础商务只能看到自己的合作
+  if (userId && userRole === 'BUSINESS_STAFF') {
+    // 从数据库获取用户权限
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { permissions: true },
+    });
+
+    const permissions = user?.permissions as any;
+    
+    // 如果没有查看其他商务合作的权限，只显示自己的
+    if (!permissions?.dataVisibility?.viewOthersCollaborations) {
+      where.businessStaffId = userId;
+    }
+  }
 
   if (filter?.businessStaffId) {
     where.businessStaffId = filter.businessStaffId;
@@ -798,4 +892,1679 @@ export async function getPipelineStats(factoryId: string) {
     total: Object.values(result).reduce((a, b) => a + b, 0),
     overdueCount,
   };
+}
+
+
+// ==================== 跟进提醒算法 ====================
+
+/**
+ * 根据合作阶段建议跟进频率
+ */
+function getSuggestedFrequencyByStage(stage: PipelineStage): 'daily' | 'weekly' | 'biweekly' {
+  switch (stage) {
+    case 'LEAD':
+    case 'CONTACTED':
+      return 'daily'; // 初期阶段需要频繁跟进
+    case 'QUOTED':
+    case 'SAMPLED':
+      return 'weekly'; // 中期阶段每周跟进
+    case 'SCHEDULED':
+    case 'PUBLISHED':
+      return 'biweekly'; // 后期阶段两周跟进
+    case 'REVIEWED':
+      return 'biweekly'; // 复盘阶段不需要频繁跟进
+    default:
+      return 'weekly';
+  }
+}
+
+/**
+ * 根据历史转化率调整跟进频率
+ */
+async function adjustFrequencyByConversionRate(
+  businessStaffId: string,
+  baseFrequency: 'daily' | 'weekly' | 'biweekly'
+): Promise<'daily' | 'weekly' | 'biweekly'> {
+  // 获取商务人员的历史转化率
+  const totalCollaborations = await prisma.collaboration.count({
+    where: { businessStaffId },
+  });
+
+  const successfulCollaborations = await prisma.collaboration.count({
+    where: {
+      businessStaffId,
+      stage: { in: ['PUBLISHED', 'REVIEWED'] },
+    },
+  });
+
+  if (totalCollaborations === 0) {
+    return baseFrequency;
+  }
+
+  const conversionRate = successfulCollaborations / totalCollaborations;
+
+  // 如果转化率低于30%，建议增加跟进频率
+  if (conversionRate < 0.3) {
+    if (baseFrequency === 'biweekly') return 'weekly';
+    if (baseFrequency === 'weekly') return 'daily';
+  }
+
+  // 如果转化率高于70%，可以适当降低跟进频率
+  if (conversionRate > 0.7) {
+    if (baseFrequency === 'daily') return 'weekly';
+    if (baseFrequency === 'weekly') return 'biweekly';
+  }
+
+  return baseFrequency;
+}
+
+/**
+ * 根据达人响应速度调整跟进频率
+ */
+async function adjustFrequencyByResponseSpeed(
+  collaborationId: string,
+  baseFrequency: 'daily' | 'weekly' | 'biweekly'
+): Promise<'daily' | 'weekly' | 'biweekly'> {
+  // 获取最近的跟进记录
+  const recentFollowUps = await prisma.followUpRecord.findMany({
+    where: { collaborationId },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+  });
+
+  if (recentFollowUps.length < 2) {
+    return baseFrequency;
+  }
+
+  // 计算平均响应时间（简化版：假设每次跟进间隔就是响应时间）
+  let totalGap = 0;
+  for (let i = 0; i < recentFollowUps.length - 1; i++) {
+    const gap = recentFollowUps[i].createdAt.getTime() - recentFollowUps[i + 1].createdAt.getTime();
+    totalGap += gap;
+  }
+
+  const avgGapDays = totalGap / (recentFollowUps.length - 1) / (1000 * 60 * 60 * 24);
+
+  // 如果平均间隔小于3天，说明达人响应快，可以保持或增加频率
+  if (avgGapDays < 3) {
+    if (baseFrequency === 'biweekly') return 'weekly';
+    if (baseFrequency === 'weekly') return 'daily';
+  }
+
+  // 如果平均间隔大于10天，说明达人响应慢，可以降低频率
+  if (avgGapDays > 10) {
+    if (baseFrequency === 'daily') return 'weekly';
+    if (baseFrequency === 'weekly') return 'biweekly';
+  }
+
+  return baseFrequency;
+}
+
+/**
+ * 计算优先级
+ */
+function calculatePriority(
+  daysSinceLastFollowUp: number,
+  frequency: 'daily' | 'weekly' | 'biweekly',
+  isOverdue: boolean
+): 'low' | 'medium' | 'high' {
+  // 如果合作已超期，优先级为高
+  if (isOverdue) {
+    return 'high';
+  }
+
+  // 根据频率和天数计算优先级
+  const thresholds = {
+    daily: { high: 2, medium: 1 },
+    weekly: { high: 10, medium: 5 },
+    biweekly: { high: 20, medium: 10 },
+  };
+
+  const threshold = thresholds[frequency];
+
+  if (daysSinceLastFollowUp >= threshold.high) {
+    return 'high';
+  }
+
+  if (daysSinceLastFollowUp >= threshold.medium) {
+    return 'medium';
+  }
+
+  return 'low';
+}
+
+/**
+ * 获取跟进提醒列表
+ */
+export async function getFollowUpReminders(
+  factoryId: string,
+  userId?: string,
+  userRole?: string
+) {
+  const where: any = {
+    factoryId,
+    // 排除已完成的阶段
+    stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
+  };
+
+  // 权限过滤：基础商务只能看到自己的合作
+  if (userId && userRole === 'BUSINESS_STAFF') {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { permissions: true },
+    });
+
+    const permissions = user?.permissions as any;
+    
+    if (!permissions?.dataVisibility?.viewOthersCollaborations) {
+      where.businessStaffId = userId;
+    }
+  }
+
+  // 获取所有需要跟进的合作
+  const collaborations = await prisma.collaboration.findMany({
+    where,
+    include: {
+      influencer: true,
+      businessStaff: {
+        select: { id: true, name: true },
+      },
+      followUps: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+      },
+    },
+    orderBy: { updatedAt: 'desc' },
+  });
+
+  const reminders = [];
+
+  for (const collab of collaborations) {
+    const lastFollowUp = collab.followUps[0];
+    const lastFollowUpDate = lastFollowUp?.createdAt || null;
+    const daysSinceLastFollowUp = lastFollowUpDate
+      ? Math.floor((Date.now() - lastFollowUpDate.getTime()) / (1000 * 60 * 60 * 24))
+      : 999; // 如果从未跟进，设置为很大的值
+
+    // 获取基础频率（根据阶段）
+    let frequency = getSuggestedFrequencyByStage(collab.stage);
+
+    // 根据转化率调整频率
+    frequency = await adjustFrequencyByConversionRate(collab.businessStaffId, frequency);
+
+    // 根据响应速度调整频率
+    frequency = await adjustFrequencyByResponseSpeed(collab.id, frequency);
+
+    // 计算建议的下次跟进时间
+    const frequencyDays = {
+      daily: 1,
+      weekly: 7,
+      biweekly: 14,
+    };
+
+    const suggestedNextDate = new Date();
+    if (lastFollowUpDate) {
+      suggestedNextDate.setTime(
+        lastFollowUpDate.getTime() + frequencyDays[frequency] * 24 * 60 * 60 * 1000
+      );
+    }
+
+    // 计算优先级
+    const priority = calculatePriority(daysSinceLastFollowUp, frequency, collab.isOverdue);
+
+    // 只返回需要跟进的合作（已经超过建议时间或即将到期）
+    const shouldRemind =
+      daysSinceLastFollowUp >= frequencyDays[frequency] ||
+      daysSinceLastFollowUp >= frequencyDays[frequency] - 1; // 提前1天提醒
+
+    if (shouldRemind) {
+      reminders.push({
+        collaborationId: collab.id,
+        influencerName: collab.influencer.nickname,
+        influencerPlatform: collab.influencer.platform,
+        lastFollowUpDate,
+        suggestedNextDate,
+        daysSinceLastFollowUp,
+        frequency,
+        priority,
+        stage: STAGE_NAMES[collab.stage],
+      });
+    }
+  }
+
+  // 按优先级和天数排序
+  reminders.sort((a, b) => {
+    const priorityOrder = { high: 3, medium: 2, low: 1 };
+    const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
+    if (priorityDiff !== 0) return priorityDiff;
+    return b.daysSinceLastFollowUp - a.daysSinceLastFollowUp;
+  });
+
+  return reminders;
+}
+
+
+// ==================== 跟进分析 ====================
+
+interface TimeConversionData {
+  timeRange: string;
+  followUps: number;
+  conversions: number;
+  conversionRate: number;
+}
+
+interface FrequencyConversionData {
+  frequency: string;
+  followUps: number;
+  conversions: number;
+  conversionRate: number;
+}
+
+interface DayConversionData {
+  day: string;
+  followUps: number;
+  conversions: number;
+}
+
+interface FollowUpAnalytics {
+  effectivenessScore: number;
+  bestTime: string;
+  bestFrequency: string;
+  totalFollowUps: number;
+  successfulConversions: number;
+  conversionRate: number;
+  avgResponseTime: number;
+  conversionByTime: TimeConversionData[];
+  conversionByFrequency: FrequencyConversionData[];
+  conversionByDay: DayConversionData[];
+  suggestions: string[];
+}
+
+/**
+ * 获取跟进分析数据
+ */
+export async function getFollowUpAnalytics(
+  factoryId: string,
+  staffId?: string,
+  period: 'week' | 'month' | 'quarter' = 'month'
+): Promise<FollowUpAnalytics> {
+  // 计算时间范围
+  const now = new Date();
+  const startDate = new Date();
+  
+  switch (period) {
+    case 'week':
+      startDate.setDate(now.getDate() - 7);
+      break;
+    case 'month':
+      startDate.setDate(now.getDate() - 30);
+      break;
+    case 'quarter':
+      startDate.setDate(now.getDate() - 90);
+      break;
+  }
+
+  // 构建查询条件
+  const where: any = {
+    factoryId,
+    createdAt: { gte: startDate },
+  };
+
+  if (staffId) {
+    where.businessStaffId = staffId;
+  }
+
+  // 获取所有合作记录
+  const collaborations = await prisma.collaboration.findMany({
+    where,
+    include: {
+      followUps: {
+        orderBy: { createdAt: 'asc' },
+      },
+    },
+  });
+
+  // 获取所有跟进记录
+  const allFollowUps = await prisma.followUpRecord.findMany({
+    where: {
+      collaboration: where,
+      createdAt: { gte: startDate },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  // 计算总跟进次数
+  const totalFollowUps = allFollowUps.length;
+
+  // 计算成功转化数（已发布或已复盘的合作）
+  const successfulConversions = collaborations.filter(
+    (c) => c.stage === 'PUBLISHED' || c.stage === 'REVIEWED'
+  ).length;
+
+  // 计算转化率
+  const conversionRate = totalFollowUps > 0 
+    ? (successfulConversions / collaborations.length) * 100 
+    : 0;
+
+  // 按时间段分析
+  const conversionByTime = analyzeByTimeRange(collaborations, allFollowUps);
+
+  // 按频率分析
+  const conversionByFrequency = analyzeByFrequency(collaborations);
+
+  // 按日期分析趋势
+  const conversionByDay = analyzeByDay(collaborations, allFollowUps, startDate, now);
+
+  // 找出最佳跟进时间
+  const bestTime = findBestTime(conversionByTime);
+
+  // 找出最佳跟进频率
+  const bestFrequency = findBestFrequency(conversionByFrequency);
+
+  // 计算平均响应时间（简化版）
+  const avgResponseTime = calculateAvgResponseTime(collaborations);
+
+  // 计算效果评分
+  const effectivenessScore = calculateEffectivenessScore(
+    conversionRate,
+    avgResponseTime,
+    totalFollowUps,
+    collaborations.length
+  );
+
+  // 生成优化建议
+  const suggestions = generateSuggestions(
+    conversionRate,
+    bestTime,
+    bestFrequency,
+    avgResponseTime,
+    conversionByTime,
+    conversionByFrequency
+  );
+
+  return {
+    effectivenessScore,
+    bestTime,
+    bestFrequency,
+    totalFollowUps,
+    successfulConversions,
+    conversionRate,
+    avgResponseTime,
+    conversionByTime,
+    conversionByFrequency,
+    conversionByDay,
+    suggestions,
+  };
+}
+
+/**
+ * 按时间段分析转化率
+ */
+function analyzeByTimeRange(
+  collaborations: any[],
+  followUps: any[]
+): TimeConversionData[] {
+  const timeRanges = [
+    { range: '早上 (6-12点)', start: 6, end: 12 },
+    { range: '下午 (12-18点)', start: 12, end: 18 },
+    { range: '晚上 (18-24点)', start: 18, end: 24 },
+    { range: '深夜 (0-6点)', start: 0, end: 6 },
+  ];
+
+  return timeRanges.map(({ range, start, end }) => {
+    // 统计该时间段的跟进次数
+    const timeFollowUps = followUps.filter((f) => {
+      const hour = f.createdAt.getHours();
+      return hour >= start && hour < end;
+    });
+
+    // 找出在该时间段有跟进的合作
+    const collabIds = new Set(timeFollowUps.map((f) => f.collaborationId));
+    const timeCollabs = collaborations.filter((c) => collabIds.has(c.id));
+
+    // 统计转化数
+    const conversions = timeCollabs.filter(
+      (c) => c.stage === 'PUBLISHED' || c.stage === 'REVIEWED'
+    ).length;
+
+    const conversionRate = timeCollabs.length > 0 
+      ? (conversions / timeCollabs.length) * 100 
+      : 0;
+
+    return {
+      timeRange: range,
+      followUps: timeFollowUps.length,
+      conversions,
+      conversionRate,
+    };
+  });
+}
+
+/**
+ * 按跟进频率分析转化率
+ */
+function analyzeByFrequency(collaborations: any[]): FrequencyConversionData[] {
+  const frequencies = [
+    { name: '每天跟进', min: 0, max: 2 },
+    { name: '2-3天跟进一次', min: 2, max: 4 },
+    { name: '每周跟进', min: 4, max: 10 },
+    { name: '两周跟进一次', min: 10, max: 20 },
+    { name: '很少跟进', min: 20, max: Infinity },
+  ];
+
+  return frequencies.map(({ name, min, max }) => {
+    // 计算每个合作的平均跟进间隔
+    const freqCollabs = collaborations.filter((c) => {
+      if (c.followUps.length < 2) return false;
+
+      let totalGap = 0;
+      for (let i = 0; i < c.followUps.length - 1; i++) {
+        const gap = c.followUps[i + 1].createdAt.getTime() - c.followUps[i].createdAt.getTime();
+        totalGap += gap;
+      }
+
+      const avgGapDays = totalGap / (c.followUps.length - 1) / (1000 * 60 * 60 * 24);
+      return avgGapDays >= min && avgGapDays < max;
+    });
+
+    const conversions = freqCollabs.filter(
+      (c) => c.stage === 'PUBLISHED' || c.stage === 'REVIEWED'
+    ).length;
+
+    const conversionRate = freqCollabs.length > 0 
+      ? (conversions / freqCollabs.length) * 100 
+      : 0;
+
+    return {
+      frequency: name,
+      followUps: freqCollabs.reduce((sum, c) => sum + c.followUps.length, 0),
+      conversions,
+      conversionRate,
+    };
+  });
+}
+
+/**
+ * 按日期分析趋势
+ */
+function analyzeByDay(
+  collaborations: any[],
+  followUps: any[],
+  startDate: Date,
+  endDate: Date
+): DayConversionData[] {
+  const days: DayConversionData[] = [];
+  const current = new Date(startDate);
+
+  while (current <= endDate) {
+    const dayStart = new Date(current);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(current);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    // 统计当天的跟进次数
+    const dayFollowUps = followUps.filter(
+      (f) => f.createdAt >= dayStart && f.createdAt <= dayEnd
+    );
+
+    // 统计当天转化的合作数
+    const dayConversions = collaborations.filter((c) => {
+      const lastFollowUp = c.followUps[c.followUps.length - 1];
+      if (!lastFollowUp) return false;
+
+      return (
+        lastFollowUp.createdAt >= dayStart &&
+        lastFollowUp.createdAt <= dayEnd &&
+        (c.stage === 'PUBLISHED' || c.stage === 'REVIEWED')
+      );
+    });
+
+    days.push({
+      day: `${current.getMonth() + 1}/${current.getDate()}`,
+      followUps: dayFollowUps.length,
+      conversions: dayConversions.length,
+    });
+
+    current.setDate(current.getDate() + 1);
+  }
+
+  return days;
+}
+
+/**
+ * 找出最佳跟进时间
+ */
+function findBestTime(conversionByTime: TimeConversionData[]): string {
+  let bestTime = conversionByTime[0];
+
+  for (const time of conversionByTime) {
+    if (time.conversionRate > bestTime.conversionRate) {
+      bestTime = time;
+    }
+  }
+
+  return bestTime.timeRange;
+}
+
+/**
+ * 找出最佳跟进频率
+ */
+function findBestFrequency(conversionByFrequency: FrequencyConversionData[]): string {
+  let bestFreq = conversionByFrequency[0];
+
+  for (const freq of conversionByFrequency) {
+    if (freq.conversionRate > bestFreq.conversionRate) {
+      bestFreq = freq;
+    }
+  }
+
+  return bestFreq.frequency;
+}
+
+/**
+ * 计算平均响应时间（天）
+ */
+function calculateAvgResponseTime(collaborations: any[]): number {
+  let totalResponseTime = 0;
+  let count = 0;
+
+  for (const collab of collaborations) {
+    if (collab.followUps.length < 2) continue;
+
+    for (let i = 0; i < collab.followUps.length - 1; i++) {
+      const gap = collab.followUps[i + 1].createdAt.getTime() - collab.followUps[i].createdAt.getTime();
+      totalResponseTime += gap;
+      count++;
+    }
+  }
+
+  if (count === 0) return 0;
+
+  return totalResponseTime / count / (1000 * 60 * 60 * 24); // 转换为天
+}
+
+/**
+ * 计算效果评分（0-100）
+ */
+function calculateEffectivenessScore(
+  conversionRate: number,
+  avgResponseTime: number,
+  totalFollowUps: number,
+  totalCollabs: number
+): number {
+  // 转化率权重 50%
+  const conversionScore = Math.min(conversionRate * 1.5, 50);
+
+  // 响应速度权重 30%（响应越快越好）
+  let responseScore = 0;
+  if (avgResponseTime <= 1) responseScore = 30;
+  else if (avgResponseTime <= 3) responseScore = 25;
+  else if (avgResponseTime <= 7) responseScore = 20;
+  else if (avgResponseTime <= 14) responseScore = 15;
+  else responseScore = 10;
+
+  // 跟进活跃度权重 20%
+  const avgFollowUpsPerCollab = totalCollabs > 0 ? totalFollowUps / totalCollabs : 0;
+  let activityScore = 0;
+  if (avgFollowUpsPerCollab >= 5) activityScore = 20;
+  else if (avgFollowUpsPerCollab >= 3) activityScore = 15;
+  else if (avgFollowUpsPerCollab >= 2) activityScore = 10;
+  else activityScore = 5;
+
+  return Math.round(conversionScore + responseScore + activityScore);
+}
+
+/**
+ * 生成优化建议
+ */
+function generateSuggestions(
+  conversionRate: number,
+  bestTime: string,
+  bestFrequency: string,
+  avgResponseTime: number,
+  conversionByTime: TimeConversionData[],
+  conversionByFrequency: FrequencyConversionData[]
+): string[] {
+  const suggestions: string[] = [];
+
+  // 转化率建议
+  if (conversionRate < 20) {
+    suggestions.push('转化率较低，建议增加跟进频率，提高沟通质量');
+  } else if (conversionRate < 30) {
+    suggestions.push('转化率中等，可以尝试优化跟进话术和时机');
+  } else {
+    suggestions.push('转化率良好，继续保持当前的跟进策略');
+  }
+
+  // 时间建议
+  suggestions.push(`建议在${bestTime}进行跟进，此时段转化率最高`);
+
+  // 频率建议
+  suggestions.push(`建议保持"${bestFrequency}"的跟进节奏，效果最佳`);
+
+  // 响应时间建议
+  if (avgResponseTime > 7) {
+    suggestions.push('平均响应时间较长，建议缩短跟进间隔，保持热度');
+  } else if (avgResponseTime < 2) {
+    suggestions.push('跟进频率很高，注意避免过度打扰，保持适度');
+  }
+
+  // 根据数据给出具体建议
+  const worstTime = conversionByTime.reduce((worst, time) => 
+    time.conversionRate < worst.conversionRate ? time : worst
+  );
+  if (worstTime.conversionRate < 15 && worstTime.followUps > 10) {
+    suggestions.push(`避免在${worstTime.timeRange}跟进，此时段效果较差`);
+  }
+
+  return suggestions;
+}
+
+
+// ==================== 智能建议 ====================
+
+export interface CollaborationSuggestion {
+  type: 'sample' | 'price' | 'schedule';
+  suggestions: {
+    field: string;
+    value: any;
+    label: string;
+    reason: string;
+    confidence: 'high' | 'medium' | 'low';
+  }[];
+}
+
+/**
+ * 获取智能建议
+ * 基于历史数据推荐样品、报价、排期等
+ */
+export async function getCollaborationSuggestions(
+  factoryId: string,
+  influencerId: string,
+  type: 'sample' | 'price' | 'schedule'
+): Promise<CollaborationSuggestion> {
+  // 获取达人信息
+  const influencer = await prisma.influencer.findFirst({
+    where: { id: influencerId, factoryId },
+  });
+
+  if (!influencer) {
+    throw createNotFoundError('达人不存在');
+  }
+
+  // 获取该达人的历史合作记录
+  const historicalCollabs = await prisma.collaboration.findMany({
+    where: {
+      influencerId,
+      factoryId,
+      stage: { in: ['PUBLISHED', 'REVIEWED'] }, // 只看成功的合作
+    },
+    include: {
+      dispatches: {
+        include: {
+          sample: true,
+        },
+      },
+      result: true,
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 10,
+  });
+
+  const suggestions: CollaborationSuggestion = {
+    type,
+    suggestions: [],
+  };
+
+  switch (type) {
+    case 'sample':
+      suggestions.suggestions = await getSampleSuggestions(factoryId, influencer, historicalCollabs);
+      break;
+    case 'price':
+      suggestions.suggestions = await getPriceSuggestions(factoryId, influencer, historicalCollabs);
+      break;
+    case 'schedule':
+      suggestions.suggestions = await getScheduleSuggestions(factoryId, influencer, historicalCollabs);
+      break;
+  }
+
+  return suggestions;
+}
+
+/**
+ * 推荐样品
+ */
+async function getSampleSuggestions(
+  factoryId: string,
+  influencer: any,
+  historicalCollabs: any[]
+) {
+  const suggestions: any[] = [];
+
+  // 1. 推荐该达人历史上效果最好的样品
+  if (historicalCollabs.length > 0) {
+    const samplePerformance = new Map<string, { sample: any; totalGMV: number; count: number }>();
+
+    for (const collab of historicalCollabs) {
+      if (collab.result && collab.dispatches.length > 0) {
+        for (const dispatch of collab.dispatches) {
+          const sampleId = dispatch.sample.id;
+          const existing = samplePerformance.get(sampleId);
+
+          if (existing) {
+            existing.totalGMV += collab.result.gmv || 0;
+            existing.count += 1;
+          } else {
+            samplePerformance.set(sampleId, {
+              sample: dispatch.sample,
+              totalGMV: collab.result.gmv || 0,
+              count: 1,
+            });
+          }
+        }
+      }
+    }
+
+    // 找出平均GMV最高的样品
+    const sortedSamples = Array.from(samplePerformance.values())
+      .sort((a, b) => (b.totalGMV / b.count) - (a.totalGMV / a.count));
+
+    if (sortedSamples.length > 0) {
+      const bestSample = sortedSamples[0];
+      suggestions.push({
+        field: 'sampleId',
+        value: bestSample.sample.id,
+        label: `${bestSample.sample.name}（历史最佳）`,
+        reason: `该达人使用此样品平均GMV为 ¥${Math.round(bestSample.totalGMV / bestSample.count)}，效果最好`,
+        confidence: 'high' as const,
+      });
+    }
+  }
+
+  // 2. 推荐同平台其他达人效果好的样品
+  const platformInfluencers = await prisma.influencer.findMany({
+    where: {
+      factoryId,
+      platform: influencer.platform,
+      id: { not: influencer.id },
+    },
+    take: 50,
+  });
+
+  const platformCollabs = await prisma.collaboration.findMany({
+    where: {
+      factoryId,
+      influencerId: { in: platformInfluencers.map(i => i.id) },
+      stage: { in: ['PUBLISHED', 'REVIEWED'] },
+    },
+    include: {
+      dispatches: {
+        include: {
+          sample: true,
+        },
+      },
+      result: true,
+    },
+    take: 100,
+  });
+
+  const platformSamplePerformance = new Map<string, { sample: any; totalGMV: number; count: number }>();
+
+  for (const collab of platformCollabs) {
+    if (collab.result && collab.dispatches.length > 0) {
+      for (const dispatch of collab.dispatches) {
+        const sampleId = dispatch.sample.id;
+        const existing = platformSamplePerformance.get(sampleId);
+
+        if (existing) {
+          existing.totalGMV += collab.result.gmv || 0;
+          existing.count += 1;
+        } else {
+          platformSamplePerformance.set(sampleId, {
+            sample: dispatch.sample,
+            totalGMV: collab.result.gmv || 0,
+            count: 1,
+          });
+        }
+      }
+    }
+  }
+
+  const sortedPlatformSamples = Array.from(platformSamplePerformance.values())
+    .filter(s => s.count >= 3) // 至少有3次使用记录
+    .sort((a, b) => (b.totalGMV / b.count) - (a.totalGMV / a.count));
+
+  if (sortedPlatformSamples.length > 0) {
+    const topSample = sortedPlatformSamples[0];
+    suggestions.push({
+      field: 'sampleId',
+      value: topSample.sample.id,
+      label: `${topSample.sample.name}（平台热门）`,
+      reason: `在${influencer.platform}平台上，此样品平均GMV为 ¥${Math.round(topSample.totalGMV / topSample.count)}`,
+      confidence: 'medium' as const,
+    });
+  }
+
+  // 3. 推荐最新的样品
+  const latestSamples = await prisma.sample.findMany({
+    where: { factoryId },
+    orderBy: { createdAt: 'desc' },
+    take: 3,
+  });
+
+  if (latestSamples.length > 0) {
+    suggestions.push({
+      field: 'sampleId',
+      value: latestSamples[0].id,
+      label: `${latestSamples[0].name}（最新样品）`,
+      reason: '这是最新上架的样品，可以尝试推广',
+      confidence: 'low' as const,
+    });
+  }
+
+  return suggestions;
+}
+
+/**
+ * 推荐报价
+ */
+async function getPriceSuggestions(
+  factoryId: string,
+  influencer: any,
+  historicalCollabs: any[]
+) {
+  const suggestions: any[] = [];
+
+  // 1. 基于该达人的历史报价
+  if (historicalCollabs.length > 0) {
+    const prices = historicalCollabs
+      .map(c => c.result?.cost || 0)
+      .filter(p => p > 0);
+
+    if (prices.length > 0) {
+      const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+      suggestions.push({
+        field: 'quotedPrice',
+        value: Math.round(avgPrice),
+        label: `¥${Math.round(avgPrice)}（历史平均）`,
+        reason: `该达人历史平均报价为 ¥${Math.round(avgPrice)}`,
+        confidence: 'high' as const,
+      });
+    }
+  }
+
+  // 2. 基于同平台达人的平均报价
+  const platformInfluencers = await prisma.influencer.findMany({
+    where: {
+      factoryId,
+      platform: influencer.platform,
+    },
+    take: 100,
+  });
+
+  const platformResults = await prisma.collaborationResult.findMany({
+    where: {
+      collaboration: {
+        factoryId,
+        influencerId: { in: platformInfluencers.map(i => i.id) },
+      },
+      cost: { gt: 0 },
+    },
+    select: { cost: true },
+    take: 200,
+  });
+
+  if (platformResults.length > 0) {
+    const avgPlatformPrice = platformResults.reduce((sum, r) => sum + r.cost, 0) / platformResults.length;
+    suggestions.push({
+      field: 'quotedPrice',
+      value: Math.round(avgPlatformPrice),
+      label: `¥${Math.round(avgPlatformPrice)}（平台平均）`,
+      reason: `${influencer.platform}平台达人平均报价为 ¥${Math.round(avgPlatformPrice)}`,
+      confidence: 'medium' as const,
+    });
+  }
+
+  // 3. 基于粉丝数推荐报价（简化算法）
+  if (influencer.followers) {
+    let estimatedPrice = 0;
+    if (influencer.followers < 10000) {
+      estimatedPrice = 500;
+    } else if (influencer.followers < 50000) {
+      estimatedPrice = 1000;
+    } else if (influencer.followers < 100000) {
+      estimatedPrice = 2000;
+    } else if (influencer.followers < 500000) {
+      estimatedPrice = 5000;
+    } else {
+      estimatedPrice = 10000;
+    }
+
+    suggestions.push({
+      field: 'quotedPrice',
+      value: estimatedPrice,
+      label: `¥${estimatedPrice}（粉丝数估算）`,
+      reason: `根据${influencer.followers}粉丝数估算的报价`,
+      confidence: 'low' as const,
+    });
+  }
+
+  return suggestions;
+}
+
+/**
+ * 推荐排期
+ */
+async function getScheduleSuggestions(
+  factoryId: string,
+  influencer: any,
+  historicalCollabs: any[]
+) {
+  const suggestions: any[] = [];
+
+  // 1. 推荐发布时间（基于历史数据）
+  if (historicalCollabs.length > 0) {
+    const publishDates = historicalCollabs
+      .map(c => c.result?.publishedAt)
+      .filter(d => d != null);
+
+    if (publishDates.length > 0) {
+      // 分析最常见的发布时间（小时）
+      const hourCounts = new Map<number, number>();
+      for (const date of publishDates) {
+        const hour = new Date(date).getHours();
+        hourCounts.set(hour, (hourCounts.get(hour) || 0) + 1);
+      }
+
+      const mostCommonHour = Array.from(hourCounts.entries())
+        .sort((a, b) => b[1] - a[1])[0][0];
+
+      const suggestedDate = new Date();
+      suggestedDate.setDate(suggestedDate.getDate() + 7); // 一周后
+      suggestedDate.setHours(mostCommonHour, 0, 0, 0);
+
+      suggestions.push({
+        field: 'scheduledDate',
+        value: suggestedDate.toISOString(),
+        label: `${suggestedDate.toLocaleDateString()} ${mostCommonHour}:00（历史最佳时间）`,
+        reason: `该达人通常在${mostCommonHour}:00发布效果最好`,
+        confidence: 'high' as const,
+      });
+    }
+  }
+
+  // 2. 推荐常见的发布时间段
+  const commonTimes = [
+    { hour: 12, label: '中午12:00', reason: '午休时间，用户活跃度高' },
+    { hour: 18, label: '晚上18:00', reason: '下班时间，用户活跃度高' },
+    { hour: 20, label: '晚上20:00', reason: '黄金时段，用户活跃度最高' },
+  ];
+
+  for (const time of commonTimes) {
+    const suggestedDate = new Date();
+    suggestedDate.setDate(suggestedDate.getDate() + 7);
+    suggestedDate.setHours(time.hour, 0, 0, 0);
+
+    suggestions.push({
+      field: 'scheduledDate',
+      value: suggestedDate.toISOString(),
+      label: `${suggestedDate.toLocaleDateString()} ${time.label}`,
+      reason: time.reason,
+      confidence: 'medium' as const,
+    });
+  }
+
+  return suggestions;
+}
+
+
+// ==================== 批量操作 ====================
+
+export interface BatchUpdateInput {
+  ids: string[];
+  operation: 'dispatch' | 'updateStage' | 'setDeadline';
+  data: any;
+}
+
+export interface BatchUpdateResult {
+  updated: number;
+  failed: number;
+  errors: { id: string; message: string }[];
+}
+
+/**
+ * 批量更新合作记录
+ */
+export async function batchUpdateCollaborations(
+  factoryId: string,
+  input: BatchUpdateInput
+): Promise<BatchUpdateResult> {
+  const { ids, operation, data } = input;
+
+  const result: BatchUpdateResult = {
+    updated: 0,
+    failed: 0,
+    errors: [],
+  };
+
+  // 验证所有合作记录都属于该工厂
+  const collaborations = await prisma.collaboration.findMany({
+    where: {
+      id: { in: ids },
+      factoryId,
+    },
+  });
+
+  if (collaborations.length !== ids.length) {
+    throw createBadRequestError('部分合作记录不存在或不属于该工厂');
+  }
+
+  // 根据操作类型执行批量更新
+  for (const id of ids) {
+    try {
+      switch (operation) {
+        case 'dispatch':
+          await batchDispatchSample(id, factoryId, data);
+          break;
+        case 'updateStage':
+          await updateStage(id, factoryId, data.stage, '批量更新');
+          break;
+        case 'setDeadline':
+          await setDeadline(id, factoryId, data.deadline ? new Date(data.deadline) : null);
+          break;
+        default:
+          throw createBadRequestError('不支持的操作类型');
+      }
+      result.updated++;
+    } catch (error: any) {
+      result.failed++;
+      result.errors.push({
+        id,
+        message: error.message || '操作失败',
+      });
+    }
+  }
+
+  return result;
+}
+
+/**
+ * 批量寄样（辅助函数）
+ */
+async function batchDispatchSample(
+  collaborationId: string,
+  factoryId: string,
+  data: { sampleId: string }
+) {
+  // 验证样品存在
+  const sample = await prisma.sample.findFirst({
+    where: { id: data.sampleId, factoryId },
+  });
+
+  if (!sample) {
+    throw createNotFoundError('样品不存在');
+  }
+
+  // 验证合作记录存在
+  const collaboration = await prisma.collaboration.findFirst({
+    where: { id: collaborationId, factoryId },
+  });
+
+  if (!collaboration) {
+    throw createNotFoundError('合作记录不存在');
+  }
+
+  // 创建寄样记录
+  await prisma.sampleDispatch.create({
+    data: {
+      collaborationId,
+      sampleId: data.sampleId,
+      dispatchedBy: collaboration.businessStaffId,
+      dispatchedAt: new Date(),
+      status: 'DISPATCHED',
+    },
+  });
+
+  // 如果合作还在早期阶段，自动推进到已寄样
+  if (['LEAD', 'CONTACTED', 'QUOTED'].includes(collaboration.stage)) {
+    await updateStage(collaborationId, factoryId, 'SAMPLED', '批量寄样');
+  }
+}
+
+// ==================== 数据验证 ====================
+
+export interface ValidationError {
+  field: string;
+  message: string;
+  type: 'error';
+}
+
+export interface ValidationWarning {
+  field: string;
+  message: string;
+  type: 'warning';
+}
+
+export interface ValidationInfo {
+  field: string;
+  message: string;
+  type: 'info';
+}
+
+export interface DuplicateCheck {
+  field: string;
+  value: any;
+  existingRecordId: string;
+  existingRecordInfo: string;
+  message: string;
+}
+
+export interface AnomalyCheck {
+  field: string;
+  value: any;
+  expectedRange?: { min: number; max: number };
+  message: string;
+  severity: 'high' | 'medium' | 'low';
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: ValidationError[];
+  warnings: ValidationWarning[];
+  infos: ValidationInfo[];
+  duplicates: DuplicateCheck[];
+  anomalies: AnomalyCheck[];
+}
+
+/**
+ * 验证合作数据
+ * 包括数据完整性验证、重复数据检测、异常数据检测
+ */
+export async function validateData(
+  factoryId: string,
+  type: 'collaboration' | 'dispatch' | 'result',
+  data: any
+): Promise<ValidationResult> {
+  const errors: ValidationError[] = [];
+  const warnings: ValidationWarning[] = [];
+  const infos: ValidationInfo[] = [];
+  const duplicates: DuplicateCheck[] = [];
+  const anomalies: AnomalyCheck[] = [];
+
+  if (type === 'collaboration') {
+    // 验证合作记录
+    await validateCollaborationData(factoryId, data, errors, warnings, infos, duplicates, anomalies);
+  } else if (type === 'dispatch') {
+    // 验证寄样记录
+    await validateDispatchData(factoryId, data, errors, warnings, infos, duplicates, anomalies);
+  } else if (type === 'result') {
+    // 验证结果记录
+    await validateResultData(factoryId, data, errors, warnings, infos, duplicates, anomalies);
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings,
+    infos,
+    duplicates,
+    anomalies,
+  };
+}
+
+/**
+ * 验证合作记录数据
+ */
+async function validateCollaborationData(
+  factoryId: string,
+  data: any,
+  errors: ValidationError[],
+  warnings: ValidationWarning[],
+  infos: ValidationInfo[],
+  duplicates: DuplicateCheck[],
+  anomalies: AnomalyCheck[]
+) {
+  // 1. 验证必填字段
+  if (!data.influencerId) {
+    errors.push({
+      field: 'influencerId',
+      message: '请选择达人',
+      type: 'error',
+    });
+  } else {
+    // 验证达人是否存在
+    const influencer = await prisma.influencer.findFirst({
+      where: { id: data.influencerId, factoryId },
+    });
+
+    if (!influencer) {
+      errors.push({
+        field: 'influencerId',
+        message: '达人不存在或不属于该工厂',
+        type: 'error',
+      });
+    } else {
+      // 检查重复合作
+      const existingCollaboration = await prisma.collaboration.findFirst({
+        where: {
+          factoryId,
+          influencerId: data.influencerId,
+          stage: {
+            notIn: ['REVIEWED'], // 排除已完成的合作
+          },
+        },
+        include: {
+          influencer: {
+            select: { name: true, platform: true },
+          },
+        },
+      });
+
+      if (existingCollaboration) {
+        duplicates.push({
+          field: 'influencerId',
+          value: data.influencerId,
+          existingRecordId: existingCollaboration.id,
+          existingRecordInfo: `${existingCollaboration.influencer.name} (${existingCollaboration.influencer.platform}) - ${STAGE_NAMES[existingCollaboration.stage]}`,
+          message: `该达人已有进行中的合作记录`,
+        });
+      }
+    }
+  }
+
+  if (!data.stage) {
+    errors.push({
+      field: 'stage',
+      message: '请选择合作阶段',
+      type: 'error',
+    });
+  } else if (!STAGE_ORDER.includes(data.stage)) {
+    errors.push({
+      field: 'stage',
+      message: '无效的合作阶段',
+      type: 'error',
+    });
+  }
+
+  // 2. 验证截止日期
+  if (data.deadline) {
+    const deadline = new Date(data.deadline);
+    const now = new Date();
+
+    if (isNaN(deadline.getTime())) {
+      errors.push({
+        field: 'deadline',
+        message: '无效的截止日期格式',
+        type: 'error',
+      });
+    } else if (deadline < now) {
+      warnings.push({
+        field: 'deadline',
+        message: '截止日期已过期',
+        type: 'warning',
+      });
+    } else {
+      // 检查截止日期是否过于紧迫（少于3天）
+      const daysUntilDeadline = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysUntilDeadline < 3) {
+        warnings.push({
+          field: 'deadline',
+          message: `截止日期较紧迫（还有${daysUntilDeadline}天）`,
+          type: 'warning',
+        });
+      }
+    }
+  }
+
+  // 3. 验证报价
+  if (data.quotedPrice !== undefined && data.quotedPrice !== null) {
+    if (typeof data.quotedPrice !== 'number') {
+      errors.push({
+        field: 'quotedPrice',
+        message: '报价必须是数字',
+        type: 'error',
+      });
+    } else if (data.quotedPrice < 0) {
+      errors.push({
+        field: 'quotedPrice',
+        message: '报价不能为负数',
+        type: 'error',
+      });
+    } else if (data.quotedPrice === 0) {
+      warnings.push({
+        field: 'quotedPrice',
+        message: '报价为0，请确认是否正确',
+        type: 'warning',
+      });
+    } else {
+      // 检查异常报价
+      if (data.quotedPrice > 100000) {
+        anomalies.push({
+          field: 'quotedPrice',
+          value: data.quotedPrice,
+          message: '报价异常高（>10万），请确认是否正确',
+          severity: 'high',
+        });
+      } else if (data.quotedPrice > 50000) {
+        anomalies.push({
+          field: 'quotedPrice',
+          value: data.quotedPrice,
+          message: '报价较高（>5万），请确认是否正确',
+          severity: 'medium',
+        });
+      }
+
+      // 如果有达人信息，检查报价是否在合理范围内
+      if (data.influencerId) {
+        const historicalCollaborations = await prisma.collaboration.findMany({
+          where: {
+            factoryId,
+            influencerId: data.influencerId,
+            quotedPrice: { not: null },
+          },
+          select: { quotedPrice: true },
+        });
+
+        if (historicalCollaborations.length > 0) {
+          const avgPrice = historicalCollaborations.reduce((sum, c) => sum + (c.quotedPrice || 0), 0) / historicalCollaborations.length;
+          const deviation = Math.abs(data.quotedPrice - avgPrice) / avgPrice;
+
+          if (deviation > 0.5) {
+            warnings.push({
+              field: 'quotedPrice',
+              message: `报价与该达人历史平均报价（¥${avgPrice.toFixed(2)}）差异较大`,
+              type: 'warning',
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // 4. 验证排期日期
+  if (data.scheduledDate) {
+    const scheduledDate = new Date(data.scheduledDate);
+    const now = new Date();
+
+    if (isNaN(scheduledDate.getTime())) {
+      errors.push({
+        field: 'scheduledDate',
+        message: '无效的排期日期格式',
+        type: 'error',
+      });
+    } else if (scheduledDate < now) {
+      warnings.push({
+        field: 'scheduledDate',
+        message: '排期日期已过期',
+        type: 'warning',
+      });
+    }
+  }
+}
+
+/**
+ * 验证寄样记录数据
+ */
+async function validateDispatchData(
+  factoryId: string,
+  data: any,
+  errors: ValidationError[],
+  warnings: ValidationWarning[],
+  infos: ValidationInfo[],
+  duplicates: DuplicateCheck[],
+  anomalies: AnomalyCheck[]
+) {
+  // 1. 验证必填字段
+  if (!data.sampleId) {
+    errors.push({
+      field: 'sampleId',
+      message: '请选择样品',
+      type: 'error',
+    });
+  } else {
+    // 验证样品是否存在
+    const sample = await prisma.sample.findFirst({
+      where: { id: data.sampleId, factoryId },
+    });
+
+    if (!sample) {
+      errors.push({
+        field: 'sampleId',
+        message: '样品不存在或不属于该工厂',
+        type: 'error',
+      });
+    }
+  }
+
+  if (!data.influencerId && !data.collaborationId) {
+    errors.push({
+      field: 'influencerId',
+      message: '请选择达人或合作记录',
+      type: 'error',
+    });
+  }
+
+  if (!data.quantity || data.quantity <= 0) {
+    errors.push({
+      field: 'quantity',
+      message: '数量必须大于0',
+      type: 'error',
+    });
+  } else if (data.quantity > 100) {
+    warnings.push({
+      field: 'quantity',
+      message: '寄样数量较多（>100），请确认是否正确',
+      type: 'warning',
+    });
+  }
+
+  // 2. 检查重复寄样
+  if (data.collaborationId && data.sampleId) {
+    const existingDispatch = await prisma.sampleDispatch.findFirst({
+      where: {
+        collaborationId: data.collaborationId,
+        sampleId: data.sampleId,
+        status: { in: ['DISPATCHED', 'RECEIVED'] },
+      },
+      include: {
+        sample: { select: { name: true } },
+      },
+    });
+
+    if (existingDispatch) {
+      duplicates.push({
+        field: 'sampleId',
+        value: data.sampleId,
+        existingRecordId: existingDispatch.id,
+        existingRecordInfo: `${existingDispatch.sample.name} - ${existingDispatch.status === 'DISPATCHED' ? '已寄出' : '已签收'}`,
+        message: '该样品已寄给该达人',
+      });
+    }
+  }
+
+  // 3. 验证地址信息
+  if (!data.address || !data.address.trim()) {
+    warnings.push({
+      field: 'address',
+      message: '建议填写收货地址',
+      type: 'warning',
+    });
+  }
+
+  if (!data.phone || !data.phone.trim()) {
+    warnings.push({
+      field: 'phone',
+      message: '建议填写联系电话',
+      type: 'warning',
+    });
+  }
+}
+
+/**
+ * 验证结果记录数据
+ */
+async function validateResultData(
+  factoryId: string,
+  data: any,
+  errors: ValidationError[],
+  warnings: ValidationWarning[],
+  infos: ValidationInfo[],
+  duplicates: DuplicateCheck[],
+  anomalies: AnomalyCheck[]
+) {
+  // 1. 验证必填字段
+  if (!data.collaborationId) {
+    errors.push({
+      field: 'collaborationId',
+      message: '请选择合作记录',
+      type: 'error',
+    });
+  } else {
+    // 验证合作记录是否存在
+    const collaboration = await prisma.collaboration.findFirst({
+      where: { id: data.collaborationId, factoryId },
+      include: { result: true },
+    });
+
+    if (!collaboration) {
+      errors.push({
+        field: 'collaborationId',
+        message: '合作记录不存在或不属于该工厂',
+        type: 'error',
+      });
+    } else if (collaboration.result) {
+      duplicates.push({
+        field: 'collaborationId',
+        value: data.collaborationId,
+        existingRecordId: collaboration.result.id,
+        existingRecordInfo: `播放量: ${collaboration.result.views}, 点赞数: ${collaboration.result.likes}`,
+        message: '该合作已有结果记录',
+      });
+    }
+  }
+
+  // 2. 验证数值字段
+  if (data.views === undefined || data.views === null) {
+    errors.push({
+      field: 'views',
+      message: '请填写播放量',
+      type: 'error',
+    });
+  } else if (typeof data.views !== 'number' || data.views < 0) {
+    errors.push({
+      field: 'views',
+      message: '播放量必须是非负数',
+      type: 'error',
+    });
+  }
+
+  if (data.likes !== undefined && data.likes !== null) {
+    if (typeof data.likes !== 'number' || data.likes < 0) {
+      errors.push({
+        field: 'likes',
+        message: '点赞数必须是非负数',
+        type: 'error',
+      });
+    }
+  }
+
+  if (data.comments !== undefined && data.comments !== null) {
+    if (typeof data.comments !== 'number' || data.comments < 0) {
+      errors.push({
+        field: 'comments',
+        message: '评论数必须是非负数',
+        type: 'error',
+      });
+    }
+  }
+
+  if (data.shares !== undefined && data.shares !== null) {
+    if (typeof data.shares !== 'number' || data.shares < 0) {
+      errors.push({
+        field: 'shares',
+        message: '分享数必须是非负数',
+        type: 'error',
+      });
+    }
+  }
+
+  // 3. 检查异常数据
+  if (data.views && data.likes) {
+    const likeRate = data.likes / data.views;
+    
+    if (likeRate > 0.5) {
+      anomalies.push({
+        field: 'likes',
+        value: data.likes,
+        expectedRange: { min: 0, max: data.views * 0.5 },
+        message: `点赞率异常高（${(likeRate * 100).toFixed(1)}%），通常点赞率在5%-20%之间`,
+        severity: 'high',
+      });
+    } else if (likeRate > 0.3) {
+      anomalies.push({
+        field: 'likes',
+        value: data.likes,
+        expectedRange: { min: 0, max: data.views * 0.3 },
+        message: `点赞率较高（${(likeRate * 100).toFixed(1)}%），请确认数据是否正确`,
+        severity: 'medium',
+      });
+    } else if (likeRate < 0.01 && data.views > 1000) {
+      anomalies.push({
+        field: 'likes',
+        value: data.likes,
+        message: `点赞率较低（${(likeRate * 100).toFixed(1)}%），可能效果不佳`,
+        severity: 'low',
+      });
+    }
+  }
+
+  if (data.views && data.comments) {
+    const commentRate = data.comments / data.views;
+    
+    if (commentRate > 0.1) {
+      anomalies.push({
+        field: 'comments',
+        value: data.comments,
+        message: `评论率异常高（${(commentRate * 100).toFixed(1)}%），通常评论率在0.5%-3%之间`,
+        severity: 'medium',
+      });
+    }
+  }
+
+  // 4. 验证GMV
+  if (data.gmv !== undefined && data.gmv !== null) {
+    if (typeof data.gmv !== 'number' || data.gmv < 0) {
+      errors.push({
+        field: 'gmv',
+        message: 'GMV必须是非负数',
+        type: 'error',
+      });
+    } else if (data.gmv === 0 && data.views > 1000) {
+      warnings.push({
+        field: 'gmv',
+        message: '播放量较高但GMV为0，请确认是否正确',
+        type: 'warning',
+      });
+    }
+  }
+
+  // 5. 验证发布日期
+  if (data.publishedAt) {
+    const publishedAt = new Date(data.publishedAt);
+    const now = new Date();
+
+    if (isNaN(publishedAt.getTime())) {
+      errors.push({
+        field: 'publishedAt',
+        message: '无效的发布日期格式',
+        type: 'error',
+      });
+    } else if (publishedAt > now) {
+      warnings.push({
+        field: 'publishedAt',
+        message: '发布日期在未来，请确认是否正确',
+        type: 'warning',
+      });
+    }
+  }
 }

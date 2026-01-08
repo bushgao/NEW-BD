@@ -4,8 +4,10 @@ import multer from 'multer';
 import * as influencerService from '../services/influencer.service';
 import * as importService from '../services/import.service';
 import { authenticate, requireFactoryMember } from '../middleware/auth.middleware';
+import { checkPermission, filterByPermission } from '../middleware/permission.middleware';
 import { createBadRequestError } from '../middleware/errorHandler';
 import type { ApiResponse, Platform, PipelineStage } from '@ics/shared';
+import influencerGroupRoutes from './influencer-group.routes';
 
 // Configure multer for file uploads
 const upload = multer({
@@ -29,6 +31,9 @@ const upload = multer({
 });
 
 const router = Router();
+
+// Mount group routes
+router.use('/groups', influencerGroupRoutes);
 
 // Validation middleware
 const handleValidationErrors = (req: Request, _res: Response, next: NextFunction) => {
@@ -109,11 +114,13 @@ const idParamValidation = [
  * @route GET /api/influencers
  * @desc List influencers with filtering and pagination
  * @access Private (Factory Member)
+ * @permission dataVisibility.viewOthersInfluencers - 如果没有此权限，只能看到自己创建的达人
  */
 router.get(
   '/',
   authenticate,
   requireFactoryMember,
+  filterByPermission('dataVisibility.viewOthersInfluencers'),
   listInfluencerValidation,
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
@@ -143,7 +150,13 @@ router.get(
         businessStaffId: req.query.businessStaffId as string | undefined,
       };
 
-      const result = await influencerService.list(factoryId, filter, { page, pageSize });
+      const result = await influencerService.list(
+        factoryId, 
+        filter, 
+        { page, pageSize },
+        req.user!.userId,
+        req.user!.role
+      );
 
       res.json({
         success: true,
@@ -282,11 +295,13 @@ router.get(
  * @route POST /api/influencers
  * @desc Create a new influencer
  * @access Private (Factory Member)
+ * @permission operations.manageInfluencers - 需要达人管理权限
  */
 router.post(
   '/',
   authenticate,
   requireFactoryMember,
+  checkPermission('operations.manageInfluencers'),
   createInfluencerValidation,
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
@@ -309,6 +324,7 @@ router.post(
         categories,
         tags,
         notes,
+        userId: req.user!.userId, // 记录添加人ID用于来源追踪
       });
 
       res.status(201).json({
@@ -325,11 +341,13 @@ router.post(
  * @route PUT /api/influencers/:id
  * @desc Update influencer
  * @access Private (Factory Member)
+ * @permission operations.manageInfluencers - 需要达人管理权限
  */
 router.put(
   '/:id',
   authenticate,
   requireFactoryMember,
+  checkPermission('operations.manageInfluencers'),
   idParamValidation,
   updateInfluencerValidation,
   handleValidationErrors,
@@ -368,11 +386,13 @@ router.put(
  * @route DELETE /api/influencers/:id
  * @desc Delete influencer
  * @access Private (Factory Member)
+ * @permission operations.manageInfluencers - 需要达人管理权限
  */
 router.delete(
   '/:id',
   authenticate,
   requireFactoryMember,
+  checkPermission('operations.manageInfluencers'),
   idParamValidation,
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
@@ -576,6 +596,191 @@ router.post(
       res.json({
         success: true,
         data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @route GET /api/influencers/recommendations
+ * @desc Get smart influencer recommendations
+ * @access Private (Factory Member)
+ */
+router.get(
+  '/recommendations',
+  authenticate,
+  requireFactoryMember,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const factoryId = req.user!.factoryId;
+      const userId = req.user!.userId;
+
+      if (!factoryId) {
+        throw createBadRequestError('用户未关联工厂');
+      }
+
+      // Get recommendations based on:
+      // 1. Historical collaborations (influencers with successful past collaborations)
+      // 2. High ROI influencers
+      // 3. Recently contacted influencers
+
+      const recommendations = await influencerService.getSmartRecommendations(factoryId, userId);
+
+      res.json({
+        success: true,
+        data: { recommendations },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @route POST /api/influencers/batch/tags
+ * @desc Batch add tags to influencers
+ * @access Private (Factory Member)
+ */
+router.post(
+  '/batch/tags',
+  authenticate,
+  requireFactoryMember,
+  checkPermission('operations.batchOperations'),
+  [
+    body('influencerIds').isArray().withMessage('达人ID列表必须是数组'),
+    body('influencerIds.*').isUUID().withMessage('无效的达人ID'),
+    body('tags').isArray().withMessage('标签列表必须是数组'),
+    body('tags.*').isString().withMessage('标签必须是字符串'),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const factoryId = req.user!.factoryId;
+      const { influencerIds, tags } = req.body;
+
+      if (!factoryId) {
+        throw createBadRequestError('用户未关联工厂');
+      }
+
+      // Verify all influencers belong to the factory
+      const influencers = await influencerService.getInfluencersByIds(influencerIds, factoryId);
+      
+      if (influencers.length !== influencerIds.length) {
+        throw createBadRequestError('部分达人不存在或不属于当前工厂');
+      }
+
+      // Add tags to all influencers
+      await influencerService.batchAddTags(influencerIds, tags);
+
+      res.json({
+        success: true,
+        data: {
+          message: `已为 ${influencerIds.length} 个达人添加标签`,
+          count: influencerIds.length,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @route GET /api/influencers/:id/collaboration-history
+ * @desc Get influencer collaboration history
+ * @access Private (Factory Member)
+ */
+router.get(
+  '/:id/collaboration-history',
+  authenticate,
+  requireFactoryMember,
+  idParamValidation,
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const factoryId = req.user!.factoryId;
+      if (!factoryId) {
+        throw createBadRequestError('用户未关联工厂');
+      }
+
+      const history = await influencerService.getCollaborationHistory(
+        req.params.id,
+        factoryId
+      );
+
+      res.json({
+        success: true,
+        data: history,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @route GET /api/influencers/:id/roi-stats
+ * @desc Get influencer ROI statistics
+ * @access Private (Factory Member)
+ */
+router.get(
+  '/:id/roi-stats',
+  authenticate,
+  requireFactoryMember,
+  idParamValidation,
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const factoryId = req.user!.factoryId;
+      if (!factoryId) {
+        throw createBadRequestError('用户未关联工厂');
+      }
+
+      const stats = await influencerService.getROIStats(
+        req.params.id,
+        factoryId
+      );
+
+      res.json({
+        success: true,
+        data: stats,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @route PUT /api/influencers/:id/group
+ * @desc Move influencer to group
+ * @access Private (Factory Member)
+ */
+router.put(
+  '/:id/group',
+  authenticate,
+  requireFactoryMember,
+  idParamValidation,
+  [body('groupId').optional().isUUID().withMessage('无效的分组ID')],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const factoryId = req.user!.factoryId;
+      if (!factoryId) {
+        throw createBadRequestError('用户未关联工厂');
+      }
+
+      const { groupId } = req.body;
+      
+      // Import group service
+      const groupService = await import('../services/influencer-group.service');
+      await groupService.moveInfluencerToGroup(req.params.id, groupId || null, factoryId);
+
+      res.json({
+        success: true,
+        data: { message: '达人已移动到分组' },
       });
     } catch (error) {
       next(error);

@@ -100,9 +100,40 @@ npm run dev
 │   │       ├── services/ # API 服务
 │   │       └── stores/   # 状态管理
 │   └── shared/           # 共享类型定义
-├── .kiro/specs/          # 功能规格文档
+├── .kiro/
+│   ├── specs/            # 功能规格文档
+│   └── 开发规范-架构一致性原则.md  # ⚠️ 必读：开发规范
 └── docs/                 # 项目文档
 ```
+
+## ⚠️ 开发规范（重要）
+
+**在开始任何新功能开发前，请务必阅读：**
+- [`.kiro/开发规范-架构一致性原则.md`](.kiro/开发规范-架构一致性原则.md) - 架构一致性原则和最佳实践
+
+### 核心原则
+
+1. **先找参考** - 实现新功能前必须找到项目中类似的、工作正常的功能作为参考
+2. **理解架构** - 分析参考代码的文件组织、调用链路、错误处理方式
+3. **遵循模式** - 严格按照现有模式实现新功能
+4. **架构优先** - 当任务描述与项目架构冲突时，优先遵循架构一致性
+
+### 前端架构模式
+
+报表类页面标准调用链路：
+```
+Page Component (pages/XXX/index.tsx)
+    ↓ 调用
+Service Layer (services/report.service.ts)
+    ↓ 调用
+API Utility (services/api.ts)
+    ↓ 请求
+Backend API
+```
+
+**参考文件**：
+- 标准页面：`packages/frontend/src/pages/Reports/index.tsx`
+- 服务层：`packages/frontend/src/services/report.service.ts`
 
 ## 开发
 

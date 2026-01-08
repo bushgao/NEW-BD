@@ -27,12 +27,14 @@ interface AuthState {
   token: AuthToken | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  _hasHydrated: boolean;
   setAuth: (user: User, token: AuthToken) => void;
   setUser: (user: User) => void;
   setLoading: (loading: boolean) => void;
   logout: () => void;
   updateToken: (token: AuthToken) => void;
   loginAsDemo: (role?: UserRole) => void;
+  setHasHydrated: (state: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -42,13 +44,22 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isAuthenticated: false,
       isLoading: false,
-      setAuth: (user, token) =>
+      _hasHydrated: false,
+      setAuth: (user, token) => {
+        // Validate token before setting
+        if (!token || !token.accessToken || token.accessToken === 'null' || token.accessToken === null) {
+          console.error('[AuthStore] ❌ Attempted to set invalid token:', token);
+          throw new Error('Invalid token: accessToken is null or missing');
+        }
+        
+        console.log('[AuthStore] ✅ Setting valid token');
         set({
           user,
           token,
           isAuthenticated: true,
           isLoading: false,
-        }),
+        });
+      },
       setUser: (user) => set({ user }),
       setLoading: (isLoading) => set({ isLoading }),
       logout: () =>
@@ -70,9 +81,17 @@ export const useAuthStore = create<AuthState>()(
           factoryId: 'demo-factory',
         }
       }),
+      setHasHydrated: (state) => {
+        set({
+          _hasHydrated: state
+        });
+      }
     }),
     {
       name: 'auth-storage',
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      }
     }
   )
 );

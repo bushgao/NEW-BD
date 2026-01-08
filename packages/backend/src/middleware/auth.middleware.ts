@@ -18,22 +18,31 @@ declare global {
 export function authenticate(req: Request, _res: Response, next: NextFunction): void {
   try {
     const authHeader = req.headers.authorization;
+    
+    console.log('[Auth Middleware] Request:', req.method, req.path);
+    console.log('[Auth Middleware] Authorization header:', authHeader ? authHeader.substring(0, 30) + '...' : 'MISSING');
 
     if (!authHeader) {
+      console.log('[Auth Middleware] ❌ No authorization header');
       throw createUnauthorizedError('未提供访问令牌');
     }
 
     const parts = authHeader.split(' ');
     if (parts.length !== 2 || parts[0] !== 'Bearer') {
+      console.log('[Auth Middleware] ❌ Invalid format:', parts);
       throw createUnauthorizedError('访问令牌格式错误');
     }
 
     const token = parts[1];
+    console.log('[Auth Middleware] Token preview:', token.substring(0, 20) + '...');
+    
     const payload = verifyToken(token);
+    console.log('[Auth Middleware] ✅ Token verified, user:', payload.userId);
 
     req.user = payload;
     next();
   } catch (error) {
+    console.log('[Auth Middleware] ❌ Authentication failed:', error.message);
     next(error);
   }
 }

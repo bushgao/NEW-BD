@@ -19,6 +19,7 @@ import {
   StopOutlined,
   CheckCircleOutlined,
   WarningOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import {
@@ -32,6 +33,7 @@ import {
 import { Card, CardContent } from '../../components/ui/Card';
 import AddStaffModal from './AddStaffModal';
 import StaffDetailModal from './StaffDetailModal';
+import StaffPermissionsModal from './StaffPermissionsModal';
 
 const { Title, Text } = Typography;
 
@@ -45,7 +47,9 @@ const TeamPage = () => {
   // Modal states
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [permissionsModalVisible, setPermissionsModalVisible] = useState(false);
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
+  const [selectedStaffName, setSelectedStaffName] = useState<string>('');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -99,6 +103,20 @@ const TeamPage = () => {
   const handleViewDetail = (staffId: string) => {
     setSelectedStaffId(staffId);
     setDetailModalVisible(true);
+  };
+
+  const handleSetPermissions = (staff: StaffMember) => {
+    setSelectedStaffId(staff.id);
+    setSelectedStaffName(staff.name);
+    setPermissionsModalVisible(true);
+  };
+
+  const handlePermissionsSuccess = () => {
+    setPermissionsModalVisible(false);
+    setSelectedStaffId(null);
+    setSelectedStaffName('');
+    message.success('权限更新成功，立即生效');
+    fetchData();
   };
 
   const handleToggleStatus = async (staff: StaffMember) => {
@@ -160,7 +178,7 @@ const TeamPage = () => {
     {
       title: '操作',
       key: 'action',
-      width: 250,
+      width: 320,
       render: (_: unknown, record: StaffMember) => (
         <Space size="small">
           <Button
@@ -170,6 +188,14 @@ const TeamPage = () => {
             onClick={() => handleViewDetail(record.id)}
           >
             查看详情
+          </Button>
+          <Button
+            type="link"
+            size="small"
+            icon={<SafetyOutlined />}
+            onClick={() => handleSetPermissions(record)}
+          >
+            权限设置
           </Button>
           <Button
             type="link"
@@ -325,6 +351,21 @@ const TeamPage = () => {
             setDetailModalVisible(false);
             setSelectedStaffId(null);
           }}
+        />
+      )}
+
+      {/* 权限设置弹窗 */}
+      {selectedStaffId && (
+        <StaffPermissionsModal
+          visible={permissionsModalVisible}
+          staffId={selectedStaffId}
+          staffName={selectedStaffName}
+          onCancel={() => {
+            setPermissionsModalVisible(false);
+            setSelectedStaffId(null);
+            setSelectedStaffName('');
+          }}
+          onSuccess={handlePermissionsSuccess}
         />
       )}
     </div>

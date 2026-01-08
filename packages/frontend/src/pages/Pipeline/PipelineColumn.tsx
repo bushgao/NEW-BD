@@ -17,6 +17,7 @@ interface PipelineColumnProps {
   onCardClick: (card: CollaborationCard) => void;
   onFollowUpClick: (card: CollaborationCard) => void;
   onDeadlineClick: (card: CollaborationCard) => void;
+  onQuickFollowUpClick: (card: CollaborationCard) => void;
 }
 
 const PipelineColumn = ({
@@ -28,6 +29,7 @@ const PipelineColumn = ({
   onCardClick,
   onFollowUpClick,
   onDeadlineClick,
+  onQuickFollowUpClick,
 }: PipelineColumnProps) => {
   const columnRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
@@ -123,6 +125,7 @@ const PipelineColumn = ({
               onClick={() => onCardClick(card)}
               onFollowUpClick={() => onFollowUpClick(card)}
               onDeadlineClick={() => onDeadlineClick(card)}
+              onQuickFollowUpClick={() => onQuickFollowUpClick(card)}
             />
           ))}
           {cards.length === 0 && (

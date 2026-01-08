@@ -92,3 +92,49 @@ export async function updateStaffStatus(staffId: string, status: 'ACTIVE' | 'DIS
 export async function deleteStaff(staffId: string): Promise<void> {
   await api.delete(`/staff/${staffId}`);
 }
+
+// ============ Permission Management ============
+
+import type { StaffPermissions } from '../hooks/usePermissions';
+
+export interface PermissionTemplate {
+  id: 'basic' | 'advanced' | 'supervisor' | 'custom';
+  name: string;
+  description: string;
+  permissions: StaffPermissions;
+}
+
+/**
+ * 获取商务权限
+ */
+export async function getStaffPermissions(
+  staffId: string
+): Promise<{ permissions: StaffPermissions; template: string }> {
+  const response = await api.get<{ permissions: StaffPermissions; template: string }>(
+    `/staff/${staffId}/permissions`
+  );
+  return response.data;
+}
+
+/**
+ * 更新商务权限
+ */
+export async function updateStaffPermissions(
+  staffId: string,
+  permissions: StaffPermissions
+): Promise<{ user: StaffMember; permissions: StaffPermissions; template: string }> {
+  const response = await api.put<{
+    user: StaffMember;
+    permissions: StaffPermissions;
+    template: string;
+  }>(`/staff/${staffId}/permissions`, { permissions });
+  return response.data;
+}
+
+/**
+ * 获取权限模板列表
+ */
+export async function getPermissionTemplates(): Promise<PermissionTemplate[]> {
+  const response = await api.get<{ templates: PermissionTemplate[] }>('/staff/permission-templates');
+  return response.data.templates;
+}

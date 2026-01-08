@@ -305,6 +305,189 @@ export async function getPlatformStats(): Promise<PlatformStats> {
   return response.data;
 }
 
+// ============ Factory Staff Management ============
+
+export interface FactoryStaffMember {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  _count?: {
+    influencers: number;
+    collaborations: number;
+  };
+}
+
+export interface StaffWorkStats {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  factoryId: string;
+  factoryName: string;
+  createdAt: string;
+  influencersAdded: number;
+  collaborationsCreated: number;
+  collaborationsCompleted: number;
+  successRate: number;
+}
+
+/**
+ * 获取工厂的商务列表
+ */
+export async function getFactoryStaff(factoryId: string): Promise<FactoryStaffMember[]> {
+  const response = await request<FactoryStaffMember[]>(
+    'get',
+    `/platform/factories/${factoryId}/staff`
+  );
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error?.message || '获取商务列表失败');
+  }
+
+  return response.data;
+}
+
+/**
+ * 获取商务的工作统计
+ */
+export async function getStaffWorkStats(staffId: string): Promise<StaffWorkStats> {
+  const response = await request<StaffWorkStats>(
+    'get',
+    `/platform/staff/${staffId}/stats`
+  );
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error?.message || '获取商务统计失败');
+  }
+
+  return response.data;
+}
+
+/**
+ * 获取商务添加的达人列表
+ */
+export async function getStaffInfluencers(
+  staffId: string,
+  pagination: { page: number; pageSize: number }
+): Promise<PaginatedResult<any>> {
+  const response = await request<PaginatedResult<any>>(
+    'get',
+    `/platform/staff/${staffId}/influencers`,
+    pagination
+  );
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error?.message || '获取达人列表失败');
+  }
+
+  return response.data;
+}
+
+/**
+ * 获取商务的合作列表
+ */
+export async function getStaffCollaborations(
+  staffId: string,
+  pagination: { page: number; pageSize: number }
+): Promise<PaginatedResult<any>> {
+  const response = await request<PaginatedResult<any>>(
+    'get',
+    `/platform/staff/${staffId}/collaborations`,
+    pagination
+  );
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error?.message || '获取合作列表失败');
+  }
+
+  return response.data;
+}
+
+// ============ User Management ============
+
+export interface UserListItem {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  factoryId?: string;
+  factoryName?: string;
+  isActive: boolean;
+  createdAt: string;
+  lastLoginAt?: string;
+}
+
+export interface UserListFilter {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  role?: string;
+  isActive?: boolean;
+}
+
+export interface UserListResponse {
+  users: UserListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/**
+ * 获取所有用户列表
+ */
+export async function listAllUsers(filter: UserListFilter = {}): Promise<UserListResponse> {
+  const response = await request<PaginatedResult<UserListItem>>(
+    'get',
+    '/platform/users',
+    filter
+  );
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error?.message || '获取用户列表失败');
+  }
+
+  // 转换 PaginatedResult 到 UserListResponse
+  return {
+    users: response.data.data,
+    total: response.data.total,
+    page: response.data.page,
+    pageSize: response.data.pageSize,
+  };
+}
+
+/**
+ * 获取用户详情
+ */
+export async function getUserDetail(userId: string): Promise<UserListItem> {
+  const response = await request<UserListItem>(
+    'get',
+    `/platform/users/${userId}`
+  );
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error?.message || '获取用户详情失败');
+  }
+
+  return response.data;
+}
+
+/**
+ * 切换用户状态（启用/禁用）
+ */
+export async function toggleUserStatus(userId: string, isActive: boolean): Promise<void> {
+  const response = await request<{ message: string }>(
+    'post',
+    `/platform/users/${userId}/toggle-status`,
+    { isActive }
+  );
+
+  if (!response.success) {
+    throw new Error(response.error?.message || '切换用户状态失败');
+  }
+}
+
 // ============ Helper Functions ============
 
 /**

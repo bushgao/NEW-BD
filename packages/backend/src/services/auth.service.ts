@@ -31,6 +31,8 @@ export interface UserWithoutPassword {
   factoryId: string | null;
   createdAt: Date;
   updatedAt: Date;
+  lastLoginAt?: Date;
+  isActive?: boolean;
   factory?: {
     id: string;
     name: string;
@@ -217,11 +219,22 @@ export async function login(data: LoginInput): Promise<{ user: UserWithoutPasswo
     throw createUnauthorizedError('邮箱或密码错误');
   }
 
+  // 检查账号状态（禁用的账号无法登录）
+  if (user.status === 'DISABLED') {
+    throw createUnauthorizedError('账号已被禁用，请联系管理员');
+  }
+
   // Verify password
   const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
   if (!isPasswordValid) {
     throw createUnauthorizedError('邮箱或密码错误');
   }
+
+  // Update last login time
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { lastLoginAt: new Date() },
+  });
 
   // Determine factoryId and factory info based on role
   let factoryId = user.factoryId;
@@ -271,9 +284,17 @@ export async function login(data: LoginInput): Promise<{ user: UserWithoutPasswo
  */
 export function verifyToken(token: string): TokenPayload {
   try {
+    console.log('[verifyToken] Verifying token...');
+    console.log('[verifyToken] JWT_SECRET:', JWT_SECRET.substring(0, 20) + '...');
+    console.log('[verifyToken] Token preview:', token.substring(0, 30) + '...');
+    
     const payload = jwt.verify(token, JWT_SECRET) as TokenPayload;
+    console.log('[verifyToken] ✅ Token valid, payload:', payload);
     return payload;
   } catch (error) {
+    console.log('[verifyToken] ❌ Verification failed:', error.message);
+    console.log('[verifyToken] Error type:', error.constructor.name);
+    
     if (error instanceof jwt.TokenExpiredError) {
       throw createUnauthorizedError('登录已过期，请重新登录');
     }
@@ -391,6 +412,9 @@ export async function getCurrentUser(userId: string): Promise<UserWithoutPasswor
     factoryId,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
+    lastLoginAt: user.lastLoginAt || undefined,
+    isActive: user.isActive,
     factory: factoryInfo,
+    preferences: user.preferences,
   };
 }

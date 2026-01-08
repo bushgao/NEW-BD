@@ -16,7 +16,12 @@ const SamplesPage = lazy(() => import('../pages/Samples'));
 const PipelinePage = lazy(() => import('../pages/Pipeline'));
 const ResultsPage = lazy(() => import('../pages/Results'));
 const ReportsPage = lazy(() => import('../pages/Reports'));
+const FollowUpAnalyticsPage = lazy(() => import('../pages/FollowUpAnalytics'));
 const AdminPage = lazy(() => import('../pages/Admin'));
+const AdminOverview = lazy(() => import('../pages/Admin/Overview'));
+const AdminFactories = lazy(() => import('../pages/Admin/Factories'));
+const AdminInfluencers = lazy(() => import('../pages/Admin/Influencers'));
+const AdminUsers = lazy(() => import('../pages/Admin/Users'));
 const NotificationsPage = lazy(() => import('../pages/Notifications'));
 const UIShowcase = lazy(() => import('../pages/UIShowcase'));
 const TeamPage = lazy(() => import('../pages/Team'));
@@ -203,6 +208,16 @@ const AppRoutes = () => {
             }
           />
 
+          {/* Follow-up Analytics - Factory Owner and Business Staff */}
+          <Route
+            path="follow-up-analytics"
+            element={
+              <RoleRoute allowedRoles={['FACTORY_OWNER', 'BUSINESS_STAFF']}>
+                <FollowUpAnalyticsPage />
+              </RoleRoute>
+            }
+          />
+
           {/* Team Management - Factory Owner only */}
           <Route
             path="team"
@@ -219,6 +234,38 @@ const AppRoutes = () => {
             element={
               <RoleRoute allowedRoles={['PLATFORM_ADMIN']}>
                 <AdminPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="admin/overview"
+            element={
+              <RoleRoute allowedRoles={['PLATFORM_ADMIN']}>
+                <AdminOverview />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="admin/factories"
+            element={
+              <RoleRoute allowedRoles={['PLATFORM_ADMIN']}>
+                <AdminFactories />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="admin/influencers"
+            element={
+              <RoleRoute allowedRoles={['PLATFORM_ADMIN']}>
+                <AdminInfluencers />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="admin/users"
+            element={
+              <RoleRoute allowedRoles={['PLATFORM_ADMIN']}>
+                <AdminUsers />
               </RoleRoute>
             }
           />
