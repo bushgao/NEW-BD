@@ -151,6 +151,21 @@ export interface DateRange {
   endDate: string;
 }
 
+export interface TrendDataPoint {
+  date: string;
+  value: number;
+  label: string;
+}
+
+export interface TrendData {
+  current: TrendDataPoint[];
+  previous: TrendDataPoint[];
+  comparison: {
+    change: number;
+    percentage: number;
+  };
+}
+
 // ==================== 辅助函数 ====================
 
 /**
@@ -202,6 +217,19 @@ export async function getStaffPerformance(
   }
 
   const response = await api.get('/reports/staff-performance', { params });
+  return response.data.data;
+}
+
+/**
+ * 获取趋势数据
+ */
+export async function getTrendData(
+  period: 'week' | 'month' | 'quarter',
+  dataType: 'gmv' | 'cost' | 'roi'
+): Promise<TrendData> {
+  const response = await api.get('/reports/dashboard/trends', {
+    params: { period, dataType },
+  });
   return response.data.data;
 }
 
@@ -320,4 +348,358 @@ export async function exportCollaborations(dateRange?: DateRange): Promise<void>
   link.click();
   document.body.removeChild(link);
   window.URL.revokeObjectURL(url);
+}
+
+
+// ==================== ROI 分析数据 ====================
+
+export interface StaffROIData {
+  staffId: string;
+  staffName: string;
+  totalGmv: number;
+  totalCost: number;
+  roi: number;
+  collaborationCount: number;
+}
+
+export interface CostBreakdown {
+  sampleCost: number;
+  collaborationCost: number;
+  otherCost: number;
+}
+
+export interface ScatterDataPoint {
+  cost: number;
+  revenue: number;
+  roi: number;
+  name: string;
+}
+
+export interface ROIAnalysisData {
+  byStaff: StaffROIData[];
+  costBreakdown: CostBreakdown;
+  costVsRevenue: ScatterDataPoint[];
+}
+
+/**
+ * 获取 ROI 分析数据
+ */
+export async function getRoiAnalysis(): Promise<ROIAnalysisData> {
+  const response = await api.get('/reports/dashboard/roi-analysis');
+  return response.data.data;
+}
+
+
+// ==================== 管道漏斗数据 ====================
+
+export interface PipelineStageData {
+  stage: string;
+  stageName: string;
+  count: number;
+  conversionRate: number;
+  dropRate: number;
+}
+
+export interface PipelineFunnelData {
+  stages: PipelineStageData[];
+  totalCount: number;
+  overallConversionRate: number;
+}
+
+/**
+ * 获取管道漏斗数据
+ */
+export async function getPipelineFunnel(): Promise<PipelineFunnelData> {
+  const response = await api.get('/reports/dashboard/pipeline-funnel');
+  return response.data.data;
+}
+
+
+// ==================== 商务对比分析 ====================
+
+export interface StaffComparisonMetrics {
+  leads: number;
+  deals: number;
+  gmv: number;
+  roi: number;
+  efficiency: number;
+}
+
+export interface StaffComparisonData {
+  staffId: string;
+  staffName: string;
+  metrics: StaffComparisonMetrics;
+  normalizedMetrics: StaffComparisonMetrics;
+}
+
+export interface StaffComparisonAnalysis {
+  staffData: StaffComparisonData[];
+  insights: {
+    strengths: Record<string, string[]>;
+    weaknesses: Record<string, string[]>;
+  };
+}
+
+/**
+ * 获取商务对比分析数据
+ */
+export async function getStaffComparison(staffIds: string[]): Promise<StaffComparisonAnalysis> {
+  const response = await api.get('/reports/staff/comparison', {
+    params: { staffIds: staffIds.join(',') },
+  });
+  return response.data.data;
+}
+
+
+// ==================== 商务工作质量评分 ====================
+
+export interface QualityScoreDimension {
+  followUpFrequency: number;
+  conversionRate: number;
+  roi: number;
+  efficiency: number;
+}
+
+export interface ScoreTrend {
+  date: string;
+  overall: number;
+  followUpFrequency: number;
+  conversionRate: number;
+  roi: number;
+  efficiency: number;
+}
+
+export interface QualityScoreData {
+  overall: number;
+  followUpFrequency: number;
+  conversionRate: number;
+  roi: number;
+  efficiency: number;
+  trend: ScoreTrend[];
+  suggestions: string[];
+}
+
+/**
+ * 获取商务工作质量评分
+ */
+export async function getStaffQualityScore(staffId: string): Promise<QualityScoreData> {
+  const response = await api.get(`/reports/staff/${staffId}/quality-score`);
+  return response.data.data;
+}
+
+
+// ==================== 商务工作日历 ====================
+
+export interface CalendarEvent {
+  date: string;
+  type: 'deadline' | 'scheduled' | 'followup';
+  title: string;
+  collaborationId: string;
+  influencerName: string;
+  stage: string;
+}
+
+export interface WorkloadData {
+  date: string;
+  count: number;
+  level: 'low' | 'medium' | 'high';
+}
+
+export interface CalendarData {
+  events: CalendarEvent[];
+  workload: WorkloadData[];
+  stats: {
+    totalEvents: number;
+    deadlines: number;
+    scheduled: number;
+    followups: number;
+    avgDailyWorkload: number;
+  };
+}
+
+/**
+ * 获取商务工作日历数据
+ */
+export async function getStaffCalendar(staffId: string, month: string): Promise<CalendarData> {
+  const response = await api.get(`/reports/staff/${staffId}/calendar`, {
+    params: { month },
+  });
+  return response.data.data;
+}
+
+
+// ==================== 导出对象 ====================
+
+export interface Alert {
+  id: string;
+  type: 'overdue' | 'pending_sample' | 'pending_result' | 'low_conversion' | 'high_cost';
+  title: string;
+  description: string;
+  severity: 'low' | 'medium' | 'high';
+  createdAt: string;
+}
+
+export interface DailySummaryData {
+  overdueCollaborations: number;
+  pendingSamples: number;
+  pendingResults: number;
+  alerts: Alert[];
+  highlights: string[];
+}
+
+/**
+ * 获取每日摘要数据
+ * 用于快捷操作面板
+ */
+export async function getDailySummary(): Promise<DailySummaryData> {
+  const response = await api.get('/reports/dashboard/daily-summary');
+  return response.data.data;
+}
+
+
+// ==================== 跟进分析数据 ====================
+
+export interface ConversionByTime {
+  timeRange: string;
+  followUps: number;
+  conversions: number;
+  conversionRate: number;
+}
+
+export interface ConversionByFrequency {
+  frequency: string;
+  followUps: number;
+  conversions: number;
+  conversionRate: number;
+}
+
+export interface ConversionByDay {
+  day: string;
+  followUps: number;
+  conversions: number;
+}
+
+export interface FollowUpAnalyticsData {
+  effectivenessScore: number;
+  bestTime: string;
+  bestFrequency: string;
+  totalFollowUps: number;
+  successfulConversions: number;
+  conversionRate: number;
+  avgResponseTime: number;
+  conversionByTime: ConversionByTime[];
+  conversionByFrequency: ConversionByFrequency[];
+  conversionByDay: ConversionByDay[];
+  suggestions: string[];
+}
+
+/**
+ * 获取跟进分析数据
+ */
+export async function getFollowUpAnalytics(
+  period: 'week' | 'month' | 'quarter' = 'month',
+  staffId?: string
+): Promise<FollowUpAnalyticsData> {
+  const params: Record<string, any> = { period };
+  if (staffId) {
+    params.staffId = staffId;
+  }
+
+  const response = await api.get('/collaborations/follow-up-analytics', { params });
+  return response.data.data;
+}
+
+// ==================== 导出对象 ====================
+
+export const reportService = {
+  getStaffPerformance,
+  getTrendData,
+  getFactoryDashboard,
+  getBusinessStaffDashboard,
+  exportStaffPerformance,
+  exportRoiReport,
+  exportCollaborations,
+  getRoiAnalysis,
+  getPipelineFunnel,
+  getStaffComparison,
+  getStaffQualityScore,
+  getStaffCalendar,
+  getDailySummary,
+  getFollowUpAnalytics,
+};
+
+
+// ==================== 今日工作清单 ====================
+
+export interface TodoItem {
+  id: string;
+  type: 'followup' | 'deadline' | 'dispatch' | 'result';
+  title: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high';
+  dueTime?: string;
+  relatedId: string;
+  completed?: boolean;
+  snoozedUntil?: string;
+}
+
+export interface TodayGoal {
+  type: 'followup' | 'dispatch' | 'deal';
+  target: number;
+  current: number;
+  label: string;
+}
+
+export interface TodayTodosResponse {
+  todos: TodoItem[];
+  goals: TodayGoal[];
+  summary: {
+    total: number;
+    completed: number;
+    overdue: number;
+  };
+}
+
+/**
+ * 获取今日待办事项
+ */
+export async function getTodayTodos(): Promise<TodayTodosResponse> {
+  const response = await api.get('/reports/my-dashboard/today-todos');
+  return response.data.data;
+}
+
+// ==================== 工作统计 ====================
+
+export interface WorkStats {
+  leadsAdded: number;
+  collaborationsCreated: number;
+  samplesDispatched: number;
+  followUpsCompleted: number;
+  dealsCompleted: number;
+  gmv: number;
+  goalProgress: number;
+  rankChange: number;
+}
+
+export interface WorkStatsTrend {
+  date: string;
+  leadsAdded: number;
+  collaborationsCreated: number;
+  dealsCompleted: number;
+  gmv: number;
+}
+
+export interface WorkStatsResponse {
+  stats: WorkStats;
+  trend: WorkStatsTrend[];
+}
+
+/**
+ * 获取工作统计
+ */
+export async function getWorkStats(period: 'today' | 'week' | 'month' = 'week'): Promise<WorkStatsResponse> {
+  const response = await api.get('/reports/my-dashboard/work-stats', {
+    params: { period },
+  });
+  return response.data.data;
 }

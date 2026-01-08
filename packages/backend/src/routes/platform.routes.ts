@@ -370,6 +370,132 @@ router.get(
   }
 );
 
+// ============ Factory Staff Management Routes ============
+
+/**
+ * @route GET /api/platform/factories/:factoryId/staff
+ * @desc 获取工厂的商务列表
+ * @access Platform Admin
+ */
+router.get(
+  '/factories/:factoryId/staff',
+  authenticate,
+  requirePlatformAdmin,
+  [
+    param('factoryId').isUUID().withMessage('无效的工厂ID'),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const staff = await platformService.getFactoryStaff(req.params.factoryId);
+
+      res.json({
+        success: true,
+        data: staff,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @route GET /api/platform/staff/:staffId/stats
+ * @desc 获取商务的工作统计
+ * @access Platform Admin
+ */
+router.get(
+  '/staff/:staffId/stats',
+  authenticate,
+  requirePlatformAdmin,
+  [
+    param('staffId').isUUID().withMessage('无效的商务ID'),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const stats = await platformService.getStaffWorkStats(req.params.staffId);
+
+      res.json({
+        success: true,
+        data: stats,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @route GET /api/platform/staff/:staffId/influencers
+ * @desc 获取商务添加的达人列表
+ * @access Platform Admin
+ */
+router.get(
+  '/staff/:staffId/influencers',
+  authenticate,
+  requirePlatformAdmin,
+  [
+    param('staffId').isUUID().withMessage('无效的商务ID'),
+    query('page').optional().isInt({ min: 1 }).withMessage('页码必须为正整数'),
+    query('pageSize').optional().isInt({ min: 1, max: 100 }).withMessage('每页数量必须在1-100之间'),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 10;
+
+      const result = await platformService.getStaffInfluencers(
+        req.params.staffId,
+        { page, pageSize }
+      );
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @route GET /api/platform/staff/:staffId/collaborations
+ * @desc 获取商务的合作列表
+ * @access Platform Admin
+ */
+router.get(
+  '/staff/:staffId/collaborations',
+  authenticate,
+  requirePlatformAdmin,
+  [
+    param('staffId').isUUID().withMessage('无效的商务ID'),
+    query('page').optional().isInt({ min: 1 }).withMessage('页码必须为正整数'),
+    query('pageSize').optional().isInt({ min: 1, max: 100 }).withMessage('每页数量必须在1-100之间'),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 10;
+
+      const result = await platformService.getStaffCollaborations(
+        req.params.staffId,
+        { page, pageSize }
+      );
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // ============ Platform Statistics Routes ============
 
 /**
@@ -419,6 +545,253 @@ router.get(
       res.json({
         success: true,
         data: stats,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// ============ Influencer Management Routes (Platform Admin) ============
+
+/**
+ * @route GET /api/platform/influencers
+ * @desc 获取所有达人列表（平台级别）
+ * @access Platform Admin
+ */
+router.get(
+  '/influencers',
+  authenticate,
+  requirePlatformAdmin,
+  [
+    query('page').optional().isInt({ min: 1 }).withMessage('页码必须为正整数'),
+    query('pageSize').optional().isInt({ min: 1, max: 100 }).withMessage('每页数量必须在1-100之间'),
+    query('keyword').optional().isString(),
+    query('platform').optional().isIn(['DOUYIN', 'KUAISHOU', 'XIAOHONGSHU', 'WEIBO', 'OTHER']).withMessage('无效的平台'),
+    query('factoryId').optional().isUUID().withMessage('无效的工厂ID'),
+    query('sourceType').optional().isIn(['PLATFORM', 'FACTORY', 'STAFF']).withMessage('无效的来源类型'),
+    query('verificationStatus').optional().isIn(['UNVERIFIED', 'VERIFIED', 'REJECTED']).withMessage('无效的认证状态'),
+    query('createdBy').optional().isUUID().withMessage('无效的用户ID'),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 20;
+      const keyword = req.query.keyword as string | undefined;
+      const platform = req.query.platform as string | undefined;
+      const factoryId = req.query.factoryId as string | undefined;
+      const sourceType = req.query.sourceType as any;
+      const verificationStatus = req.query.verificationStatus as any;
+      const createdBy = req.query.createdBy as string | undefined;
+
+      const result = await platformService.listAllInfluencers(
+        { keyword, platform, factoryId, sourceType, verificationStatus, createdBy },
+        { page, pageSize }
+      );
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @route GET /api/platform/influencers/:influencerId
+ * @desc 获取达人详情（平台级别）
+ * @access Platform Admin
+ */
+router.get(
+  '/influencers/:influencerId',
+  authenticate,
+  requirePlatformAdmin,
+  [
+    param('influencerId').isUUID().withMessage('无效的达人ID'),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const influencer = await platformService.getInfluencerDetail(req.params.influencerId);
+
+      res.json({
+        success: true,
+        data: influencer,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @route POST /api/platform/influencers/:influencerId/verify
+ * @desc 认证达人
+ * @access Platform Admin
+ */
+router.post(
+  '/influencers/:influencerId/verify',
+  authenticate,
+  requirePlatformAdmin,
+  [
+    param('influencerId').isUUID().withMessage('无效的达人ID'),
+    body('status').isIn(['VERIFIED', 'REJECTED']).withMessage('状态必须为 VERIFIED 或 REJECTED'),
+    body('note').optional().isString().withMessage('备注必须为字符串'),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const { status, note } = req.body;
+      const adminId = req.user!.userId;
+
+      const influencer = await platformService.verifyInfluencer(
+        req.params.influencerId,
+        adminId,
+        status,
+        note
+      );
+
+      res.json({
+        success: true,
+        data: influencer,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @route GET /api/platform/influencers/stats
+ * @desc 获取达人统计数据
+ * @access Platform Admin
+ */
+router.get(
+  '/influencers-stats',
+  authenticate,
+  requirePlatformAdmin,
+  [
+    query('startDate').optional().isISO8601().withMessage('开始日期格式无效'),
+    query('endDate').optional().isISO8601().withMessage('结束日期格式无效'),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+
+      const stats = await platformService.getInfluencerStats(startDate, endDate);
+
+      res.json({
+        success: true,
+        data: stats,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// ============ User Management Routes ============
+
+/**
+ * @route GET /api/platform/users
+ * @desc 获取所有用户列表
+ * @access Platform Admin
+ */
+router.get(
+  '/users',
+  authenticate,
+  requirePlatformAdmin,
+  [
+    query('page').optional().isInt({ min: 1 }).withMessage('页码必须为正整数'),
+    query('pageSize').optional().isInt({ min: 1, max: 100 }).withMessage('每页数量必须在1-100之间'),
+    query('search').optional().isString(),
+    query('role').optional().isIn(['PLATFORM_ADMIN', 'FACTORY_OWNER', 'BUSINESS_STAFF']).withMessage('无效的角色'),
+    query('isActive').optional().isBoolean().withMessage('isActive 必须为布尔值'),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 10;
+      const search = req.query.search as string | undefined;
+      const role = req.query.role as string | undefined;
+      const isActive = req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined;
+
+      const result = await platformService.listAllUsers(
+        { search, role, isActive },
+        { page, pageSize }
+      );
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @route GET /api/platform/users/:userId
+ * @desc 获取用户详情
+ * @access Platform Admin
+ */
+router.get(
+  '/users/:userId',
+  authenticate,
+  requirePlatformAdmin,
+  [
+    param('userId').isUUID().withMessage('无效的用户ID'),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const user = await platformService.getUserDetail(req.params.userId);
+
+      res.json({
+        success: true,
+        data: user,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @route POST /api/platform/users/:userId/toggle-status
+ * @desc 切换用户状态（启用/禁用）
+ * @access Platform Admin
+ */
+router.post(
+  '/users/:userId/toggle-status',
+  authenticate,
+  requirePlatformAdmin,
+  [
+    param('userId').isUUID().withMessage('无效的用户ID'),
+    body('isActive').isBoolean().withMessage('isActive 必须为布尔值'),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const { isActive } = req.body;
+      const adminId = req.user!.userId;
+
+      await platformService.toggleUserStatus(
+        req.params.userId,
+        isActive,
+        adminId
+      );
+
+      res.json({
+        success: true,
+        data: { message: isActive ? '用户已启用' : '用户已禁用' },
       });
     } catch (error) {
       next(error);

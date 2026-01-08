@@ -13,6 +13,8 @@ import {
   Table,
   Tag,
   Tooltip,
+  Alert,
+  Checkbox,
 } from 'antd';
 import {
   SearchOutlined,
@@ -24,12 +26,14 @@ import {
   UserOutlined,
   ClockCircleOutlined,
   MessageOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
 import type { PipelineStage } from '@ics/shared';
 import {
   getPipelineView,
   getPipelineStats,
   updateStage,
+  batchUpdateCollaborations,
   STAGE_ORDER,
   STAGE_LABELS,
   STAGE_COLORS,
@@ -39,11 +43,14 @@ import {
 } from '../../services/collaboration.service';
 import { getInfluencers, type Influencer, PLATFORM_LABELS } from '../../services/influencer.service';
 import { useTheme } from '../../theme/ThemeProvider';
+import { usePermissions } from '../../hooks/usePermissions';
 import PipelineColumn from './PipelineColumn';
 import CollaborationModal from './CollaborationModal';
 import FollowUpModal from './FollowUpModal';
 import DeadlineModal from './DeadlineModal';
 import CreateCollaborationModal from './CreateCollaborationModal';
+import QuickFollowUpModal from './QuickFollowUpModal';
+import BatchOperations from '../../components/forms/BatchOperations';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
@@ -57,12 +64,14 @@ type ViewMode = 'board' | 'table';
 
 const PipelinePage = () => {
   const { theme } = useTheme();
+  const { hasPermission, canViewOthersData } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [pipelineData, setPipelineData] = useState<PipelineView | null>(null);
   const [stats, setStats] = useState<PipelineStats | null>(null);
   const [keyword, setKeyword] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('board');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   // Modal states
   const [selectedCard, setSelectedCard] = useState<CollaborationCard | null>(null);
@@ -70,6 +79,8 @@ const PipelinePage = () => {
   const [followUpModalVisible, setFollowUpModalVisible] = useState(false);
   const [deadlineModalVisible, setDeadlineModalVisible] = useState(false);
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [quickFollowUpModalVisible, setQuickFollowUpModalVisible] = useState(false);
+  const [batchOperationsVisible, setBatchOperationsVisible] = useState(false);
 
   // Influencers for creating new collaboration
   const [influencers, setInfluencers] = useState<Influencer[]>([]);
@@ -173,10 +184,16 @@ const PipelinePage = () => {
     setDeadlineModalVisible(true);
   };
 
+  const handleQuickFollowUpClick = (card: CollaborationCard) => {
+    setSelectedCard(card);
+    setQuickFollowUpModalVisible(true);
+  };
+
   const handleModalClose = (refresh?: boolean) => {
     setDetailModalVisible(false);
     setFollowUpModalVisible(false);
     setDeadlineModalVisible(false);
+    setQuickFollowUpModalVisible(false);
     setSelectedCard(null);
     if (refresh) {
       fetchData();
@@ -190,6 +207,56 @@ const PipelinePage = () => {
     }
   };
 
+  const handleBatchOperationsClose = () => {
+    setBatchOperationsVisible(false);
+    setSelectedIds([]);
+  };
+
+  const handleBatchExecute = async (operation: string, data: any) => {
+    try {
+      // Format the data based on operation type
+      let formattedData = { ...data };
+      
+      if (operation === 'setDeadline' && data.deadline) {
+        // Convert dayjs object to ISO string
+        formattedData.deadline = data.deadline.toISOString();
+      }
+      
+      const result = await batchUpdateCollaborations(selectedIds, operation as any, formattedData);
+      
+      if (result.updated > 0) {
+        message.success(`成功处理 ${result.updated} 条记录`);
+        fetchData();
+      }
+      
+      if (result.failed > 0) {
+        message.warning(`${result.failed} 条记录处理失败`);
+      }
+      
+      return result;
+    } catch (error: any) {
+      message.error(error.response?.data?.error?.message || '批量操作失败');
+      throw error;
+    }
+  };
+
+  const handleSelectChange = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds([...selectedIds, id]);
+    } else {
+      setSelectedIds(selectedIds.filter((selectedId) => selectedId !== id));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = getAllCollaborations().map((c) => c.id);
+      setSelectedIds(allIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
   // 获取所有合作记录的扁平列表（用于表格视图）
   const getAllCollaborations = (): CollaborationCard[] => {
     if (!pipelineData) return [];
@@ -198,6 +265,24 @@ const PipelinePage = () => {
 
   // 表格列定义
   const tableColumns = [
+    {
+      title: (
+        <Checkbox
+          checked={selectedIds.length > 0 && selectedIds.length === getAllCollaborations().length}
+          indeterminate={selectedIds.length > 0 && selectedIds.length < getAllCollaborations().length}
+          onChange={(e) => handleSelectAll(e.target.checked)}
+        />
+      ),
+      key: 'selection',
+      width: 50,
+      fixed: 'left' as const,
+      render: (_: any, record: CollaborationCard) => (
+        <Checkbox
+          checked={selectedIds.includes(record.id)}
+          onChange={(e) => handleSelectChange(record.id, e.target.checked)}
+        />
+      ),
+    },
     {
       title: '达人昵称',
       dataIndex: ['influencer', 'nickname'],
@@ -377,6 +462,18 @@ const PipelinePage = () => {
       }} />
       
       <div style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* 权限提示 */}
+      {!canViewOthersData && (
+        <Alert
+          message="数据权限提示"
+          description="您当前只能查看自己负责的合作记录。如需查看其他商务的合作，请联系管理员调整权限。"
+          type="info"
+          showIcon
+          closable
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
       {/* Header */}
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
@@ -402,6 +499,14 @@ const PipelinePage = () => {
         </Col>
         <Col>
           <Space>
+            {viewMode === 'table' && selectedIds.length > 0 && (
+              <Button
+                icon={<EditOutlined />}
+                onClick={() => setBatchOperationsVisible(true)}
+              >
+                批量操作 ({selectedIds.length})
+              </Button>
+            )}
             <Segmented
               value={viewMode}
               onChange={(value) => setViewMode(value as ViewMode)}
@@ -429,9 +534,17 @@ const PipelinePage = () => {
             <Button icon={<ReloadOutlined />} onClick={fetchData}>
               刷新
             </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalVisible(true)}>
-              新建合作
-            </Button>
+            {hasPermission('operations.manageCollaborations') ? (
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalVisible(true)}>
+                新建合作
+              </Button>
+            ) : (
+              <Tooltip title="您没有权限创建合作记录">
+                <Button type="primary" icon={<PlusOutlined />} disabled>
+                  新建合作
+                </Button>
+              </Tooltip>
+            )}
           </Space>
         </Col>
       </Row>
@@ -463,6 +576,7 @@ const PipelinePage = () => {
                   onCardClick={handleCardClick}
                   onFollowUpClick={handleFollowUpClick}
                   onDeadlineClick={handleDeadlineClick}
+                  onQuickFollowUpClick={handleQuickFollowUpClick}
                 />
               );
             })}
@@ -509,6 +623,19 @@ const PipelinePage = () => {
         visible={createModalVisible}
         influencers={influencers}
         onClose={handleCreateClose}
+      />
+
+      <QuickFollowUpModal
+        visible={quickFollowUpModalVisible}
+        collaboration={selectedCard}
+        onClose={handleModalClose}
+      />
+
+      <BatchOperations
+        visible={batchOperationsVisible}
+        selectedIds={selectedIds}
+        onClose={handleBatchOperationsClose}
+        onExecute={handleBatchExecute}
       />
       </div>
     </div>

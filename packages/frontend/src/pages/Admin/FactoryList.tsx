@@ -20,6 +20,7 @@ import {
   PauseOutlined,
   PlayCircleOutlined,
   EditOutlined,
+  EyeOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { FactoryStatus, PlanType } from '@ics/shared';
@@ -35,6 +36,7 @@ import {
   type FactoryWithOwner,
   type FactoryFilter,
 } from '../../services/platform.service';
+import FactoryDetailModal from './FactoryDetailModal';
 
 const { Option } = Select;
 
@@ -52,6 +54,8 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
   });
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingFactory, setEditingFactory] = useState<FactoryWithOwner | null>(null);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedFactoryId, setSelectedFactoryId] = useState<string | null>(null);
   const [form] = Form.useForm();
 
   // 加载工厂列表
@@ -97,6 +101,12 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
       message.error('操作失败');
       console.error(error);
     }
+  };
+
+  // 打开详情弹窗
+  const handleViewDetail = (factoryId: string) => {
+    setSelectedFactoryId(factoryId);
+    setDetailModalVisible(true);
   };
 
   // 打开编辑弹窗
@@ -203,10 +213,17 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
     {
       title: '操作',
       key: 'actions',
-      width: 200,
+      width: 250,
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
+          <Tooltip title="查看详情">
+            <Button
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => handleViewDetail(record.id)}
+            />
+          </Tooltip>
           {record.status === 'PENDING' && (
             <>
               <Tooltip title="通过">
@@ -309,7 +326,7 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
         dataSource={factories}
         rowKey="id"
         loading={loading}
-        scroll={{ x: 1400 }}
+        scroll={{ x: 1500 }}
         pagination={{
           current: filter.page,
           pageSize: filter.pageSize,
@@ -359,6 +376,16 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
           </Form.Item>
         </Form>
       </Modal>
+
+      {/* 工厂详情弹窗 */}
+      <FactoryDetailModal
+        factoryId={selectedFactoryId}
+        visible={detailModalVisible}
+        onClose={() => {
+          setDetailModalVisible(false);
+          setSelectedFactoryId(null);
+        }}
+      />
     </div>
   );
 };

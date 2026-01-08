@@ -50,6 +50,22 @@ router.get(
 );
 
 /**
+ * GET /api/staff/permission-templates
+ * 获取权限模板列表
+ * 权限：工厂老板
+ */
+router.get(
+  '/permission-templates',
+  authenticate,
+  requireRoles('FACTORY_OWNER'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const templates = staffManagementService.getPermissionTemplates();
+
+    res.json({ templates });
+  })
+);
+
+/**
  * GET /api/staff/:id
  * 获取商务账号详情（含工作统计）
  * 权限：工厂老板
@@ -145,6 +161,58 @@ router.delete(
     await staffManagementService.deleteStaff(id, factoryId);
 
     res.status(204).send();
+  })
+);
+
+/**
+ * GET /api/staff/:staffId/permissions
+ * 获取商务权限
+ * 权限：工厂老板
+ */
+router.get(
+  '/:staffId/permissions',
+  authenticate,
+  requireRoles('FACTORY_OWNER'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { staffId } = req.params;
+    const factoryId = req.user!.factoryId!;
+
+    const result = await staffManagementService.getStaffPermissions(staffId, factoryId);
+
+    res.json(result);
+  })
+);
+
+/**
+ * PUT /api/staff/:staffId/permissions
+ * 更新商务权限
+ * 权限：工厂老板
+ */
+router.put(
+  '/:staffId/permissions',
+  authenticate,
+  requireRoles('FACTORY_OWNER'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { staffId } = req.params;
+    const factoryId = req.user!.factoryId!;
+    const { permissions } = req.body;
+
+    // 验证必填字段
+    if (!permissions) {
+      res.status(400).json({
+        error: 'BAD_REQUEST',
+        message: '权限配置为必填项',
+      });
+      return;
+    }
+
+    const result = await staffManagementService.updateStaffPermissions(
+      staffId,
+      factoryId,
+      permissions
+    );
+
+    res.json(result);
   })
 );
 

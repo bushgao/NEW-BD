@@ -29,6 +29,12 @@ export type ContentType = 'SHORT_VIDEO' | 'LIVE_STREAM';
 // Profit status
 export type ProfitStatus = 'LOSS' | 'BREAK_EVEN' | 'PROFIT' | 'HIGH_PROFIT';
 
+// Influencer source types
+export type InfluencerSourceType = 'PLATFORM' | 'FACTORY' | 'STAFF';
+
+// Verification status
+export type VerificationStatus = 'UNVERIFIED' | 'VERIFIED' | 'REJECTED';
+
 // Factory status
 export type FactoryStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
 
@@ -78,4 +84,96 @@ export interface TokenPayload {
   email: string;
   role: UserRole;
   factoryId?: string;
+}
+
+// Influencer with details (for platform admin)
+export interface InfluencerWithDetails {
+  id: string;
+  nickname: string;
+  platform: Platform;
+  platformId: string;
+  phone?: string;
+  wechat?: string;
+  followers?: string;
+  categories: string[];
+  tags: string[];
+  notes?: string;
+  sourceType: InfluencerSourceType;
+  verificationStatus: VerificationStatus;
+  verificationNote?: string;
+  verifiedAt?: Date | string;
+  createdAt: Date | string;
+  factoryId: string;
+  factoryName: string;
+  factory: {
+    id: string;
+    name: string;
+  };
+  creatorName?: string;
+  creatorRole?: string;
+  creator?: {
+    id: string;
+    name: string;
+    role: UserRole;
+  };
+  verifierName?: string;
+  verifier?: {
+    id: string;
+    name: string;
+  };
+  verificationHistory?: {
+    entries: VerificationHistoryEntry[];
+  };
+  collaborations?: Array<{
+    id: string;
+    stage: string;
+    businessStaffName: string;
+    createdAt: Date | string;
+    deadline?: Date | string;
+  }>;
+  _count: {
+    collaborations: number;
+  };
+}
+
+// Verification history entry
+export interface VerificationHistoryEntry {
+  action: 'VERIFIED' | 'REJECTED' | 'RESET';
+  verifiedBy: string;
+  verifiedByName: string;
+  verifiedAt: Date;
+  note?: string;
+}
+
+// Influencer stats
+export interface InfluencerStats {
+  total: number;
+  bySourceType: {
+    PLATFORM: number;
+    FACTORY: number;
+    STAFF: number;
+  };
+  byVerificationStatus: {
+    UNVERIFIED: number;
+    VERIFIED: number;
+    REJECTED: number;
+  };
+  byPlatform: {
+    DOUYIN: number;
+    KUAISHOU: number;
+    XIAOHONGSHU: number;
+    WEIBO: number;
+    OTHER: number;
+  };
+  topFactories: Array<{
+    factoryId: string;
+    factoryName: string;
+    count: number;
+  }>;
+  sourceQuality: Array<{
+    sourceType: InfluencerSourceType;
+    total: number;
+    verified: number;
+    verificationRate: number;
+  }>;
 }

@@ -7,6 +7,12 @@ import {
 } from '../middleware/errorHandler';
 import { validateQuota } from './platform.service';
 import type { Pagination, PaginatedResult } from '@ics/shared';
+import {
+  type StaffPermissions,
+  type PermissionTemplate,
+  PERMISSION_TEMPLATES,
+  identifyTemplate,
+} from '../types/permissions';
 
 // ============ Types ============
 
@@ -49,6 +55,96 @@ export interface QuotaUsage {
   };
 }
 
+// ============ Permission Management ============
+
+/**
+ * 获取商务权限
+ */
+export async function getStaffPermissions(
+  staffId: string,
+  factoryId: string
+): Promise<{ permissions: StaffPermissions; template: string }> {
+  const user = await prisma.user.findFirst({
+    where: {
+      id: staffId,
+      factoryId,
+      role: 'BUSINESS_STAFF',
+    },
+    select: {
+      permissions: true,
+    },
+  });
+
+  if (!user) {
+    throw createNotFoundError('商务账号不存在');
+  }
+
+  const permissions = (user.permissions as StaffPermissions) || PERMISSION_TEMPLATES.basic.permissions;
+  const template = identifyTemplate(permissions);
+
+  return {
+    permissions,
+    template,
+  };
+}
+
+/**
+ * 更新商务权限
+ */
+export async function updateStaffPermissions(
+  staffId: string,
+  factoryId: string,
+  permissions: StaffPermissions
+): Promise<{ user: StaffMember; permissions: StaffPermissions; template: string }> {
+  const user = await prisma.user.findFirst({
+    where: {
+      id: staffId,
+      factoryId,
+      role: 'BUSINESS_STAFF',
+    },
+  });
+
+  if (!user) {
+    throw createNotFoundError('商务账号不存在');
+  }
+
+  // 更新权限
+  const updatedUser = await prisma.user.update({
+    where: { id: staffId },
+    data: {
+      permissions,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      createdAt: true,
+      permissions: true,
+    },
+  });
+
+  const template = identifyTemplate(permissions);
+
+  return {
+    user: {
+      id: updatedUser.id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      status: 'ACTIVE',
+      createdAt: updatedUser.createdAt,
+    },
+    permissions,
+    template,
+  };
+}
+
+/**
+ * 获取权限模板列表
+ */
+export function getPermissionTemplates(): PermissionTemplate[] {
+  return Object.values(PERMISSION_TEMPLATES);
+}
+
 // ============ Staff Management ============
 
 /**
@@ -79,6 +175,7 @@ export async function listStaff(
         id: true,
         name: true,
         email: true,
+        status: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -93,12 +190,12 @@ export async function listStaff(
     }),
   ]);
 
-  // 将数据转换为 StaffMember 格式（添加 status 字段）
+  // 将数据转换为 StaffMember 格式
   const staffMembers: StaffMember[] = staff.map((user) => ({
     id: user.id,
     name: user.name,
     email: user.email,
-    status: 'ACTIVE', // 当前数据库没有 status 字段，默认为 ACTIVE
+    status: user.status,
     createdAt: user.createdAt,
   }));
 
@@ -125,6 +222,7 @@ export async function getStaffDetail(staffId: string, factoryId: string): Promis
       id: true,
       name: true,
       email: true,
+      status: true,
       createdAt: true,
     },
   });
@@ -180,7 +278,7 @@ export async function getStaffDetail(staffId: string, factoryId: string): Promis
     id: user.id,
     name: user.name,
     email: user.email,
-    status: 'ACTIVE',
+    status: user.status,
     createdAt: user.createdAt,
     stats: {
       influencerCount,
@@ -255,8 +353,6 @@ export async function createStaff(
 
 /**
  * 更新商务账号状态（启用/禁用）
- * 注：当前数据库 schema 没有 status 字段，此功能暂时无法实现
- * 需要在 Prisma schema 中添加 status 字段后才能使用
  */
 export async function updateStaffStatus(
   staffId: string,
@@ -275,26 +371,28 @@ export async function updateStaffStatus(
     throw createNotFoundError('商务账号不存在');
   }
 
-  // TODO: 当 Prisma schema 添加 status 字段后，取消注释以下代码
-  // const updatedUser = await prisma.user.update({
-  //   where: { id: staffId },
-  //   data: { status },
-  //   select: {
-  //     id: true,
-  //     name: true,
-  //     email: true,
-  //     factoryJoinedAt: true,
-  //     createdAt: true,
-  //   },
-  // });
+  // 更新状态
+  const updatedUser = await prisma.user.update({
+    where: { id: staffId },
+    data: { 
+      status,
+      disabledAt: status === 'DISABLED' ? new Date() : null,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      status: true,
+      createdAt: true,
+    },
+  });
 
-  // 临时返回（模拟更新）
   return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    status, // 使用传入的 status
-    createdAt: user.createdAt,
+    id: updatedUser.id,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    status: updatedUser.status,
+    createdAt: updatedUser.createdAt,
   };
 }
 

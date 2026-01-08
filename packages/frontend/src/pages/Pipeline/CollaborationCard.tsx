@@ -5,6 +5,7 @@ import {
   MessageOutlined,
   WarningOutlined,
   CalendarOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import type { PipelineStage } from '@ics/shared';
 import {
@@ -28,6 +29,7 @@ interface CollaborationCardProps {
   onClick: () => void;
   onFollowUpClick: () => void;
   onDeadlineClick: () => void;
+  onQuickFollowUpClick: () => void;
 }
 
 const CollaborationCardComponent = ({
@@ -36,6 +38,7 @@ const CollaborationCardComponent = ({
   onClick,
   onFollowUpClick,
   onDeadlineClick,
+  onQuickFollowUpClick,
 }: CollaborationCardProps) => {
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData(
@@ -177,6 +180,17 @@ const CollaborationCardComponent = ({
 
         {/* Actions */}
         <Space size={4}>
+          <Tooltip title="快速跟进">
+            <Button
+              type="primary"
+              size="small"
+              icon={<ThunderboltOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                onQuickFollowUpClick();
+              }}
+            />
+          </Tooltip>
           <Tooltip title="跟进记录">
             <Button
               type="text"

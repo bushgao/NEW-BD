@@ -12,6 +12,7 @@ import {
   Popconfirm,
   Typography,
   Tabs,
+  Tooltip,
 } from 'antd';
 import {
   PlusOutlined,
@@ -32,6 +33,7 @@ import {
 } from '../../services/sample.service';
 import { Card, CardContent } from '../../components/ui/Card';
 import { useTheme } from '../../theme/ThemeProvider';
+import { usePermissions } from '../../hooks/usePermissions';
 import SampleModal from './SampleModal';
 import DispatchList from './DispatchList';
 import SampleReport from './SampleReport';
@@ -41,6 +43,7 @@ const { Title } = Typography;
 
 const SamplesPage = () => {
   const { theme } = useTheme();
+  const { canManageSamples } = usePermissions();
   const [activeTab, setActiveTab] = useState('samples');
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<Sample[]>([]);
@@ -181,20 +184,25 @@ const SamplesPage = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
-            编辑
-          </Button>
-          <Popconfirm
-            title="确定删除该样品吗？"
-            description="删除后无法恢复，且该样品不能有寄样记录"
-            onConfirm={() => handleDelete(record.id)}
-            okText="确定"
-            cancelText="取消"
-          >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-              删除
+          {canManageSamples && (
+            <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
+              编辑
             </Button>
-          </Popconfirm>
+          )}
+          {canManageSamples && (
+            <Popconfirm
+              title="确定删除该样品吗？"
+              description="删除后无法恢复，且该样品不能有寄样记录"
+              onConfirm={() => handleDelete(record.id)}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+                删除
+              </Button>
+            </Popconfirm>
+          )}
+          {!canManageSamples && <span style={{ color: '#999' }}>-</span>}
         </Space>
       ),
     },
@@ -220,12 +228,29 @@ const SamplesPage = () => {
             <Col>
               <Space>
                 <ExportButton types={['samples']} buttonText="导出" showDateRange={false} />
-                <Button icon={<UploadOutlined />} onClick={() => setImportModalVisible(true)}>
-                  批量导入
-                </Button>
-                <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-                  添加样品
-                </Button>
+                {canManageSamples ? (
+                  <>
+                    <Button icon={<UploadOutlined />} onClick={() => setImportModalVisible(true)}>
+                      批量导入
+                    </Button>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+                      添加样品
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Tooltip title="您没有权限管理样品">
+                      <Button icon={<UploadOutlined />} disabled>
+                        批量导入
+                      </Button>
+                    </Tooltip>
+                    <Tooltip title="您没有权限管理样品">
+                      <Button type="primary" icon={<PlusOutlined />} disabled>
+                        添加样品
+                      </Button>
+                    </Tooltip>
+                  </>
+                )}
               </Space>
             </Col>
           </Row>

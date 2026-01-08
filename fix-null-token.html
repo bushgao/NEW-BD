@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>修复 Null Token 问题</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 700px;
+            margin: 50px auto;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        .status {
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .error {
+            background: #fee;
+            color: #c33;
+            border: 2px solid #fcc;
+        }
+        .success {
+            background: #dfd;
+            color: #3c3;
+            border: 2px solid #cfc;
+        }
+        .info {
+            background: #def;
+            color: #36c;
+            border: 2px solid #cdf;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 700;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+        }
+        .problem {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .problem-title {
+            font-weight: bold;
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #c7254e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 修复 Token 问题</h1>
+        <div class="subtitle">检测到 accessToken 为字符串 "null"</div>
+        
+        <div class="problem">
+            <div class="problem-title">⚠️ 问题诊断</div>
+            <p>您的 LocalStorage 中存储的 <code>accessToken</code> 值是字符串 <code>"null"</code>，而不是有效的 JWT token。</p>
+            <p>这会导致所有需要认证的 API 请求返回 401 错误。</p>
+        </div>
+
+        <div class="info">
+            <strong>解决方案：</strong><br>
+            清除损坏的认证信息，然后重新登录以获取有效的 token。
+        </div>
+
+        <button onclick="fixToken()">
+            🔄 立即修复并重新登录
+        </button>
+
+        <div id="result"></div>
+
+        <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 14px; color: #666;">
+            <strong>技术说明：</strong><br>
+            此工具会清除 LocalStorage 中的所有认证相关数据，然后自动跳转到登录页面。重新登录后，系统会生成新的有效 token。
+        </div>
+    </div>
+
+    <script>
+        function fixToken() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                // 检查当前的 token 状态
+                const authData = localStorage.getItem('auth-storage');
+                if (authData) {
+                    const parsed = JSON.parse(authData);
+                    const token = parsed.state?.token || parsed.token;
+                    
+                    console.log('当前 token 状态:', token);
+                    
+                    if (token?.accessToken === 'null' || token?.accessToken === null) {
+                        resultDiv.innerHTML = '<div class="status error">✅ 确认：检测到 accessToken 为 "null"</div>';
+                    }
+                }
+                
+                // 清除所有认证相关的 localStorage 项
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key) {
+                        keysToRemove.push(key);
+                    }
+                }
+                
+                console.log('准备清除的键:', keysToRemove);
+                
+                keysToRemove.forEach(key => {
+                    localStorage.removeItem(key);
+                    console.log('已清除:', key);
+                });
+                
+                // 也清除 sessionStorage
+                sessionStorage.clear();
+                
+                resultDiv.innerHTML += '<div class="status success">✅ 已清除所有存储数据！<br>正在跳转到登录页...</div>';
+                
+                // 延迟 1.5 秒后跳转
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 1500);
+                
+            } catch (error) {
+                console.error('修复失败:', error);
+                resultDiv.innerHTML = '<div class="status error">❌ 修复失败: ' + error.message + '<br><br>请手动在控制台执行：<br><code>localStorage.clear(); window.location.href = "/login";</code></div>';
+            }
+        }
+
+        // 页面加载时自动检测
+        window.onload = function() {
+            const authData = localStorage.getItem('auth-storage');
+            if (authData) {
+                try {
+                    const parsed = JSON.parse(authData);
+                    const token = parsed.state?.token || parsed.token;
+                    
+                    console.log('=== Token 诊断 ===');
+                    console.log('Token 对象:', token);
+                    console.log('accessToken 值:', token?.accessToken);
+                    console.log('accessToken 类型:', typeof token?.accessToken);
+                    console.log('是否为字符串 "null":', token?.accessToken === 'null');
+                    console.log('是否为 null:', token?.accessToken === null);
+                    
+                    if (token?.accessToken === 'null' || token?.accessToken === null) {
+                        document.getElementById('result').innerHTML = 
+                            '<div class="status error">⚠️ 确认问题：accessToken = ' + 
+                            (token?.accessToken === null ? 'null' : '"null"') + 
+                            '</div>';
+                    } else if (token?.accessToken) {
+                        document.getElementById('result').innerHTML = 
+                            '<div class="status info">ℹ️ Token 看起来正常，但如果仍有问题，可以点击按钮重置。</div>';
+                    }
+                } catch (e) {
+                    console.error('解析失败:', e);
+                }
+            } else {
+                document.getElementById('result').innerHTML = 
+                    '<div class="status info">ℹ️ 未找到认证数据，您可能需要先登录。</div>';
+            }
+        };
+    </script>
+</body>
+</html>

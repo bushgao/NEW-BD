@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>清除认证并重新登录</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 600px;
+            margin: 100px auto;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #bee5eb;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 700;
+            margin: 10px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+        }
+        .step {
+            text-align: left;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+        }
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 修复认证问题</h1>
+        
+        <div class="info">
+            检测到认证 Token 异常，需要清除并重新登录
+        </div>
+
+        <div class="step">
+            <span class="step-number">1</span>
+            <strong>点击下方按钮清除认证信息</strong>
+        </div>
+
+        <div class="step">
+            <span class="step-number">2</span>
+            <strong>页面会自动跳转到登录页</strong>
+        </div>
+
+        <div class="step">
+            <span class="step-number">3</span>
+            <strong>重新登录后，跟进分析页面应该正常工作</strong>
+        </div>
+
+        <button onclick="clearAndRedirect()" style="font-size: 18px; padding: 20px 50px;">
+            🗑️ 清除认证并跳转登录
+        </button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function clearAndRedirect() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                // 清除 auth-storage
+                localStorage.removeItem('auth-storage');
+                
+                // 清除所有可能的认证相关存储
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && (key.includes('auth') || key.includes('token') || key.includes('user'))) {
+                        keysToRemove.push(key);
+                    }
+                }
+                
+                keysToRemove.forEach(key => {
+                    localStorage.removeItem(key);
+                    console.log('已清除:', key);
+                });
+                
+                resultDiv.innerHTML = '<div class="status success">✅ 认证信息已清除！<br>正在跳转到登录页...</div>';
+                
+                // 延迟 1 秒后跳转
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 1000);
+                
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="status" style="background: #f8d7da; color: #721c24;">❌ 清除失败: ' + error.message + '</div>';
+            }
+        }
+
+        // 显示当前存储的信息
+        window.onload = function() {
+            const authData = localStorage.getItem('auth-storage');
+            if (authData) {
+                console.log('当前 auth-storage:', authData);
+                try {
+                    const parsed = JSON.parse(authData);
+                    console.log('解析后的数据:', parsed);
+                    
+                    const token = parsed.state?.token || parsed.token;
+                    if (token) {
+                        console.log('Token 信息:', {
+                            hasAccessToken: !!token.accessToken,
+                            accessToken: token.accessToken,
+                            hasRefreshToken: !!token.refreshToken
+                        });
+                    }
+                } catch (e) {
+                    console.error('解析失败:', e);
+                }
+            } else {
+                console.log('未找到 auth-storage');
+            }
+        };
+    </script>
+</body>
+</html>

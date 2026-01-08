@@ -7,13 +7,14 @@ import {
   GiftOutlined,
   ProjectOutlined,
   BarChartOutlined,
-  SettingOutlined,
+  LineChartOutlined,
   LogoutOutlined,
   UserOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   TrophyOutlined,
   SyncOutlined,
+  ShopOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useAuthStore } from '../stores/authStore';
@@ -48,6 +49,11 @@ const getMenuItems = (role: string): MenuProps['items'] => {
       icon: <TrophyOutlined />,
       label: '合作结果',
     },
+    {
+      key: '/app/follow-up-analytics',
+      icon: <LineChartOutlined />,
+      label: '跟进分析',
+    },
   ];
 
   const ownerItems = [
@@ -70,9 +76,24 @@ const getMenuItems = (role: string): MenuProps['items'] => {
 
   const adminItems = [
     {
-      key: '/app/admin',
-      icon: <SettingOutlined />,
-      label: '平台管理',
+      key: '/app/admin/overview',
+      icon: <DashboardOutlined />,
+      label: '数据概览',
+    },
+    {
+      key: '/app/admin/factories',
+      icon: <ShopOutlined />,
+      label: '工厂管理',
+    },
+    {
+      key: '/app/admin/influencers',
+      icon: <TeamOutlined />,
+      label: '达人管理',
+    },
+    {
+      key: '/app/admin/users',
+      icon: <UserOutlined />,
+      label: '用户管理',
     },
   ];
 

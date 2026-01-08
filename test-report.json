@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-01-06T09:50:04.786Z",
+  "summary": {
+    "total": 11,
+    "passed": 11,
+    "failed": 0,
+    "passRate": "100.00%"
+  },
+  "tests": [
+    {
+      "name": "平台管理员登录",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "获取工厂列表",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "获取工厂商务列表",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "获取商务工作统计",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "获取商务达人列表",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "获取商务合作列表",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "获取用户列表",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "用户搜索功能",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "用户角色筛选",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "用户状态筛选",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "登录时间追踪",
+      "passed": true,
+      "message": ""
+    }
+  ]
+}
