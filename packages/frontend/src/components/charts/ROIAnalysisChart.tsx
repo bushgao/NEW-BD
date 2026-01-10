@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, Segmented, Spin, Empty, Space, Typography } from 'antd';
+import { Card, Segmented, Spin, Empty, Typography } from 'antd';
 import {
   BarChart,
   Bar,
@@ -53,15 +53,14 @@ export interface ROIAnalysisData {
 interface ROIAnalysisChartProps {
   data: ROIAnalysisData | null;
   loading?: boolean;
+  isBento?: boolean;
 }
 
-const ROIAnalysisChart: React.FC<ROIAnalysisChartProps> = ({ data, loading = false }) => {
+const ROIAnalysisChart: React.FC<ROIAnalysisChartProps> = ({ data, loading = false, isBento = false }) => {
   const [chartType, setChartType] = useState<'bar' | 'pie' | 'scatter'>('bar');
 
-  // 颜色配置
-  const COLORS = ['#1890ff', '#52c41a', '#faad14', '#ff4d4f', '#722ed1', '#13c2c2'];
-
   if (loading) {
+    if (isBento) return <div className="flex justify-center items-center py-12"><Spin /></div>;
     return (
       <Card>
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
@@ -72,12 +71,26 @@ const ROIAnalysisChart: React.FC<ROIAnalysisChartProps> = ({ data, loading = fal
   }
 
   if (!data) {
+    if (isBento) return <div className="py-12"><Empty description="暂无数据" /></div>;
     return (
       <Card title="ROI 分析">
         <Empty description="暂无数据" />
       </Card>
     );
   }
+
+  // 格式化函数
+  const formatCurrency = (value: number | string | undefined) => {
+    if (value === undefined || value === null) return '';
+    const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+    return `¥${(numericValue / 100).toFixed(2)}`;
+  };
+
+  const formatROI = (value: number | string | undefined) => {
+    if (value === undefined || value === null) return '';
+    const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+    return numericValue.toFixed(2);
+  };
 
   // 渲染柱状图 - 各商务 ROI 对比
   const renderBarChart = () => {
@@ -88,22 +101,23 @@ const ROIAnalysisChart: React.FC<ROIAnalysisChartProps> = ({ data, loading = fal
     return (
       <ResponsiveContainer width="100%" height={350}>
         <BarChart data={data.byStaff} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="staffName" style={{ fontSize: 12 }} />
-          <YAxis yAxisId="left" orientation="left" stroke="#1890ff" style={{ fontSize: 12 }} />
-          <YAxis yAxisId="right" orientation="right" stroke="#52c41a" style={{ fontSize: 12 }} />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+          <XAxis dataKey="staffName" style={{ fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} tick={{ fill: '#64748B' }} />
+          <YAxis yAxisId="left" orientation="left" stroke="#6366f1" style={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `¥${(v / 100).toFixed(0)}`} />
+          <YAxis yAxisId="right" orientation="right" stroke="#10b981" style={{ fontSize: 10 }} axisLine={false} tickLine={false} />
           <Tooltip
-            formatter={(value: number, name: string) => {
+            formatter={(value: any, name: any) => {
               if (name === 'GMV' || name === '成本') {
-                return `¥${(value / 100).toFixed(2)}`;
+                return [formatCurrency(value), name];
               }
-              return value.toFixed(2);
+              return [formatROI(value), name];
             }}
+            contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
           />
-          <Legend />
-          <Bar yAxisId="left" dataKey="totalGmv" name="GMV" fill="#1890ff" />
-          <Bar yAxisId="left" dataKey="totalCost" name="成本" fill="#ff4d4f" />
-          <Bar yAxisId="right" dataKey="roi" name="ROI" fill="#52c41a" />
+          <Legend wrapperStyle={{ paddingTop: 20 }} />
+          <Bar yAxisId="left" dataKey="totalGmv" name="GMV" fill="#6366f1" radius={[4, 4, 0, 0]} />
+          <Bar yAxisId="left" dataKey="totalCost" name="成本" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+          <Bar yAxisId="right" dataKey="roi" name="ROI" fill="#10b981" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     );
@@ -112,9 +126,9 @@ const ROIAnalysisChart: React.FC<ROIAnalysisChartProps> = ({ data, loading = fal
   // 渲染饼图 - 成本构成分析
   const renderPieChart = () => {
     const pieData = [
-      { name: '样品成本', value: data.costBreakdown.sampleCost, color: '#1890ff' },
-      { name: '合作成本', value: data.costBreakdown.collaborationCost, color: '#52c41a' },
-      { name: '其他成本', value: data.costBreakdown.otherCost, color: '#faad14' },
+      { name: '样品成本', value: data.costBreakdown.sampleCost, color: '#6366f1' },
+      { name: '合作成本', value: data.costBreakdown.collaborationCost, color: '#10b981' },
+      { name: '其他成本', value: data.costBreakdown.otherCost, color: '#f59e0b' },
     ].filter(item => item.value > 0);
 
     if (!pieData.length) {
@@ -124,39 +138,34 @@ const ROIAnalysisChart: React.FC<ROIAnalysisChartProps> = ({ data, loading = fal
     const total = pieData.reduce((sum, item) => sum + item.value, 0);
 
     return (
-      <div>
-        <ResponsiveContainer width="100%" height={350}>
+      <div className="flex flex-col items-center">
+        <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Pie
               data={pieData}
               cx="50%"
               cy="50%"
-              labelLine={true}
-              label={(entry) => {
-                const percent = ((entry.value / total) * 100).toFixed(1);
-                return `${entry.name}: ${percent}%`;
-              }}
+              innerRadius={60}
               outerRadius={100}
-              fill="#8884d8"
+              paddingAngle={5}
               dataKey="value"
             >
               {pieData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
+                <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
               ))}
             </Pie>
             <Tooltip
-              formatter={(value: number) => `¥${(value / 100).toFixed(2)}`}
+              formatter={(value: any) => formatCurrency(value)}
+              contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
             />
-            <Legend />
+            <Legend verticalAlign="bottom" height={36} />
           </PieChart>
         </ResponsiveContainer>
-        <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <Space direction="vertical" size={4}>
-            <Text strong style={{ fontSize: 16 }}>总成本</Text>
-            <Text style={{ fontSize: 20, color: '#1890ff' }}>
-              ¥{(total / 100).toFixed(2)}
-            </Text>
-          </Space>
+        <div className="text-center mt-4 p-4 bg-neutral-50 rounded-2xl w-full max-w-[200px]">
+          <Text type="secondary" className="text-xs mb-1 block">总成本</Text>
+          <Text strong className="text-xl text-indigo-600 block leading-tight">
+            {formatCurrency(total)}
+          </Text>
         </div>
       </div>
     );
@@ -171,13 +180,15 @@ const ROIAnalysisChart: React.FC<ROIAnalysisChartProps> = ({ data, loading = fal
     return (
       <ResponsiveContainer width="100%" height={350}>
         <ScatterChart margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
           <XAxis
             type="number"
             dataKey="cost"
             name="成本"
             unit="元"
-            style={{ fontSize: 12 }}
+            style={{ fontSize: 10 }}
+            axisLine={false}
+            tickLine={false}
             tickFormatter={(value) => `¥${(value / 100).toFixed(0)}`}
           />
           <YAxis
@@ -185,33 +196,36 @@ const ROIAnalysisChart: React.FC<ROIAnalysisChartProps> = ({ data, loading = fal
             dataKey="revenue"
             name="收益"
             unit="元"
-            style={{ fontSize: 12 }}
+            style={{ fontSize: 10 }}
+            axisLine={false}
+            tickLine={false}
             tickFormatter={(value) => `¥${(value / 100).toFixed(0)}`}
           />
-          <ZAxis type="number" dataKey="roi" range={[50, 400]} name="ROI" />
+          <ZAxis type="number" dataKey="roi" range={[60, 400]} name="ROI" />
           <Tooltip
             cursor={{ strokeDasharray: '3 3' }}
-            formatter={(value: number, name: string) => {
+            formatter={(value: any, name: any) => {
               if (name === '成本' || name === '收益') {
-                return `¥${(value / 100).toFixed(2)}`;
+                return [formatCurrency(value), name];
               }
-              return value.toFixed(2);
+              return [formatROI(value), name];
             }}
             labelFormatter={(label) => {
               const point = data.costVsRevenue.find(p => p.cost === label);
               return point ? point.name : '';
             }}
+            contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
           />
-          <Legend />
+          <Legend wrapperStyle={{ paddingTop: 20 }} />
           <Scatter
             name="商务数据"
             data={data.costVsRevenue}
-            fill="#1890ff"
           >
             {data.costVsRevenue.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={entry.roi >= 1 ? '#52c41a' : '#ff4d4f'}
+                fill={entry.roi >= 1 ? '#10b981' : '#f43f5e'}
+                stroke="none"
               />
             ))}
           </Scatter>
@@ -225,33 +239,50 @@ const ROIAnalysisChart: React.FC<ROIAnalysisChartProps> = ({ data, loading = fal
                 revenue: Math.max(...data.costVsRevenue.map(d => d.cost)),
               },
             ]}
-            fill="#d9d9d9"
-            line={{ stroke: '#d9d9d9', strokeWidth: 2, strokeDasharray: '5 5' }}
-            shape={() => null}
+            fill="#CBD5E1"
+            line={{ stroke: '#CBD5E1', strokeWidth: 1.5, strokeDasharray: '5 5' }}
+            shape={() => <rect width={0} height={0} />}
           />
         </ScatterChart>
       </ResponsiveContainer>
     );
   };
 
-  return (
-    <Card
-      title="ROI 分析"
-      extra={
+  const mainContent = (
+    <div className="flex flex-col h-full">
+      <div className="flex justify-between items-center mb-6">
+        {isBento && <Text strong className="text-sm text-neutral-800">ROI 对比分析</Text>}
         <Segmented
           options={[
-            { label: '柱状图', value: 'bar' },
-            { label: '饼图', value: 'pie' },
-            { label: '散点图', value: 'scatter' },
+            { label: '对比', value: 'bar' },
+            { label: '构成', value: 'pie' },
+            { label: '关系', value: 'scatter' },
           ]}
           value={chartType}
           onChange={(value) => setChartType(value as 'bar' | 'pie' | 'scatter')}
+          size="small"
+          className="bg-neutral-100/50 p-0.5 rounded-lg ml-auto"
         />
-      }
+      </div>
+      <div className="flex-1">
+        {chartType === 'bar' && renderBarChart()}
+        {chartType === 'pie' && renderPieChart()}
+        {chartType === 'scatter' && renderScatterChart()}
+      </div>
+    </div>
+  );
+
+  if (isBento) {
+    return mainContent;
+  }
+
+  return (
+    <Card
+      title="ROI 分析"
     >
-      {chartType === 'bar' && renderBarChart()}
-      {chartType === 'pie' && renderPieChart()}
-      {chartType === 'scatter' && renderScatterChart()}
+      <div className="min-h-[400px]">
+        {mainContent}
+      </div>
     </Card>
   );
 };

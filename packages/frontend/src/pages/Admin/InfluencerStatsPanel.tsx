@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Table, Spin, message } from 'antd';
+import { Table, Spin, message, Statistic } from 'antd';
 import type { InfluencerStats } from '@ics/shared';
 import * as platformInfluencerService from '../../services/platform-influencer.service';
+import { BentoGrid, BentoCard } from '../../components/ui/Bento';
 
 export default function InfluencerStatsPanel() {
   const [loading, setLoading] = useState(false);
@@ -87,123 +88,63 @@ export default function InfluencerStatsPanel() {
   ];
 
   return (
-    <div>
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col span={6}>
-          <Card>
-            <Statistic title="总达人数" value={stats.total} />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="未认证"
-              value={stats.byVerificationStatus.UNVERIFIED || 0}
-              valueStyle={{ color: '#faad14' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="已认证"
-              value={stats.byVerificationStatus.VERIFIED || 0}
-              valueStyle={{ color: '#52c41a' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="认证失败"
-              value={stats.byVerificationStatus.REJECTED || 0}
-              valueStyle={{ color: '#ff4d4f' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+    <div className="flex flex-col gap-6">
+      {/* 4 Top Stats - Custom 4-col Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <BentoCard>
+          <Statistic title="总达人数" value={stats.total} />
+        </BentoCard>
+        <BentoCard>
+          <Statistic title="未认证" value={stats.byVerificationStatus.UNVERIFIED || 0} valueStyle={{ color: '#faad14' }} />
+        </BentoCard>
+        <BentoCard>
+          <Statistic title="已认证" value={stats.byVerificationStatus.VERIFIED || 0} valueStyle={{ color: '#52c41a' }} />
+        </BentoCard>
+        <BentoCard>
+          <Statistic title="认证失败" value={stats.byVerificationStatus.REJECTED || 0} valueStyle={{ color: '#ff4d4f' }} />
+        </BentoCard>
+      </div>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col span={12}>
-          <Card title="来源分布">
-            <Row gutter={16}>
-              <Col span={8}>
-                <Statistic
-                  title="平台添加"
-                  value={stats.bySourceType.PLATFORM || 0}
-                />
-              </Col>
-              <Col span={8}>
-                <Statistic
-                  title="工厂添加"
-                  value={stats.bySourceType.FACTORY || 0}
-                />
-              </Col>
-              <Col span={8}>
-                <Statistic
-                  title="商务添加"
-                  value={stats.bySourceType.STAFF || 0}
-                />
-              </Col>
-            </Row>
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card title="平台分布">
-            <Row gutter={16}>
-              <Col span={6}>
-                <Statistic
-                  title="抖音"
-                  value={stats.byPlatform.DOUYIN || 0}
-                />
-              </Col>
-              <Col span={6}>
-                <Statistic
-                  title="快手"
-                  value={stats.byPlatform.KUAISHOU || 0}
-                />
-              </Col>
-              <Col span={6}>
-                <Statistic
-                  title="小红书"
-                  value={stats.byPlatform.XIAOHONGSHU || 0}
-                />
-              </Col>
-              <Col span={6}>
-                <Statistic
-                  title="其他"
-                  value={(stats.byPlatform.WEIBO || 0) + (stats.byPlatform.OTHER || 0)}
-                />
-              </Col>
-            </Row>
-          </Card>
-        </Col>
-      </Row>
+      <BentoGrid>
+        <BentoCard title="来源分布" span={3}>
+          <div className="grid grid-cols-3 gap-4 pt-2">
+            <Statistic title="平台添加" value={stats.bySourceType.PLATFORM || 0} />
+            <Statistic title="工厂添加" value={stats.bySourceType.FACTORY || 0} />
+            <Statistic title="商务添加" value={stats.bySourceType.STAFF || 0} />
+          </div>
+        </BentoCard>
 
-      <Row gutter={[16, 16]}>
-        <Col span={12}>
-          <Card title="来源质量分析">
-            <Table
-              columns={sourceQualityColumns}
-              dataSource={stats.sourceQuality}
-              pagination={false}
-              size="small"
-              rowKey="sourceType"
-            />
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card title="工厂达人排名 (Top 10)">
-            <Table
-              columns={factoryRankingColumns}
-              dataSource={stats.topFactories}
-              pagination={false}
-              size="small"
-              rowKey="factoryId"
-            />
-          </Card>
-        </Col>
-      </Row>
+        <BentoCard title="平台分布" span={3}>
+          <div className="grid grid-cols-4 gap-4 pt-2">
+            <Statistic title="抖音" value={stats.byPlatform.DOUYIN || 0} />
+            <Statistic title="快手" value={stats.byPlatform.KUAISHOU || 0} />
+            <Statistic title="小红书" value={stats.byPlatform.XIAOHONGSHU || 0} />
+            <Statistic title="其他" value={(stats.byPlatform.WEIBO || 0) + (stats.byPlatform.OTHER || 0)} />
+          </div>
+        </BentoCard>
+
+        <BentoCard title="来源质量分析" span={3} className="h-full">
+          <Table
+            columns={sourceQualityColumns}
+            dataSource={stats.sourceQuality}
+            pagination={false}
+            size="small"
+            rowKey="sourceType"
+            className="mt-2"
+          />
+        </BentoCard>
+
+        <BentoCard title="工厂达人排名 (Top 10)" span={3} className="h-full">
+          <Table
+            columns={factoryRankingColumns}
+            dataSource={stats.topFactories}
+            pagination={false}
+            size="small"
+            rowKey="factoryId"
+            className="mt-2"
+          />
+        </BentoCard>
+      </BentoGrid>
     </div>
   );
 }

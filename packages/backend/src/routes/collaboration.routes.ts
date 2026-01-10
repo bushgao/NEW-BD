@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { body, param, validationResult } from 'express-validator';
 import * as collaborationService from '../services/collaboration.service';
-import { authenticate, requireFactoryMember } from '../middleware/auth.middleware';
+import { authenticate, requireFactoryMember, enrichUserData } from '../middleware/auth.middleware';
 import { checkPermission, filterByPermission } from '../middleware/permission.middleware';
 import { createBadRequestError } from '../middleware/errorHandler';
 import type { ApiResponse } from '@ics/shared';
@@ -65,6 +65,11 @@ const validateDataValidation = [
 ];
 
 
+
+// Apply enrichUserData middleware to all routes to ensure factoryId is available
+router.use(authenticate);
+router.use(enrichUserData);
+
 // ==================== 合作记录路由 ====================
 
 /**
@@ -75,7 +80,6 @@ const validateDataValidation = [
  */
 router.get(
   '/',
-  authenticate,
   requireFactoryMember,
   filterByPermission('dataVisibility.viewOthersCollaborations'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
@@ -123,7 +127,6 @@ router.get(
  */
 router.get(
   '/pipeline',
-  authenticate,
   requireFactoryMember,
   filterByPermission('dataVisibility.viewOthersCollaborations'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
@@ -162,7 +165,6 @@ router.get(
  */
 router.get(
   '/stats',
-  authenticate,
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
@@ -190,7 +192,6 @@ router.get(
  */
 router.get(
   '/overdue',
-  authenticate,
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
@@ -225,7 +226,6 @@ router.get(
  */
 router.get(
   '/follow-up-templates',
-  authenticate,
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
@@ -248,7 +248,6 @@ router.get(
  */
 router.get(
   '/suggestions',
-  authenticate,
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
@@ -292,7 +291,6 @@ router.get(
  */
 router.get(
   '/follow-up-reminders',
-  authenticate,
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
@@ -324,7 +322,6 @@ router.get(
  */
 router.get(
   '/follow-up-analytics',
-  authenticate,
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
@@ -359,7 +356,6 @@ router.get(
  */
 router.get(
   '/:id',
-  authenticate,
   requireFactoryMember,
   idParamValidation,
   handleValidationErrors,
@@ -393,7 +389,6 @@ router.get(
  */
 router.post(
   '/',
-  authenticate,
   requireFactoryMember,
   checkPermission('operations.manageCollaborations'),
   createCollaborationValidation,
@@ -436,7 +431,6 @@ router.post(
  */
 router.delete(
   '/:id',
-  authenticate,
   requireFactoryMember,
   checkPermission('operations.deleteCollaborations'),
   idParamValidation,
@@ -469,7 +463,6 @@ router.delete(
  */
 router.put(
   '/:id/stage',
-  authenticate,
   requireFactoryMember,
   idParamValidation,
   updateStageValidation,
@@ -507,7 +500,6 @@ router.put(
  */
 router.get(
   '/:id/history',
-  authenticate,
   requireFactoryMember,
   idParamValidation,
   handleValidationErrors,
@@ -540,7 +532,6 @@ router.get(
  */
 router.put(
   '/:id/deadline',
-  authenticate,
   requireFactoryMember,
   idParamValidation,
   setDeadlineValidation,
@@ -579,7 +570,6 @@ router.put(
  */
 router.put(
   '/:id/block-reason',
-  authenticate,
   requireFactoryMember,
   idParamValidation,
   setBlockReasonValidation,
@@ -619,7 +609,6 @@ router.put(
  */
 router.get(
   '/:id/follow-ups',
-  authenticate,
   requireFactoryMember,
   idParamValidation,
   handleValidationErrors,
@@ -656,7 +645,6 @@ router.get(
  */
 router.post(
   '/:id/follow-ups',
-  authenticate,
   requireFactoryMember,
   idParamValidation,
   addFollowUpValidation,
@@ -696,7 +684,6 @@ router.post(
  */
 router.post(
   '/:id/follow-up/quick',
-  authenticate,
   requireFactoryMember,
   idParamValidation,
   handleValidationErrors,
@@ -742,7 +729,6 @@ router.post(
  */
 router.post(
   '/batch-update',
-  authenticate,
   requireFactoryMember,
   checkPermission('operations.manageCollaborations'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
@@ -790,7 +776,6 @@ router.post(
  */
 router.post(
   '/validate',
-  authenticate,
   requireFactoryMember,
   validateDataValidation,
   handleValidationErrors,

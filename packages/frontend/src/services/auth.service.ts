@@ -21,8 +21,9 @@ export interface RegisterInput {
   password: string;
   name: string;
   role: UserRole;
-  factoryId?: string;
-  factoryName?: string;
+  phone?: string;
+  wechat?: string;
+  brandName?: string;
 }
 
 export interface AuthResponse {

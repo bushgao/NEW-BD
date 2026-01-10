@@ -34,10 +34,12 @@ import { Card, CardContent } from '../../components/ui/Card';
 import AddStaffModal from './AddStaffModal';
 import StaffDetailModal from './StaffDetailModal';
 import StaffPermissionsModal from './StaffPermissionsModal';
+import { useTheme } from '../../theme/ThemeProvider';
 
 const { Title, Text } = Typography;
 
 const TeamPage = () => {
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<StaffMember[]>([]);
   const [total, setTotal] = useState(0);
@@ -223,151 +225,161 @@ const TeamPage = () => {
   ];
 
   return (
-    <div style={{ padding: '24px' }}>
-      <Title level={2}>团队管理</Title>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
+        position: 'relative',
+        padding: '40px',
+        margin: '-24px',
+      }}
+    >
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <Title level={2}>团队管理</Title>
 
-      {/* 配额使用情况卡片 */}
-      {quotaUsage && (
-        <Row gutter={16} style={{ marginBottom: 24 }}>
-          <Col span={12}>
-            <Card>
-              <CardContent>
-                <div style={{ marginBottom: 16 }}>
-                  <Text strong style={{ fontSize: 16 }}>
-                    商务账号配额
-                  </Text>
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <Text>
-                    已开通 {quotaUsage.staff.current}/{quotaUsage.staff.limit}
-                  </Text>
-                </div>
-                <Progress
-                  percent={Math.round((quotaUsage.staff.current / quotaUsage.staff.limit) * 100)}
-                  status={quotaUsage.staff.isReached ? 'exception' : 'active'}
-                  strokeColor={quotaUsage.staff.isReached ? '#ff4d4f' : '#1890ff'}
-                />
-                {quotaUsage.staff.isReached && (
-                  <Text type="danger" style={{ fontSize: 12, marginTop: 8, display: 'block' }}>
-                    已达上限，请升级套餐
-                  </Text>
-                )}
-              </CardContent>
-            </Card>
-          </Col>
-          <Col span={12}>
-            <Card>
-              <CardContent>
-                <div style={{ marginBottom: 16 }}>
-                  <Text strong style={{ fontSize: 16 }}>
-                    达人数量配额
-                  </Text>
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <Text>
-                    已添加 {quotaUsage.influencer.current}/{quotaUsage.influencer.limit}
-                  </Text>
-                </div>
-                <Progress
-                  percent={Math.round(
-                    (quotaUsage.influencer.current / quotaUsage.influencer.limit) * 100
+        {/* 配额使用情况卡片 */}
+        {quotaUsage && (
+          <Row gutter={16} style={{ marginBottom: 24, display: 'flex', alignItems: 'stretch' }}>
+            <Col span={12}>
+              <Card style={{ height: '100%' }}>
+                <CardContent>
+                  <div style={{ marginBottom: 16 }}>
+                    <Text strong style={{ fontSize: 16 }}>
+                      商务账号配额
+                    </Text>
+                  </div>
+                  <div style={{ marginBottom: 8 }}>
+                    <Text>
+                      已开通 {quotaUsage.staff.current}/{quotaUsage.staff.limit}
+                    </Text>
+                  </div>
+                  <Progress
+                    percent={Math.round((quotaUsage.staff.current / quotaUsage.staff.limit) * 100)}
+                    status={quotaUsage.staff.isReached ? 'exception' : 'active'}
+                    strokeColor={quotaUsage.staff.isReached ? '#ff4d4f' : '#1890ff'}
+                  />
+                  {quotaUsage.staff.isReached && (
+                    <Text type="danger" style={{ fontSize: 12, marginTop: 8, display: 'block' }}>
+                      已达上限，请升级套餐
+                    </Text>
                   )}
-                  status={quotaUsage.influencer.isReached ? 'exception' : 'active'}
-                  strokeColor={quotaUsage.influencer.isReached ? '#ff4d4f' : '#1890ff'}
-                />
-                {quotaUsage.influencer.isReached && (
-                  <Text type="danger" style={{ fontSize: 12, marginTop: 8, display: 'block' }}>
-                    已达上限，请升级套餐
-                  </Text>
-                )}
-              </CardContent>
-            </Card>
-          </Col>
-        </Row>
-      )}
+                </CardContent>
+              </Card>
+            </Col>
+            <Col span={12}>
+              <Card style={{ height: '100%' }}>
+                <CardContent>
+                  <div style={{ marginBottom: 16 }}>
+                    <Text strong style={{ fontSize: 16 }}>
+                      达人数量配额
+                    </Text>
+                  </div>
+                  <div style={{ marginBottom: 8 }}>
+                    <Text>
+                      已添加 {quotaUsage.influencer.current}/{quotaUsage.influencer.limit}
+                    </Text>
+                  </div>
+                  <Progress
+                    percent={Math.round(
+                      (quotaUsage.influencer.current / quotaUsage.influencer.limit) * 100
+                    )}
+                    status={quotaUsage.influencer.isReached ? 'exception' : 'active'}
+                    strokeColor={quotaUsage.influencer.isReached ? '#ff4d4f' : '#1890ff'}
+                  />
+                  {quotaUsage.influencer.isReached && (
+                    <Text type="danger" style={{ fontSize: 12, marginTop: 8, display: 'block' }}>
+                      已达上限，请升级套餐
+                    </Text>
+                  )}
+                </CardContent>
+              </Card>
+            </Col>
+          </Row>
+        )}
 
-      {/* 配额警告横幅 */}
-      {quotaUsage?.staff.isReached && (
-        <Alert
-          message="商务账号配额已达上限"
-          description="您已达到当前套餐的商务账号数量上限，无法添加新的商务账号。请升级套餐以获取更多配额。"
-          type="warning"
-          icon={<WarningOutlined />}
-          showIcon
-          closable
-          style={{ marginBottom: 16 }}
-        />
-      )}
-
-      <Card>
-        <CardContent>
-          <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-            <div>
-              <Text type="secondary">
-                共 {total} 个商务账号
-                {quotaUsage && ` (配额: ${quotaUsage.staff.current}/${quotaUsage.staff.limit})`}
-              </Text>
-            </div>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleAdd}
-              disabled={quotaUsage?.staff.isReached}
-            >
-              添加商务账号
-            </Button>
-          </div>
-
-          <Table
-            columns={columns}
-            dataSource={data}
-            rowKey="id"
-            loading={loading}
-            pagination={{
-              current: pagination.page,
-              pageSize: pagination.pageSize,
-              total,
-              showSizeChanger: true,
-              showTotal: (total) => `共 ${total} 条`,
-            }}
-            onChange={handleTableChange}
+        {/* 配额警告横幅 */}
+        {quotaUsage?.staff.isReached && (
+          <Alert
+            message="商务账号配额已达上限"
+            description="您已达到当前套餐的商务账号数量上限，无法添加新的商务账号。请升级套餐以获取更多配额。"
+            type="warning"
+            icon={<WarningOutlined />}
+            showIcon
+            closable
+            style={{ marginBottom: 16 }}
           />
-        </CardContent>
-      </Card>
+        )}
 
-      {/* 添加商务账号弹窗 */}
-      <AddStaffModal
-        visible={addModalVisible}
-        onCancel={() => setAddModalVisible(false)}
-        onSuccess={handleAddSuccess}
-      />
+        <Card>
+          <CardContent>
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+              <div>
+                <Text type="secondary">
+                  共 {total} 个商务账号
+                  {quotaUsage && ` (配额: ${quotaUsage.staff.current}/${quotaUsage.staff.limit})`}
+                </Text>
+              </div>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleAdd}
+                disabled={quotaUsage?.staff.isReached}
+              >
+                添加商务账号
+              </Button>
+            </div>
 
-      {/* 商务账号详情弹窗 */}
-      {selectedStaffId && (
-        <StaffDetailModal
-          visible={detailModalVisible}
-          staffId={selectedStaffId}
-          onCancel={() => {
-            setDetailModalVisible(false);
-            setSelectedStaffId(null);
-          }}
+            <Table
+              columns={columns}
+              dataSource={data}
+              rowKey="id"
+              loading={loading}
+              pagination={{
+                current: pagination.page,
+                pageSize: pagination.pageSize,
+                total,
+                showSizeChanger: true,
+                showTotal: (total) => `共 ${total} 条`,
+              }}
+              onChange={handleTableChange}
+            />
+          </CardContent>
+        </Card>
+
+        {/* 添加商务账号弹窗 */}
+        <AddStaffModal
+          visible={addModalVisible}
+          onCancel={() => setAddModalVisible(false)}
+          onSuccess={handleAddSuccess}
         />
-      )}
 
-      {/* 权限设置弹窗 */}
-      {selectedStaffId && (
-        <StaffPermissionsModal
-          visible={permissionsModalVisible}
-          staffId={selectedStaffId}
-          staffName={selectedStaffName}
-          onCancel={() => {
-            setPermissionsModalVisible(false);
-            setSelectedStaffId(null);
-            setSelectedStaffName('');
-          }}
-          onSuccess={handlePermissionsSuccess}
-        />
-      )}
+        {/* 商务账号详情弹窗 */}
+        {selectedStaffId && (
+          <StaffDetailModal
+            visible={detailModalVisible}
+            staffId={selectedStaffId}
+            onCancel={() => {
+              setDetailModalVisible(false);
+              setSelectedStaffId(null);
+            }}
+          />
+        )}
+
+        {/* 权限设置弹窗 */}
+        {selectedStaffId && (
+          <StaffPermissionsModal
+            visible={permissionsModalVisible}
+            staffId={selectedStaffId}
+            staffName={selectedStaffName}
+            onCancel={() => {
+              setPermissionsModalVisible(false);
+              setSelectedStaffId(null);
+              setSelectedStaffName('');
+            }}
+            onSuccess={handlePermissionsSuccess}
+          />
+        )}
+      </div>
     </div>
   );
 };

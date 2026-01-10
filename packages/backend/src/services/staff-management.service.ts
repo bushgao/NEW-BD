@@ -68,7 +68,7 @@ export async function getStaffPermissions(
     where: {
       id: staffId,
       factoryId,
-      role: 'BUSINESS_STAFF',
+      role: 'BUSINESS',
     },
     select: {
       permissions: true,
@@ -100,7 +100,7 @@ export async function updateStaffPermissions(
     where: {
       id: staffId,
       factoryId,
-      role: 'BUSINESS_STAFF',
+      role: 'BUSINESS',
     },
   });
 
@@ -169,7 +169,7 @@ export async function listStaff(
     prisma.user.findMany({
       where: {
         factoryId,
-        role: 'BUSINESS_STAFF',
+        role: 'BUSINESS',
       },
       select: {
         id: true,
@@ -185,7 +185,7 @@ export async function listStaff(
     prisma.user.count({
       where: {
         factoryId,
-        role: 'BUSINESS_STAFF',
+        role: 'BUSINESS',
       },
     }),
   ]);
@@ -216,7 +216,7 @@ export async function getStaffDetail(staffId: string, factoryId: string): Promis
     where: {
       id: staffId,
       factoryId,
-      role: 'BUSINESS_STAFF',
+      role: 'BUSINESS',
     },
     select: {
       id: true,
@@ -331,7 +331,7 @@ export async function createStaff(
       email,
       passwordHash,
       name,
-      role: 'BUSINESS_STAFF',
+      role: 'BUSINESS',
       factoryId,
     },
     select: {
@@ -363,7 +363,7 @@ export async function updateStaffStatus(
     where: {
       id: staffId,
       factoryId,
-      role: 'BUSINESS_STAFF',
+      role: 'BUSINESS',
     },
   });
 
@@ -404,7 +404,7 @@ export async function deleteStaff(staffId: string, factoryId: string): Promise<v
     where: {
       id: staffId,
       factoryId,
-      role: 'BUSINESS_STAFF',
+      role: 'BUSINESS',
     },
   });
 
@@ -413,7 +413,7 @@ export async function deleteStaff(staffId: string, factoryId: string): Promise<v
   }
 
   // 检查是否是工厂老板（不能删除工厂老板）
-  if (user.role === 'FACTORY_OWNER') {
+  if (user.role === 'BRAND') {
     throw createForbiddenError('不能删除工厂老板账号');
   }
 

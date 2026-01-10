@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>清除旧Token - 重新登录</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .problem-box {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+    }
+
+    .problem-box h3 {
+      color: #856404;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .problem-box p {
+      color: #856404;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .solution-box {
+      background: #d1ecf1;
+      border-left: 4px solid #17a2b8;
+      padding: 15px;
+      margin-bottom: 30px;
+      border-radius: 4px;
+    }
+
+    .solution-box h3 {
+      color: #0c5460;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .solution-box p {
+      color: #0c5460;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 15px 40px;
+      font-size: 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      width: 100%;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-bottom: 15px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+    }
+
+    .btn-secondary:hover {
+      box-shadow: 0 10px 20px rgba(108, 117, 125, 0.4);
+    }
+
+    #result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    #result.success {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+      display: block;
+    }
+
+    #result.error {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+      display: block;
+    }
+
+    .steps {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+
+    .steps h3 {
+      color: #333;
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+
+    .steps ol {
+      margin-left: 20px;
+    }
+
+    .steps li {
+      color: #666;
+      margin-bottom: 10px;
+      line-height: 1.6;
+    }
+
+    .code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #e83e8c;
+    }
+
+    .countdown {
+      text-align: center;
+      font-size: 18px;
+      color: #667eea;
+      font-weight: 600;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 清除旧Token</h1>
+    <p class="subtitle">修复 "用户未关联工厂" 错误</p>
+
+    <div class="problem-box">
+      <h3>❌ 问题描述</h3>
+      <p>
+        您的登录Token是旧版本，缺少 <span class="code">factoryId</span> 字段，
+        导致所有Dashboard API返回 "用户未关联工厂" 错误。
+      </p>
+    </div>
+
+    <div class="solution-box">
+      <h3>✅ 解决方案</h3>
+      <p>
+        点击下方按钮清除旧Token，然后重新登录即可获取包含完整信息的新Token。
+      </p>
+    </div>
+
+    <button class="btn" onclick="clearToken()">
+      🗑️ 清除旧Token并跳转登录
+    </button>
+
+    <button class="btn btn-secondary" onclick="checkToken()">
+      🔍 检查当前Token状态
+    </button>
+
+    <div id="result"></div>
+
+    <div class="steps">
+      <h3>📝 手动操作步骤（如果按钮无效）</h3>
+      <ol>
+        <li>按 <span class="code">F12</span> 打开开发者工具</li>
+        <li>切换到 <span class="code">Application</span> 标签</li>
+        <li>左侧选择 <span class="code">Local Storage</span> → <span class="code">http://localhost:5173</span></li>
+        <li>删除所有存储项（右键 → Clear）</li>
+        <li>刷新页面并重新登录</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    function clearToken() {
+      try {
+        // 清除所有localStorage
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          keysToRemove.push(localStorage.key(i));
+        }
+        keysToRemove.forEach(key => {
+          if (key) localStorage.removeItem(key);
+        });
+        
+        // 清除所有sessionStorage
+        sessionStorage.clear();
+        
+        // 清除所有cookies
+        document.cookie.split(";").forEach(function(c) { 
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+        });
+        
+        const resultDiv = document.getElementById('result');
+        resultDiv.className = 'success';
+        resultDiv.innerHTML = `
+          <p style="font-size: 16px; margin-bottom: 10px;">
+            ✅ <strong>Token已成功清除！</strong>
+          </p>
+          <p style="font-size: 14px; margin-bottom: 10px;">
+            正在跳转到登录页面...
+          </p>
+          <div class="countdown" id="countdown">3</div>
+        `;
+        
+        // 倒计时
+        let count = 3;
+        const countdownEl = document.getElementById('countdown');
+        const interval = setInterval(() => {
+          count--;
+          if (countdownEl) {
+            countdownEl.textContent = count.toString();
+          }
+          if (count <= 0) {
+            clearInterval(interval);
+            window.location.href = 'http://localhost:5173/';
+          }
+        }, 1000);
+        
+      } catch (error) {
+        const resultDiv = document.getElementById('result');
+        resultDiv.className = 'error';
+        resultDiv.innerHTML = `
+          <p><strong>❌ 清除失败</strong></p>
+          <p>错误信息: ${error.message}</p>
+          <p>请尝试手动清除（参考下方步骤）</p>
+        `;
+      }
+    }
+
+    function checkToken() {
+      try {
+        const authStorage = localStorage.getItem('auth-storage');
+        
+        if (!authStorage) {
+          const resultDiv = document.getElementById('result');
+          resultDiv.className = 'error';
+          resultDiv.innerHTML = `
+            <p><strong>⚠️ 未找到Token</strong></p>
+            <p>LocalStorage中没有 auth-storage 数据</p>
+            <p>您可能已经退出登录或从未登录过</p>
+          `;
+          return;
+        }
+
+        const parsed = JSON.parse(authStorage);
+        const token = parsed.state?.token;
+        
+        if (!token || !token.accessToken) {
+          const resultDiv = document.getElementById('result');
+          resultDiv.className = 'error';
+          resultDiv.innerHTML = `
+            <p><strong>⚠️ Token格式错误</strong></p>
+            <p>无法解析Token数据</p>
+          `;
+          return;
+        }
+
+        // 解析JWT payload (不验证签名，仅查看内容)
+        const base64Url = token.accessToken.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        
+        const payload = JSON.parse(jsonPayload);
+        
+        const hasFactoryId = 'factoryId' in payload && payload.factoryId !== null && payload.factoryId !== undefined;
+        
+        const resultDiv = document.getElementById('result');
+        resultDiv.className = hasFactoryId ? 'success' : 'error';
+        resultDiv.innerHTML = `
+          <p><strong>${hasFactoryId ? '✅ Token正常' : '❌ Token缺少factoryId'}</strong></p>
+          <p style="margin-top: 10px;"><strong>Token内容:</strong></p>
+          <pre style="background: #f4f4f4; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px;">${JSON.stringify(payload, null, 2)}</pre>
+          ${!hasFactoryId ? '<p style="margin-top: 10px; color: #721c24;"><strong>建议:</strong> 点击上方按钮清除旧Token并重新登录</p>' : ''}
+        `;
+        
+      } catch (error) {
+        const resultDiv = document.getElementById('result');
+        resultDiv.className = 'error';
+        resultDiv.innerHTML = `
+          <p><strong>❌ 检查失败</strong></p>
+          <p>错误信息: ${error.message}</p>
+        `;
+      }
+    }
+
+    // 页面加载时自动检查
+    window.addEventListener('load', () => {
+      // 延迟1秒自动检查，给用户时间看到页面
+      setTimeout(checkToken, 1000);
+    });
+  </script>
+</body>
+</html>

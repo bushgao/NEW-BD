@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Typography, message } from 'antd';
+import { useTheme } from '../../theme/ThemeProvider';
 import FactoryList from './FactoryList';
 import {
   getPlatformStats,
@@ -9,6 +10,7 @@ import {
 const { Title } = Typography;
 
 const Factories = () => {
+  const { theme } = useTheme();
   const [stats, setStats] = useState<PlatformStats | null>(null);
 
   const loadStats = async () => {
@@ -26,11 +28,21 @@ const Factories = () => {
   }, []);
 
   return (
-    <div>
-      <Title level={4} style={{ marginBottom: 24 }}>
-        工厂管理
-      </Title>
-      <FactoryList onRefresh={loadStats} />
+    <div
+      style={{
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
+        position: 'relative',
+        padding: '40px',
+        margin: '-24px',
+      }}
+    >
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <Title level={4} style={{ marginBottom: 24 }}>
+          工厂管理
+        </Title>
+        <FactoryList onRefresh={loadStats} />
+      </div>
     </div>
   );
 };

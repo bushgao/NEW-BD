@@ -107,14 +107,14 @@ const PipelinePage = () => {
       let allInfluencers: Influencer[] = [];
       let page = 1;
       let hasMore = true;
-      
+
       while (hasMore) {
         const result = await getInfluencers({ page, pageSize: 100 });
         allInfluencers = [...allInfluencers, ...result.data];
         hasMore = page < result.totalPages;
         page++;
       }
-      
+
       setInfluencers(allInfluencers);
     } catch (error) {
       console.error('Failed to fetch influencers:', error);
@@ -216,23 +216,23 @@ const PipelinePage = () => {
     try {
       // Format the data based on operation type
       let formattedData = { ...data };
-      
+
       if (operation === 'setDeadline' && data.deadline) {
         // Convert dayjs object to ISO string
         formattedData.deadline = data.deadline.toISOString();
       }
-      
+
       const result = await batchUpdateCollaborations(selectedIds, operation as any, formattedData);
-      
+
       if (result.updated > 0) {
         message.success(`成功处理 ${result.updated} 条记录`);
         fetchData();
       }
-      
+
       if (result.failed > 0) {
         message.warning(`${result.failed} 条记录处理失败`);
       }
-      
+
       return result;
     } catch (error: any) {
       message.error(error.response?.data?.error?.message || '批量操作失败');
@@ -425,14 +425,15 @@ const PipelinePage = () => {
   };
 
   return (
-    <div 
-      style={{ 
-        height: '100%', 
-        display: 'flex', 
+    <div
+      style={{
+        height: '100%',
+        display: 'flex',
         flexDirection: 'column',
         background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
         position: 'relative',
-        padding: '24px',
+        padding: '40px',
+        margin: '-24px',
       }}
     >
       {/* 背景装饰元素 */}
@@ -460,183 +461,182 @@ const PipelinePage = () => {
         pointerEvents: 'none',
         zIndex: 0,
       }} />
-      
+
       <div style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* 权限提示 */}
-      {!canViewOthersData && (
-        <Alert
-          message="数据权限提示"
-          description="您当前只能查看自己负责的合作记录。如需查看其他商务的合作，请联系管理员调整权限。"
-          type="info"
-          showIcon
-          closable
-          style={{ marginBottom: 16 }}
-        />
-      )}
-
-      {/* Header */}
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Space align="center">
-            <Title level={4} style={{ margin: 0 }}>
-              合作管道
-            </Title>
-            {stats && (
-              <Space size="large" style={{ marginLeft: 24 }}>
-                <Text type="secondary">
-                  总计: <Text strong>{stats.total}</Text>
-                </Text>
-                {stats.overdueCount > 0 && (
-                  <Badge count={stats.overdueCount} offset={[10, 0]}>
-                    <Text type="danger">
-                      <WarningOutlined /> 超期
-                    </Text>
-                  </Badge>
-                )}
-              </Space>
-            )}
-          </Space>
-        </Col>
-        <Col>
-          <Space>
-            {viewMode === 'table' && selectedIds.length > 0 && (
-              <Button
-                icon={<EditOutlined />}
-                onClick={() => setBatchOperationsVisible(true)}
-              >
-                批量操作 ({selectedIds.length})
-              </Button>
-            )}
-            <Segmented
-              value={viewMode}
-              onChange={(value) => setViewMode(value as ViewMode)}
-              options={[
-                {
-                  label: '看板',
-                  value: 'board',
-                  icon: <AppstoreOutlined />,
-                },
-                {
-                  label: '表格',
-                  value: 'table',
-                  icon: <UnorderedListOutlined />,
-                },
-              ]}
-            />
-            <Input
-              placeholder="搜索达人昵称"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              onPressEnter={handleSearch}
-              style={{ width: 200 }}
-              suffix={<SearchOutlined onClick={handleSearch} style={{ cursor: 'pointer' }} />}
-            />
-            <Button icon={<ReloadOutlined />} onClick={fetchData}>
-              刷新
-            </Button>
-            {hasPermission('operations.manageCollaborations') ? (
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalVisible(true)}>
-                新建合作
-              </Button>
-            ) : (
-              <Tooltip title="您没有权限创建合作记录">
-                <Button type="primary" icon={<PlusOutlined />} disabled>
-                  新建合作
-                </Button>
-              </Tooltip>
-            )}
-          </Space>
-        </Col>
-      </Row>
-
-
-      {/* Pipeline Board or Table */}
-      <Spin spinning={loading}>
-        {viewMode === 'board' ? (
-          <div
-            style={{
-              display: 'flex',
-              gap: 8,
-              flex: 1,
-              paddingBottom: 16,
-              width: '100%',
-              overflow: 'hidden',
-            }}
-          >
-            {STAGE_ORDER.map((stage) => {
-              const stageData = pipelineData?.stages.find((s) => s.stage === stage);
-              return (
-                <PipelineColumn
-                  key={stage}
-                  stage={stage}
-                  stageName={STAGE_LABELS[stage]}
-                  cards={stageData?.collaborations || []}
-                  count={stageData?.count || 0}
-                  onDragEnd={handleDragEnd}
-                  onCardClick={handleCardClick}
-                  onFollowUpClick={handleFollowUpClick}
-                  onDeadlineClick={handleDeadlineClick}
-                  onQuickFollowUpClick={handleQuickFollowUpClick}
-                />
-              );
-            })}
-          </div>
-        ) : (
-          <Table
-            dataSource={getAllCollaborations()}
-            columns={tableColumns}
-            rowKey="id"
-            pagination={{
-              pageSize: 50,
-              showSizeChanger: true,
-              showTotal: (total) => `共 ${total} 条`,
-            }}
-            scroll={{ x: 1200 }}
-            onRow={(record) => ({
-              onClick: () => handleCardClick(record),
-              style: { cursor: 'pointer' },
-            })}
+        {/* 权限提示 */}
+        {!canViewOthersData && (
+          <Alert
+            message="数据权限提示"
+            description="您当前只能查看自己负责的合作记录。如需查看其他商务的合作，请联系管理员调整权限。"
+            type="info"
+            showIcon
+            closable
+            style={{ marginBottom: 16 }}
           />
         )}
-      </Spin>
 
-      {/* Modals */}
-      <CollaborationModal
-        visible={detailModalVisible}
-        collaborationId={selectedCard?.id || null}
-        onClose={handleModalClose}
-      />
+        {/* Header */}
+        <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+          <Col>
+            <Space align="center">
+              <Title level={4} style={{ margin: 0 }}>
+                合作管道
+              </Title>
+              {stats && (
+                <Space size="large" style={{ marginLeft: 24 }}>
+                  <Text type="secondary">
+                    总计: <Text strong>{stats.total}</Text>
+                  </Text>
+                  {stats.overdueCount > 0 && (
+                    <Badge count={stats.overdueCount} offset={[10, 0]}>
+                      <Text type="danger">
+                        <WarningOutlined /> 超期
+                      </Text>
+                    </Badge>
+                  )}
+                </Space>
+              )}
+            </Space>
+          </Col>
+          <Col>
+            <Space>
+              {viewMode === 'table' && selectedIds.length > 0 && (
+                <Button
+                  icon={<EditOutlined />}
+                  onClick={() => setBatchOperationsVisible(true)}
+                >
+                  批量操作 ({selectedIds.length})
+                </Button>
+              )}
+              <Segmented
+                value={viewMode}
+                onChange={(value) => setViewMode(value as ViewMode)}
+                options={[
+                  {
+                    label: '看板',
+                    value: 'board',
+                    icon: <AppstoreOutlined />,
+                  },
+                  {
+                    label: '表格',
+                    value: 'table',
+                    icon: <UnorderedListOutlined />,
+                  },
+                ]}
+              />
+              <Input
+                placeholder="搜索达人昵称"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                onPressEnter={handleSearch}
+                style={{ width: 200 }}
+                suffix={<SearchOutlined onClick={handleSearch} style={{ cursor: 'pointer' }} />}
+              />
+              <Button icon={<ReloadOutlined />} onClick={fetchData}>
+                刷新
+              </Button>
+              {hasPermission('operations.manageCollaborations') ? (
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalVisible(true)}>
+                  新建合作
+                </Button>
+              ) : (
+                <Tooltip title="您没有权限创建合作记录">
+                  <Button type="primary" icon={<PlusOutlined />} disabled>
+                    新建合作
+                  </Button>
+                </Tooltip>
+              )}
+            </Space>
+          </Col>
+        </Row>
 
-      <FollowUpModal
-        visible={followUpModalVisible}
-        collaboration={selectedCard}
-        onClose={handleModalClose}
-      />
 
-      <DeadlineModal
-        visible={deadlineModalVisible}
-        collaboration={selectedCard}
-        onClose={handleModalClose}
-      />
+        {/* Pipeline Board or Table */}
+        <Spin spinning={loading}>
+          {viewMode === 'board' ? (
+            <div
+              style={{
+                display: 'flex',
+                gap: 8,
+                flex: 1,
+                width: '100%',
+                overflow: 'hidden',
+              }}
+            >
+              {STAGE_ORDER.map((stage) => {
+                const stageData = pipelineData?.stages.find((s) => s.stage === stage);
+                return (
+                  <PipelineColumn
+                    key={stage}
+                    stage={stage}
+                    stageName={STAGE_LABELS[stage]}
+                    cards={stageData?.collaborations || []}
+                    count={stageData?.count || 0}
+                    onDragEnd={handleDragEnd}
+                    onCardClick={handleCardClick}
+                    onFollowUpClick={handleFollowUpClick}
+                    onDeadlineClick={handleDeadlineClick}
+                    onQuickFollowUpClick={handleQuickFollowUpClick}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <Table
+              dataSource={getAllCollaborations()}
+              columns={tableColumns}
+              rowKey="id"
+              pagination={{
+                pageSize: 50,
+                showSizeChanger: true,
+                showTotal: (total) => `共 ${total} 条`,
+              }}
+              scroll={{ x: 1200 }}
+              onRow={(record) => ({
+                onClick: () => handleCardClick(record),
+                style: { cursor: 'pointer' },
+              })}
+            />
+          )}
+        </Spin>
 
-      <CreateCollaborationModal
-        visible={createModalVisible}
-        influencers={influencers}
-        onClose={handleCreateClose}
-      />
+        {/* Modals */}
+        <CollaborationModal
+          visible={detailModalVisible}
+          collaborationId={selectedCard?.id || null}
+          onClose={handleModalClose}
+        />
 
-      <QuickFollowUpModal
-        visible={quickFollowUpModalVisible}
-        collaboration={selectedCard}
-        onClose={handleModalClose}
-      />
+        <FollowUpModal
+          visible={followUpModalVisible}
+          collaboration={selectedCard}
+          onClose={handleModalClose}
+        />
 
-      <BatchOperations
-        visible={batchOperationsVisible}
-        selectedIds={selectedIds}
-        onClose={handleBatchOperationsClose}
-        onExecute={handleBatchExecute}
-      />
+        <DeadlineModal
+          visible={deadlineModalVisible}
+          collaboration={selectedCard}
+          onClose={handleModalClose}
+        />
+
+        <CreateCollaborationModal
+          visible={createModalVisible}
+          influencers={influencers}
+          onClose={handleCreateClose}
+        />
+
+        <QuickFollowUpModal
+          visible={quickFollowUpModalVisible}
+          collaboration={selectedCard}
+          onClose={handleModalClose}
+        />
+
+        <BatchOperations
+          visible={batchOperationsVisible}
+          selectedIds={selectedIds}
+          onClose={handleBatchOperationsClose}
+          onExecute={handleBatchExecute}
+        />
       </div>
     </div>
   );

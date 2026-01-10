@@ -163,12 +163,12 @@ const InfluencerSettingsPage = () => {
   }
 
   return (
-    <div 
-      style={{ 
+    <div
+      style={{
         minHeight: '100vh',
         background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
         position: 'relative',
-        padding: '24px',
+        padding: '40px',
       }}
     >
       {/* 背景装饰元素 */}
@@ -196,7 +196,7 @@ const InfluencerSettingsPage = () => {
         pointerEvents: 'none',
         zIndex: 0,
       }} />
-      
+
       <div style={{ position: 'relative', zIndex: 1 }}>
         <Title level={4} style={{ marginBottom: 24 }}>
           账号设置

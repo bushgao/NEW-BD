@@ -26,7 +26,7 @@ export function checkPermission(permission: string) {
       }
 
       // 工厂老板拥有所有权限
-      if (user.role === 'FACTORY_OWNER') {
+      if (user.role === 'BRAND') {
         return next();
       }
 
@@ -36,7 +36,7 @@ export function checkPermission(permission: string) {
       }
 
       // 检查商务权限
-      if (user.role === 'BUSINESS_STAFF') {
+      if (user.role === 'BUSINESS') {
         // 从数据库获取最新权限（确保权限修改立即生效）
         const userWithPermissions = await prisma.user.findUnique({
           where: { id: user.userId },
@@ -81,12 +81,12 @@ export function filterByPermission(permission: string) {
       }
 
       // 工厂老板和平台管理员可以查看所有数据
-      if (user.role === 'FACTORY_OWNER' || user.role === 'PLATFORM_ADMIN') {
+      if (user.role === 'BRAND' || user.role === 'PLATFORM_ADMIN') {
         return next();
       }
 
       // 商务人员根据权限过滤数据
-      if (user.role === 'BUSINESS_STAFF') {
+      if (user.role === 'BUSINESS') {
         // 从数据库获取最新权限
         const userWithPermissions = await prisma.user.findUnique({
           where: { id: user.userId },
@@ -134,12 +134,12 @@ export function checkStaffDataAccess() {
       }
 
       // 工厂老板和平台管理员可以访问所有商务数据
-      if (user.role === 'FACTORY_OWNER' || user.role === 'PLATFORM_ADMIN') {
+      if (user.role === 'BRAND' || user.role === 'PLATFORM_ADMIN') {
         return next();
       }
 
       // 商务人员只能访问自己的数据，除非有权限
-      if (user.role === 'BUSINESS_STAFF') {
+      if (user.role === 'BUSINESS') {
         // 如果访问的是自己的数据，允许
         if (targetStaffId === user.userId) {
           return next();

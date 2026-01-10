@@ -3,7 +3,7 @@ import { body, query, param, validationResult } from 'express-validator';
 import multer from 'multer';
 import * as influencerService from '../services/influencer.service';
 import * as importService from '../services/import.service';
-import { authenticate, requireFactoryMember } from '../middleware/auth.middleware';
+import { authenticate, requireFactoryMember, enrichUserData } from '../middleware/auth.middleware';
 import { checkPermission, filterByPermission } from '../middleware/permission.middleware';
 import { createBadRequestError } from '../middleware/errorHandler';
 import type { ApiResponse, Platform, PipelineStage } from '@ics/shared';
@@ -116,9 +116,13 @@ const idParamValidation = [
  * @access Private (Factory Member)
  * @permission dataVisibility.viewOthersInfluencers - 如果没有此权限，只能看到自己创建的达人
  */
+
+// Apply enrichUserData middleware to all routes to ensure factoryId is available
+router.use(authenticate);
+router.use(enrichUserData);
+
 router.get(
   '/',
-  authenticate,
   requireFactoryMember,
   filterByPermission('dataVisibility.viewOthersInfluencers'),
   listInfluencerValidation,
@@ -175,7 +179,6 @@ router.get(
  */
 router.get(
   '/check-duplicate',
-  authenticate,
   requireFactoryMember,
   checkDuplicateValidation,
   handleValidationErrors,
@@ -212,7 +215,6 @@ router.get(
  */
 router.get(
   '/tags',
-  authenticate,
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
@@ -240,7 +242,6 @@ router.get(
  */
 router.get(
   '/categories',
-  authenticate,
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
@@ -268,7 +269,6 @@ router.get(
  */
 router.get(
   '/:id',
-  authenticate,
   requireFactoryMember,
   idParamValidation,
   handleValidationErrors,
@@ -299,7 +299,6 @@ router.get(
  */
 router.post(
   '/',
-  authenticate,
   requireFactoryMember,
   checkPermission('operations.manageInfluencers'),
   createInfluencerValidation,
@@ -345,7 +344,6 @@ router.post(
  */
 router.put(
   '/:id',
-  authenticate,
   requireFactoryMember,
   checkPermission('operations.manageInfluencers'),
   idParamValidation,
@@ -390,7 +388,6 @@ router.put(
  */
 router.delete(
   '/:id',
-  authenticate,
   requireFactoryMember,
   checkPermission('operations.manageInfluencers'),
   idParamValidation,
@@ -421,7 +418,6 @@ router.delete(
  */
 router.post(
   '/:id/tags',
-  authenticate,
   requireFactoryMember,
   idParamValidation,
   tagsValidation,
@@ -454,7 +450,6 @@ router.post(
  */
 router.delete(
   '/:id/tags',
-  authenticate,
   requireFactoryMember,
   idParamValidation,
   tagsValidation,
@@ -489,7 +484,6 @@ router.delete(
  */
 router.post(
   '/import/parse',
-  authenticate,
   requireFactoryMember,
   upload.single('file'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
@@ -521,7 +515,6 @@ router.post(
  */
 router.post(
   '/import/preview',
-  authenticate,
   requireFactoryMember,
   upload.single('file'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
@@ -564,7 +557,6 @@ router.post(
  */
 router.post(
   '/import/execute',
-  authenticate,
   requireFactoryMember,
   upload.single('file'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
@@ -610,7 +602,6 @@ router.post(
  */
 router.get(
   '/recommendations',
-  authenticate,
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
@@ -645,7 +636,6 @@ router.get(
  */
 router.post(
   '/batch/tags',
-  authenticate,
   requireFactoryMember,
   checkPermission('operations.batchOperations'),
   [
@@ -694,7 +684,6 @@ router.post(
  */
 router.get(
   '/:id/collaboration-history',
-  authenticate,
   requireFactoryMember,
   idParamValidation,
   handleValidationErrors,
@@ -727,7 +716,6 @@ router.get(
  */
 router.get(
   '/:id/roi-stats',
-  authenticate,
   requireFactoryMember,
   idParamValidation,
   handleValidationErrors,
@@ -760,7 +748,6 @@ router.get(
  */
 router.put(
   '/:id/group',
-  authenticate,
   requireFactoryMember,
   idParamValidation,
   [body('groupId').optional().isUUID().withMessage('无效的分组ID')],

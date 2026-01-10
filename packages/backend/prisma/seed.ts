@@ -69,7 +69,7 @@ async function main() {
       email: 'owner@demo.com',
       passwordHash: ownerPassword,
       name: '张老板',
-      role: UserRole.FACTORY_OWNER,
+      role: UserRole.BRAND,
     },
   });
   console.log('✅ Factory owner created:', owner.email);
@@ -105,7 +105,7 @@ async function main() {
       email: 'staff@demo.com',
       passwordHash: staffPassword,
       name: '李商务',
-      role: UserRole.BUSINESS_STAFF,
+      role: UserRole.BUSINESS,
       factoryId: factory.id,
     },
   });

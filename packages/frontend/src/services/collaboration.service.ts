@@ -141,15 +141,15 @@ export const STAGE_LABELS: Record<PipelineStage, string> = {
   REVIEWED: '已复盘',
 };
 
-// Stage colors for UI
+// Stage colors for UI - 莫兰迪色系（柔和低饱和度配色）
 export const STAGE_COLORS: Record<PipelineStage, string> = {
-  LEAD: '#8c8c8c',
-  CONTACTED: '#1890ff',
-  QUOTED: '#722ed1',
-  SAMPLED: '#fa8c16',
-  SCHEDULED: '#13c2c2',
-  PUBLISHED: '#52c41a',
-  REVIEWED: '#389e0d',
+  LEAD: '#B8B8B8',        // 浅灰 - 柔和中性
+  CONTACTED: '#8EACBB',   // 雾霾蓝 - 柔和蓝
+  QUOTED: '#A89BB9',      // 薰衣草紫 - 柔和紫
+  SAMPLED: '#D4A574',     // 驼色 - 柔和橙
+  SCHEDULED: '#7FA99B',   // 鼠尾草绿 - 柔和青
+  PUBLISHED: '#9CAF88',   // 橄榄绿 - 柔和绿
+  REVIEWED: '#C89B9C',    // 豆沙粉 - 柔和粉
 };
 
 // Block reason display names

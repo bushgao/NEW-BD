@@ -61,11 +61,15 @@ const PipelineColumn = ({
       variant="elevated"
       padding="none"
       style={{
-        flex: '1 1 0',
+        flex: 1,
         minWidth: 0,
         display: 'flex',
         flexDirection: 'column',
         height: 'calc(100vh - 200px)',
+        backgroundColor: 'rgba(255, 255, 255, 0.4)',
+        border: '1px solid rgba(0,0,0,0.04)',
+        borderRadius: '12px',
+        overflow: 'hidden',
       }}
     >
       <div
@@ -81,26 +85,45 @@ const PipelineColumn = ({
         {/* Column Header */}
         <div
           style={{
-            padding: '12px 16px',
-            borderBottom: `3px solid ${STAGE_COLORS[stage]}`,
-            backgroundColor: 'rgba(255, 255, 255, 0.5)',
-            backdropFilter: 'blur(8px)',
+            padding: '10px 14px',
+            borderBottom: `2.5px solid ${STAGE_COLORS[stage]}`,
+            backgroundColor: 'rgba(255, 255, 255, 0.7)',
+            backdropFilter: 'blur(10px)',
+            zIndex: 1,
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text strong style={{ fontSize: 14 }}>
+            <Text strong style={{ fontSize: 13, color: theme.colors.neutral[800] }}>
               {stageName}
             </Text>
-            <div>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               <Badge
                 count={count}
-                style={{ backgroundColor: STAGE_COLORS[stage] }}
+                style={{
+                  backgroundColor: STAGE_COLORS[stage],
+                  fontSize: '10px',
+                  height: '18px',
+                  lineHeight: '18px',
+                  minWidth: '18px',
+                  padding: '0 5px',
+                  border: 'none',
+                  boxShadow: 'none'
+                }}
                 overflowCount={999}
               />
               {overdueCount > 0 && (
                 <Badge
                   count={overdueCount}
-                  style={{ backgroundColor: '#ff4d4f', marginLeft: 8 }}
+                  style={{
+                    backgroundColor: '#ff4d4f',
+                    fontSize: '10px',
+                    height: '18px',
+                    lineHeight: '18px',
+                    minWidth: '18px',
+                    padding: '0 5px',
+                    border: 'none',
+                    boxShadow: 'none'
+                  }}
                   title="超期数量"
                 />
               )}
@@ -113,7 +136,7 @@ const PipelineColumn = ({
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: 8,
+            padding: '4px',
             backgroundColor: `${theme.colors.background.secondary}`,
           }}
         >

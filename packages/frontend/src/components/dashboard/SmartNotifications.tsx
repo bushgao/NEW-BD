@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Card, List, Badge, Button, Tag, Empty, Spin, Tooltip, message } from 'antd';
+import { Card, List, Badge, Button, Empty, Spin, Tooltip, message } from 'antd';
 import {
   BellOutlined,
   ClockCircleOutlined,
   WarningOutlined,
   CheckCircleOutlined,
-  CloseCircleOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -30,11 +29,13 @@ interface Alert {
 interface SmartNotificationsProps {
   factoryId?: string;
   onRefresh?: () => void;
+  isBento?: boolean;
 }
 
 const SmartNotifications: React.FC<SmartNotificationsProps> = ({
   factoryId,
   onRefresh,
+  isBento,
 }) => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(false);
@@ -152,14 +153,14 @@ const SmartNotifications: React.FC<SmartNotificationsProps> = ({
     }
 
     fetchAlerts();
-    
+
     // 设置定时刷新（每5分钟）
     const interval = setInterval(() => {
       if (factoryId) {
         fetchAlerts();
       }
     }, 5 * 60 * 1000);
-    
+
     return () => clearInterval(interval);
   }, [factoryId]);
 
@@ -167,13 +168,13 @@ const SmartNotifications: React.FC<SmartNotificationsProps> = ({
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
-        return '#ff4d4f';
+        return '#C89B9C';  // 豆沙粉
       case 'medium':
-        return '#faad14';
+        return '#D4A574';  // 驼色
       case 'low':
-        return '#52c41a';
+        return '#9CAF88';  // 橄榄绿
       default:
-        return '#d9d9d9';
+        return '#B8B8B8';  // 浅灰
     }
   };
 
@@ -181,30 +182,17 @@ const SmartNotifications: React.FC<SmartNotificationsProps> = ({
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'summary':
-        return <CheckCircleOutlined style={{ color: '#1890ff' }} />;
+        return <CheckCircleOutlined style={{ color: '#8EACBB' }} />;
       case 'warning':
-        return <WarningOutlined style={{ color: '#faad14' }} />;
+        return <WarningOutlined style={{ color: '#D4A574' }} />;
       case 'reminder':
-        return <ClockCircleOutlined style={{ color: '#722ed1' }} />;
+        return <ClockCircleOutlined style={{ color: '#A89BB9' }} />;
       default:
         return <BellOutlined />;
     }
   };
 
-  // 获取类型标签
-  const getTypeTag = (type: string) => {
-    switch (type) {
-      case 'summary':
-        return <Tag color="blue">工作摘要</Tag>;
-      case 'warning':
-        return <Tag color="orange">异常预警</Tag>;
-      case 'reminder':
-        return <Tag color="purple">重要提醒</Tag>;
-      default:
-        return <Tag>通知</Tag>;
-    }
-  };
-
+  // 处理刷新
   // 处理刷新
   const handleRefresh = () => {
     fetchAlerts();
@@ -212,6 +200,104 @@ const SmartNotifications: React.FC<SmartNotificationsProps> = ({
       onRefresh();
     }
   };
+
+  const content = (
+    <>
+      {loading && alerts.length === 0 ? (
+        <div className="py-8 text-center"><Spin /></div>
+      ) : alerts.length === 0 ? (
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无提醒" className="py-8" />
+      ) : (
+        <List
+          size="small"
+          dataSource={alerts.slice(0, 5)}
+          className="bg-transparent"
+          renderItem={(alert) => (
+            <div
+              key={alert.id}
+              className={`p-5 border-b border-neutral-50 last:border-0 hover:bg-neutral-50 transition-colors cursor-pointer relative overflow-hidden ${alert.read ? 'opacity-60' : ''}`}
+              style={{ borderLeft: `4px solid ${getPriorityColor(alert.priority)}` }}
+              onClick={() => {
+                if (!alert.read) markAsRead(alert.id);
+                if (alert.actionUrl) window.location.href = alert.actionUrl;
+              }}
+            >
+              <div className="flex items-start gap-4">
+                <div className="mt-1 text-lg">{getTypeIcon(alert.type)}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-bold text-neutral-400 uppercase tracking-tighter">
+                      {alert.type === 'summary' ? '摘要' : alert.type === 'warning' ? '异常' : '提醒'}
+                    </span>
+                    <span className="text-[10px] text-neutral-400 whitespace-nowrap">
+                      {dayjs(alert.timestamp).fromNow()}
+                    </span>
+                  </div>
+                  <h5 className={`text-sm mb-1 truncate ${alert.read ? 'font-normal text-neutral-500' : 'font-bold text-neutral-900'}`}>
+                    {alert.title}
+                  </h5>
+                  <p className="text-xs text-neutral-500 line-clamp-2 leading-relaxed">
+                    {alert.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        />
+      )}
+      {alerts.length > 5 && (
+        <div className="p-3 text-center border-t border-neutral-50 bg-neutral-50/30">
+          <Button type="link" size="small" className="text-xs text-neutral-400 hover:text-brand-500">
+            查看全部 {alerts.length} 条提醒
+          </Button>
+        </div>
+      )}
+    </>
+  );
+  if (isBento) {
+    return (
+
+      <div className="h-full flex flex-col bg-white rounded-3xl border border-neutral-200/60 shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300">
+        <div className="flex justify-between items-center p-4 border-b border-neutral-100">
+          <div className="flex items-center gap-3">
+            <span className="p-2 bg-indigo-50/80 rounded-xl text-indigo-600 flex items-center justify-center">
+              <BellOutlined className="text-base" />
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-base font-bold text-neutral-800">智能提醒</span>
+              {unreadCount > 0 && (
+                <Badge count={unreadCount} size="small" style={{ backgroundColor: '#ef4444' }} />
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            {unreadCount > 0 && (
+              <Button
+                type="text"
+                size="small"
+                onClick={markAllAsRead}
+                className="text-xs text-neutral-400 hover:text-indigo-600 hover:bg-neutral-50 px-2 h-7"
+              >
+                全部已读
+              </Button>
+            )}
+            <Button
+              type="text"
+              size="small"
+              icon={<ReloadOutlined className="text-sm" />}
+              onClick={handleRefresh}
+              loading={loading}
+              className="text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 w-8 h-8 rounded-lg"
+            />
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          {content}
+        </div>
+      </div>
+    );
+
+  }
 
   return (
     <Card
@@ -245,69 +331,14 @@ const SmartNotifications: React.FC<SmartNotificationsProps> = ({
           </Tooltip>
         </div>
       }
-      style={{ height: '100%' }}
-      bodyStyle={{ padding: 0, maxHeight: 600, overflow: 'auto' }}
+      style={{
+        borderRadius: '12px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        height: '100%',
+      }}
+      bodyStyle={{ padding: 0, maxHeight: 400, overflow: 'auto' }}
     >
-      {loading && alerts.length === 0 ? (
-        <div style={{ padding: 24, textAlign: 'center' }}>
-          <Spin />
-        </div>
-      ) : alerts.length === 0 ? (
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="暂无提醒"
-          style={{ padding: 24 }}
-        />
-      ) : (
-        <List
-          dataSource={alerts}
-          renderItem={(alert) => (
-            <List.Item
-              key={alert.id}
-              style={{
-                padding: '12px 16px',
-                backgroundColor: alert.read ? 'transparent' : '#f0f5ff',
-                borderLeft: `3px solid ${getPriorityColor(alert.priority)}`,
-                cursor: 'pointer',
-                opacity: alert.read ? 0.6 : 1,
-              }}
-              onClick={() => {
-                if (!alert.read) {
-                  markAsRead(alert.id);
-                }
-                if (alert.actionUrl) {
-                  window.location.href = alert.actionUrl;
-                }
-              }}
-            >
-              <List.Item.Meta
-                avatar={getTypeIcon(alert.type)}
-                title={
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {getTypeTag(alert.type)}
-                    <span style={{ fontWeight: alert.read ? 'normal' : 'bold' }}>
-                      {alert.title}
-                    </span>
-                  </div>
-                }
-                description={
-                  <div>
-                    <div style={{ marginBottom: 4 }}>{alert.description}</div>
-                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>
-                      {dayjs(alert.timestamp).fromNow()}
-                    </div>
-                  </div>
-                }
-              />
-              {alert.actionLabel && (
-                <Button type="link" size="small">
-                  {alert.actionLabel}
-                </Button>
-              )}
-            </List.Item>
-          )}
-        />
-      )}
+      {content}
     </Card>
   );
 };

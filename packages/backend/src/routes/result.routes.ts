@@ -119,7 +119,7 @@ router.get(
   '/stats',
   authenticate,
   requireFactoryMember,
-  requireRoles('FACTORY_OWNER'),
+  requireRoles('BRAND'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
       const factoryId = req.user!.factoryId;
@@ -156,7 +156,7 @@ router.get(
   '/report',
   authenticate,
   requireFactoryMember,
-  requireRoles('FACTORY_OWNER'),
+  requireRoles('BRAND'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
       const factoryId = req.user!.factoryId;

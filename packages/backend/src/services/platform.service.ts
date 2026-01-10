@@ -616,7 +616,7 @@ export async function getFactoryStaff(factoryId: string): Promise<FactoryStaffMe
   const staff = await prisma.user.findMany({
     where: {
       factoryId,
-      role: 'BUSINESS_STAFF',
+      role: 'BUSINESS',
     },
     include: {
       _count: {
@@ -659,7 +659,7 @@ export async function getStaffWorkStats(staffId: string): Promise<StaffWorkStats
     throw createNotFoundError('商务人员不存在');
   }
 
-  if (staff.role !== 'BUSINESS_STAFF') {
+  if (staff.role !== 'BUSINESS') {
     throw createBadRequestError('该用户不是商务人员');
   }
 

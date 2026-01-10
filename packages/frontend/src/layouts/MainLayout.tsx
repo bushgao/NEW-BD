@@ -18,6 +18,7 @@ import {
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useAuthStore } from '../stores/authStore';
+import { useAdminStore } from '../stores/adminStore';
 import NotificationBadge from '../pages/Notifications/NotificationBadge';
 
 const { Header, Sider, Content } = Layout;
@@ -76,8 +77,13 @@ const getMenuItems = (role: string): MenuProps['items'] => {
 
   const adminItems = [
     {
-      key: '/app/admin/overview',
+      key: '/app/admin',
       icon: <DashboardOutlined />,
+      label: '平台管理',
+    },
+    {
+      key: '/app/admin/overview',
+      icon: <BarChartOutlined />,
       label: '数据概览',
     },
     {
@@ -100,19 +106,19 @@ const getMenuItems = (role: string): MenuProps['items'] => {
   let result;
   switch (role) {
     case 'PLATFORM_ADMIN':
-      result = [...commonItems, ...adminItems];
+      result = [...adminItems];
       break;
-    case 'FACTORY_OWNER':
+    case 'BRAND':
       result = [...commonItems, ...businessItems, ...ownerItems];
       break;
-    case 'BUSINESS_STAFF':
+    case 'BUSINESS':
       result = [...commonItems, ...businessItems];
       break;
     default:
       result = commonItems;
   }
-  
-  console.log('🔍 getMenuItems returning:', result);
+
+  console.log('🔍 getMenuItems role:', role, 'returning:', result);
   return result;
 };
 
@@ -121,7 +127,17 @@ const MainLayout = () => {
   const [syncing, setSyncing] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, token } = useAuthStore();
+
+  // 根据路径决定使用哪个 store
+  const isAdminPath = location.pathname.startsWith('/app/admin');
+  const authStore = useAuthStore();
+  const adminStore = useAdminStore();
+
+  // 选择正确的用户和 token
+  const user = isAdminPath ? adminStore.user : authStore.user;
+  const token = isAdminPath ? adminStore.token : authStore.token;
+  const logout = isAdminPath ? adminStore.logout : authStore.logout;
+  const loginPath = isAdminPath ? '/admin/login' : '/login';
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
     navigate(key);
@@ -129,7 +145,7 @@ const MainLayout = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate(loginPath);
   };
 
   // 复制 Token 到剪贴板（用于同步到 Chrome 插件）
@@ -143,7 +159,7 @@ const MainLayout = () => {
     try {
       // 复制 Token 到剪贴板
       await navigator.clipboard.writeText(token.accessToken);
-      
+
       // 显示成功提示
       message.success({
         content: (
@@ -156,7 +172,7 @@ const MainLayout = () => {
         ),
         duration: 5,
       });
-      
+
       console.log('✅ Token 已复制，当前用户:', user?.name);
     } catch (error) {
       console.error('复制失败:', error);
@@ -184,19 +200,22 @@ const MainLayout = () => {
   ];
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider trigger={null} collapsible collapsed={collapsed} theme="light">
-        <div
-          style={{
-            height: 64,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderBottom: '1px solid #f0f0f0',
-          }}
-        >
-          <Text strong style={{ fontSize: collapsed ? 14 : 16 }}>
-            {collapsed ? 'ICS' : '达人合作系统'}
+    <Layout className="min-h-screen bg-surface-bg">
+      <Sider
+        trigger={null}
+        collapsible
+        collapsed={collapsed}
+        theme="light"
+        className="border-r-0 bg-transparent !fixed h-full z-20"
+        width={200}
+        style={{
+          background: 'transparent',
+          borderRight: 'none',
+        }}
+      >
+        <div className="flex h-16 items-center justify-start px-6">
+          <Text className="text-xl font-bold tracking-tight text-neutral-900 border-l-4 border-brand-500 pl-3">
+            {collapsed ? 'ICS' : 'NEW BD'}
           </Text>
         </div>
         <Menu
@@ -204,50 +223,43 @@ const MainLayout = () => {
           selectedKeys={[location.pathname]}
           items={getMenuItems(user?.role || '')}
           onClick={handleMenuClick}
-          style={{ borderRight: 0 }}
+          className="bg-transparent border-r-0 px-2 space-y-1"
         />
       </Sider>
-      <Layout>
-        <Header
-          style={{
-            padding: '0 24px',
-            background: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderBottom: '1px solid #f0f0f0',
-          }}
-        >
-          <div style={{ cursor: 'pointer' }} onClick={() => setCollapsed(!collapsed)}>
-            {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+      <Layout
+        className="transition-all duration-300"
+        style={{ marginLeft: collapsed ? 80 : 200 }}
+      >
+        <Header className="sticky top-0 z-50 flex h-16 w-full items-center justify-between bg-white/70 px-8 backdrop-blur-xl border-b border-neutral-200/50 shadow-sm transition-all duration-300">
+          <div
+            className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl bg-white shadow-soft transition-all hover:shadow-soft-lg"
+            onClick={() => setCollapsed(!collapsed)}
+          >
+            {collapsed ? <MenuUnfoldOutlined className="text-neutral-600" /> : <MenuFoldOutlined className="text-neutral-600" />}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <Button 
-              icon={<SyncOutlined />} 
+          <div className="flex items-center gap-6">
+            <Button
+              icon={<SyncOutlined />}
               onClick={handleSyncToExtension}
               loading={syncing}
-              size="small"
+              className="rounded-full border-none bg-white shadow-soft font-medium text-neutral-600 hover:text-brand-500"
             >
               同步插件
             </Button>
+            <div className="h-8 w-[1px] bg-neutral-200" />
             <NotificationBadge />
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-              <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Avatar icon={<UserOutlined />} />
-                <Text>{user?.name}</Text>
+              <div className="flex cursor-pointer items-center gap-3 rounded-full bg-white pl-1 pr-3 py-1 shadow-soft transition-all hover:shadow-soft-lg border border-neutral-100">
+                <Avatar
+                  className="bg-brand-50 text-brand-500 font-bold"
+                  icon={<UserOutlined />}
+                />
+                <Text className="text-neutral-700 font-medium">{user?.name}</Text>
               </div>
             </Dropdown>
           </div>
         </Header>
-        <Content
-          style={{
-            margin: 24,
-            padding: 24,
-            background: '#fff',
-            borderRadius: 8,
-            minHeight: 280,
-          }}
-        >
+        <Content className="min-h-[280px]">
           <Outlet />
         </Content>
       </Layout>

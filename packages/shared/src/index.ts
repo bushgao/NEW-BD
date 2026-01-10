@@ -1,7 +1,7 @@
 // Shared types and utilities for the Influencer Collaboration System
 
 // User roles
-export type UserRole = 'PLATFORM_ADMIN' | 'FACTORY_OWNER' | 'BUSINESS_STAFF';
+export type UserRole = 'PLATFORM_ADMIN' | 'BRAND' | 'BUSINESS' | 'INFLUENCER';
 
 // Platform types
 export type Platform = 'DOUYIN' | 'KUAISHOU' | 'XIAOHONGSHU' | 'WEIBO' | 'OTHER';

@@ -31,7 +31,7 @@ const registerValidation = [
     .notEmpty()
     .withMessage('请输入姓名'),
   body('role')
-    .isIn(['PLATFORM_ADMIN', 'FACTORY_OWNER', 'BUSINESS_STAFF'])
+    .isIn(['PLATFORM_ADMIN', 'BRAND', 'BUSINESS'])
     .withMessage('无效的用户角色'),
   body('factoryId')
     .optional()
@@ -74,7 +74,7 @@ router.post(
       const { email, password, name, role, factoryId, factoryName } = req.body;
 
       // 如果是商务人员加入工厂，检查工厂的商务账号配额
-      if (role === 'BUSINESS_STAFF' && factoryId) {
+      if (role === 'BUSINESS' && factoryId) {
         const { validateQuota } = await import('../services/platform.service');
         await validateQuota(factoryId, 'staff');
       }

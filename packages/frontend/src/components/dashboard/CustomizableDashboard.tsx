@@ -4,8 +4,8 @@ import { SettingOutlined, SaveOutlined, EyeOutlined, EyeInvisibleOutlined } from
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Card, CardContent } from '../ui/Card';
-import { useAuthStore } from '../../stores/authStore';
 import api from '../../services/api';
+import { BentoGrid, BentoCard } from '../ui/Bento';
 
 const { Text } = Typography;
 
@@ -13,9 +13,11 @@ const { Text } = Typography;
 export interface DashboardCard {
   id: string;
   title: string;
+  subtitle?: string;
   visible: boolean;
   order: number;
   component: React.ReactNode;
+  span?: 1 | 2 | 3 | 4;
 }
 
 // 布局配置定义
@@ -57,6 +59,13 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
   toggleVisibility,
   isEditMode,
 }) => {
+  const spanClass = {
+    1: 'col-span-1',
+    2: 'col-span-1 md:col-span-2',
+    3: 'col-span-1 md:col-span-3',
+    4: 'col-span-1 md:col-span-4',
+  }[card.span || 1];
+
   const [{ isDragging }, drag] = useDrag({
     type: ItemType,
     item: { id: card.id, index },
@@ -70,7 +79,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
     accept: ItemType,
     hover: (item: DragItem) => {
       if (!isEditMode) return;
-      
+
       const dragIndex = item.index;
       const hoverIndex = index;
 
@@ -90,11 +99,11 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
   return (
     <div
       ref={(node) => drag(drop(node))}
+      className={`${spanClass} ${isDragging ? 'opacity-50' : ''}`}
       style={{
-        opacity: isDragging ? 0.5 : 1,
         cursor: isEditMode ? 'move' : 'default',
-        marginBottom: 16,
         position: 'relative',
+        minHeight: isEditMode ? '100px' : 'auto',
       }}
     >
       {isEditMode && (
@@ -124,14 +133,20 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
           </Space>
         </div>
       )}
-      <div
-        style={{
-          opacity: card.visible ? 1 : 0.5,
-          pointerEvents: card.visible || isEditMode ? 'auto' : 'none',
-        }}
+      <BentoCard
+        span={card.span || 1}
+        title={card.title}
+        subtitle={card.subtitle}
+        className={!card.visible ? 'opacity-50' : 'h-full'}
       >
-        {card.component}
-      </div>
+        <div
+          style={{
+            pointerEvents: card.visible || isEditMode ? 'auto' : 'none',
+          }}
+        >
+          {card.component}
+        </div>
+      </BentoCard>
     </div>
   );
 };
@@ -142,7 +157,6 @@ const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({
   onLayoutChange,
   autoSave = true,
 }) => {
-  const { user } = useAuthStore();
   const [cards, setCards] = useState<DashboardCard[]>(initialCards);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -155,7 +169,7 @@ const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({
         const response = await api.get('/users/dashboard-layout');
         if (response.data?.success && response.data?.data?.layout) {
           const savedLayout = response.data.data.layout as DashboardLayout;
-          
+
           // 应用保存的布局
           const updatedCards = [...initialCards];
           savedLayout.cards.forEach((savedCard) => {
@@ -168,7 +182,7 @@ const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({
               };
             }
           });
-          
+
           // 按 order 排序
           updatedCards.sort((a, b) => a.order - b.order);
           setCards(updatedCards);
@@ -193,7 +207,7 @@ const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({
       const newCards = [...prevCards];
       const [removed] = newCards.splice(dragIndex, 1);
       newCards.splice(hoverIndex, 0, removed);
-      
+
       // 更新 order
       return newCards.map((card, index) => ({
         ...card,
@@ -224,9 +238,9 @@ const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({
       };
 
       await api.post('/users/dashboard-layout', { layout });
-      
+
       message.success('布局保存成功');
-      
+
       if (onLayoutChange) {
         onLayoutChange(layout);
       }
@@ -310,8 +324,8 @@ const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({
           </Space>
         </div>
 
-        {/* 卡片列表 */}
-        <div>
+        {/* 卡片列表 - 使用 BentoGrid 布局 */}
+        <BentoGrid>
           {cards.map((card, index) => (
             <DraggableCard
               key={card.id}
@@ -322,7 +336,7 @@ const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({
               isEditMode={isEditMode}
             />
           ))}
-        </div>
+        </BentoGrid>
 
         {/* 提示信息 */}
         {isEditMode && (
