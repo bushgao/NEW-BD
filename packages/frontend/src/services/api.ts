@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { ApiResponse } from '@ics/shared';
 import { useAuthStore } from '../stores/authStore';
+import { useAdminStore } from '../stores/adminStore';
 
 const api = axios.create({
   baseURL: '/api',
@@ -9,6 +10,32 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+/**
+ * 获取当前应该使用的 token
+ * 根据当前路径判断使用哪个 store 的 token
+ */
+function getActiveToken() {
+  const currentPath = window.location.pathname;
+
+  // 如果是管理员页面，优先使用 adminStore 的 token
+  if (currentPath.startsWith('/app/admin') || currentPath.startsWith('/admin')) {
+    const adminState = useAdminStore.getState();
+    if (adminState.isAuthenticated && adminState.token?.accessToken) {
+      console.log('[API] 使用管理员 Token');
+      return adminState.token;
+    }
+  }
+
+  // 默认使用 authStore 的 token（工厂客户）
+  const authState = useAuthStore.getState();
+  if (authState.token?.accessToken) {
+    console.log('[API] 使用工厂客户 Token');
+    return authState.token;
+  }
+
+  return null;
+}
 
 // Request interceptor - add auth token
 api.interceptors.request.use(
@@ -19,35 +46,30 @@ api.interceptors.request.use(
     while (!useAuthStore.getState()._hasHydrated && (Date.now() - startTime) < maxWait) {
       await new Promise(resolve => setTimeout(resolve, 10));
     }
-    
-    const authState = useAuthStore.getState();
-    const token = authState.token;
-    
+
+    const token = getActiveToken();
+
     console.log('[API Interceptor] Request URL:', config.url);
-    console.log('[API Interceptor] Full auth state:', {
-      isAuthenticated: authState.isAuthenticated,
-      hasUser: !!authState.user,
-      hasToken: !!token,
-      hasHydrated: authState._hasHydrated,
-      tokenStructure: token ? {
-        hasAccessToken: !!token.accessToken,
-        hasRefreshToken: !!token.refreshToken,
-        accessTokenPreview: token.accessToken ? token.accessToken.substring(0, 20) + '...' : 'NULL',
-      } : 'NO TOKEN OBJECT'
-    });
-    
+    console.log('[API Interceptor] Token status:', token ? 'Found' : 'Not found');
+
     // CRITICAL FIX: Check if token is the string "null"
     if (token?.accessToken === 'null' || token?.accessToken === null) {
-      console.error('[API Interceptor] ❌ CRITICAL: Token is null or string "null"! Forcing logout...');
-      useAuthStore.getState().logout();
-      window.location.href = '/login';
+      console.error('[API Interceptor] ❌ CRITICAL: Token is null or string "null"!');
+      // 根据路径决定跳转到哪个登录页
+      const currentPath = window.location.pathname;
+      if (currentPath.startsWith('/app/admin') || currentPath.startsWith('/admin')) {
+        useAdminStore.getState().logout();
+        window.location.href = '/admin/login';
+      } else {
+        useAuthStore.getState().logout();
+        window.location.href = '/login';
+      }
       throw new Error('Invalid token detected, please login again');
     }
-    
+
     if (token?.accessToken && typeof token.accessToken === 'string' && token.accessToken.length > 10) {
       config.headers.Authorization = `Bearer ${token.accessToken}`;
       console.log('[API Interceptor] ✅ Authorization header set successfully');
-      console.log('[API Interceptor] Token being sent:', token.accessToken.substring(0, 30) + '...');
 
       // Mock data in Demo Mode
       if (token.accessToken === 'demo-token') {
@@ -220,10 +242,21 @@ api.interceptors.response.use(
       return { data: (error as any).mockData, status: 200, statusText: 'OK', headers: {}, config: {} as any };
     }
 
-    if (error.response?.status === 401) {
-      const token = useAuthStore.getState().token;
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      const currentPath = window.location.pathname;
+      const authToken = useAuthStore.getState().token;
+      const adminToken = useAdminStore.getState().token;
+
       // Do not logout if in demo mode
-      if (token?.accessToken !== 'demo-token') {
+      if (authToken?.accessToken === 'demo-token' || adminToken?.accessToken === 'demo-token') {
+        return Promise.reject(error);
+      }
+
+      // 根据路径决定跳转到哪个登录页
+      if (currentPath.startsWith('/app/admin') || currentPath.startsWith('/admin')) {
+        useAdminStore.getState().logout();
+        window.location.href = '/admin/login';
+      } else {
         useAuthStore.getState().logout();
         window.location.href = '/login';
       }

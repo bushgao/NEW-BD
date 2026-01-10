@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Spin } from 'antd';
 import { Suspense, lazy } from 'react';
 import { useAuthStore, getDefaultPathForRole } from '../stores/authStore';
+import { useAdminStore } from '../stores/adminStore';
 import { useInfluencerPortalStore } from '../stores/influencerPortalStore';
 import type { UserRole } from '@ics/shared';
 
@@ -25,6 +26,9 @@ const AdminUsers = lazy(() => import('../pages/Admin/Users'));
 const NotificationsPage = lazy(() => import('../pages/Notifications'));
 const UIShowcase = lazy(() => import('../pages/UIShowcase'));
 const TeamPage = lazy(() => import('../pages/Team'));
+
+// 平台管理员登录页面
+const AdminLoginPage = lazy(() => import('../pages/AdminLogin'));
 
 // 达人端口页面
 const InfluencerLoginPage = lazy(() => import('../pages/InfluencerPortal/Login'));
@@ -76,10 +80,12 @@ const RoleRoute = ({ children, allowedRoles }: RoleRouteProps) => {
 };
 
 // Public route wrapper (redirect if authenticated)
+// 注意：PLATFORM_ADMIN 使用独立的 adminStore，不应该基于 authStore 重定向
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, user } = useAuthStore();
 
-  if (isAuthenticated && user) {
+  // 只对非管理员用户进行重定向
+  if (isAuthenticated && user && user.role !== 'PLATFORM_ADMIN') {
     const defaultPath = getDefaultPathForRole(user.role);
     return <Navigate to={defaultPath} replace />;
   }
@@ -105,6 +111,33 @@ const InfluencerPublicRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (isAuthenticated) {
     return <Navigate to="/influencer-portal" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// ============================================
+// 平台管理员路由守卫（独立认证系统）
+// ============================================
+
+// 管理员保护路由
+const AdminProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAdminStore();
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/admin/login" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// 管理员公开路由（已登录则跳转）
+const AdminPublicRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAdminStore();
+
+  if (isAuthenticated) {
+    return <Navigate to="/app/admin" replace />;
   }
 
   return <>{children}</>;
@@ -152,7 +185,7 @@ const AppRoutes = () => {
           <Route
             path="dashboard"
             element={
-              <RoleRoute allowedRoles={['PLATFORM_ADMIN', 'FACTORY_OWNER', 'BUSINESS_STAFF']}>
+              <RoleRoute allowedRoles={['PLATFORM_ADMIN', 'BRAND', 'BUSINESS']}>
                 <Dashboard />
               </RoleRoute>
             }
@@ -162,7 +195,7 @@ const AppRoutes = () => {
           <Route
             path="influencers"
             element={
-              <RoleRoute allowedRoles={['FACTORY_OWNER', 'BUSINESS_STAFF']}>
+              <RoleRoute allowedRoles={['BRAND', 'BUSINESS']}>
                 <InfluencersPage />
               </RoleRoute>
             }
@@ -172,7 +205,7 @@ const AppRoutes = () => {
           <Route
             path="samples"
             element={
-              <RoleRoute allowedRoles={['FACTORY_OWNER']}>
+              <RoleRoute allowedRoles={['BRAND']}>
                 <SamplesPage />
               </RoleRoute>
             }
@@ -182,7 +215,7 @@ const AppRoutes = () => {
           <Route
             path="pipeline"
             element={
-              <RoleRoute allowedRoles={['FACTORY_OWNER', 'BUSINESS_STAFF']}>
+              <RoleRoute allowedRoles={['BRAND', 'BUSINESS']}>
                 <PipelinePage />
               </RoleRoute>
             }
@@ -192,7 +225,7 @@ const AppRoutes = () => {
           <Route
             path="results"
             element={
-              <RoleRoute allowedRoles={['FACTORY_OWNER', 'BUSINESS_STAFF']}>
+              <RoleRoute allowedRoles={['BRAND', 'BUSINESS']}>
                 <ResultsPage />
               </RoleRoute>
             }
@@ -202,7 +235,7 @@ const AppRoutes = () => {
           <Route
             path="reports"
             element={
-              <RoleRoute allowedRoles={['FACTORY_OWNER']}>
+              <RoleRoute allowedRoles={['BRAND']}>
                 <ReportsPage />
               </RoleRoute>
             }
@@ -212,7 +245,7 @@ const AppRoutes = () => {
           <Route
             path="follow-up-analytics"
             element={
-              <RoleRoute allowedRoles={['FACTORY_OWNER', 'BUSINESS_STAFF']}>
+              <RoleRoute allowedRoles={['BRAND', 'BUSINESS']}>
                 <FollowUpAnalyticsPage />
               </RoleRoute>
             }
@@ -222,69 +255,82 @@ const AppRoutes = () => {
           <Route
             path="team"
             element={
-              <RoleRoute allowedRoles={['FACTORY_OWNER']}>
+              <RoleRoute allowedRoles={['BRAND']}>
                 <TeamPage />
               </RoleRoute>
             }
           />
 
-          {/* Admin - Platform Admin only */}
-          <Route
-            path="admin"
-            element={
-              <RoleRoute allowedRoles={['PLATFORM_ADMIN']}>
-                <AdminPage />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="admin/overview"
-            element={
-              <RoleRoute allowedRoles={['PLATFORM_ADMIN']}>
-                <AdminOverview />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="admin/factories"
-            element={
-              <RoleRoute allowedRoles={['PLATFORM_ADMIN']}>
-                <AdminFactories />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="admin/influencers"
-            element={
-              <RoleRoute allowedRoles={['PLATFORM_ADMIN']}>
-                <AdminInfluencers />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="admin/users"
-            element={
-              <RoleRoute allowedRoles={['PLATFORM_ADMIN']}>
-                <AdminUsers />
-              </RoleRoute>
-            }
-          />
+          {/* Admin routes moved outside - using independent auth */}
+        </Route>
 
-          {/* Notifications - All authenticated users */}
+        {/* ============================================ */}
+        {/* 平台管理员路由（独立认证系统） */}
+        {/* ============================================ */}
+
+        {/* 管理员登录页 */}
+        <Route
+          path="/admin/login"
+          element={
+            <AdminPublicRoute>
+              <AdminLoginPage />
+            </AdminPublicRoute>
+          }
+        />
+
+        {/* 管理后台路由 - 使用独立的 AdminProtectedRoute */}
+        <Route
+          path="/app/admin"
+          element={
+            <AdminProtectedRoute>
+              <MainLayout />
+            </AdminProtectedRoute>
+          }
+        >
+          <Route index element={<AdminPage />} />
+          <Route path="overview" element={<AdminOverview />} />
+          <Route path="factories" element={<AdminFactories />} />
+          <Route path="influencers" element={<AdminInfluencers />} />
+          <Route path="users" element={<AdminUsers />} />
+        </Route>
+
+        {/* Notifications for admin - using admin auth */}
+        <Route
+          path="/app/admin/notifications"
+          element={
+            <AdminProtectedRoute>
+              <MainLayout />
+            </AdminProtectedRoute>
+          }
+        >
+          <Route index element={<NotificationsPage />} />
+
+        </Route>
+
+        {/* Factory client routes - Notifications */}
+        <Route
+          path="/app"
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        >
+          {/* Notifications - Factory Owner and Business Staff only */}
           <Route
             path="notifications"
             element={
-              <RoleRoute allowedRoles={['PLATFORM_ADMIN', 'FACTORY_OWNER', 'BUSINESS_STAFF']}>
+              <RoleRoute allowedRoles={['BRAND', 'BUSINESS']}>
                 <NotificationsPage />
               </RoleRoute>
             }
           />
 
-          {/* UI Showcase - All authenticated users */}
+          {/* UI Showcase - All factory users */}
           <Route
             path="ui-showcase"
             element={
-              <RoleRoute allowedRoles={['PLATFORM_ADMIN', 'FACTORY_OWNER', 'BUSINESS_STAFF']}>
+              <RoleRoute allowedRoles={['BRAND', 'BUSINESS']}>
                 <UIShowcase />
               </RoleRoute>
             }
@@ -294,7 +340,7 @@ const AppRoutes = () => {
         {/* ============================================ */}
         {/* 达人端口路由（独立于商务端） */}
         {/* ============================================ */}
-        
+
         {/* 达人登录页 */}
         <Route
           path="/influencer-portal/login"

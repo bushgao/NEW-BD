@@ -60,7 +60,7 @@ export function usePermissions(): UsePermissionsReturn {
   const { user } = useAuthStore();
 
   // 工厂老板拥有所有权限
-  if (user?.role === 'FACTORY_OWNER') {
+  if (user?.role === 'BRAND') {
     return {
       hasPermission: () => true,
       permissions: null,

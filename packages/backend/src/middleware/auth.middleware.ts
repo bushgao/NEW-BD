@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../services/auth.service';
 import { createUnauthorizedError, createForbiddenError } from './errorHandler';
 import type { TokenPayload, UserRole } from '@ics/shared';
+import prisma from '../lib/prisma';
 
 // Extend Express Request to include user
 declare global {
@@ -18,7 +19,7 @@ declare global {
 export function authenticate(req: Request, _res: Response, next: NextFunction): void {
   try {
     const authHeader = req.headers.authorization;
-    
+
     console.log('[Auth Middleware] Request:', req.method, req.path);
     console.log('[Auth Middleware] Authorization header:', authHeader ? authHeader.substring(0, 30) + '...' : 'MISSING');
 
@@ -35,7 +36,7 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
 
     const token = parts[1];
     console.log('[Auth Middleware] Token preview:', token.substring(0, 20) + '...');
-    
+
     const payload = verifyToken(token);
     console.log('[Auth Middleware] ✅ Token verified, user:', payload.userId);
 
@@ -114,19 +115,19 @@ export function requireFactoryAccess(req: Request, _res: Response, next: NextFun
 export const requirePlatformAdmin = requireRoles('PLATFORM_ADMIN');
 
 /**
- * Middleware to ensure user is a Factory Owner
+ * Middleware to ensure user is a Brand (formerly Factory Owner)
  */
-export const requireFactoryOwner = requireRoles('FACTORY_OWNER');
+export const requireFactoryOwner = requireRoles('BRAND');
 
 /**
- * Middleware to ensure user is Business Staff
+ * Middleware to ensure user is Business (formerly Business Staff)
  */
-export const requireBusinessStaff = requireRoles('BUSINESS_STAFF');
+export const requireBusinessStaff = requireRoles('BUSINESS');
 
 /**
- * Middleware to ensure user is Factory Owner or Business Staff
+ * Middleware to ensure user is Brand or Business
  */
-export const requireFactoryMember = requireRoles('FACTORY_OWNER', 'BUSINESS_STAFF');
+export const requireFactoryMember = requireRoles('BRAND', 'BUSINESS');
 
 /**
  * Check if a user role has permission to access a specific feature
@@ -141,8 +142,9 @@ export function hasPermission(userRole: UserRole, allowedRoles: UserRole[]): boo
  */
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
   PLATFORM_ADMIN: 3,
-  FACTORY_OWNER: 2,
-  BUSINESS_STAFF: 1,
+  BRAND: 2,
+  BUSINESS: 1,
+  INFLUENCER: 0,
 };
 
 /**
@@ -150,4 +152,47 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
  */
 export function hasMinimumRole(userRole: UserRole, minimumRole: UserRole): boolean {
   return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[minimumRole];
+}
+
+/**
+ * Middleware to enrich user data with factoryId if missing from token
+ * This provides backward compatibility for old tokens
+ */
+export async function enrichUserData(req: Request, _res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (!req.user) {
+      return next();
+    }
+
+    // If token already has factoryId, skip
+    if (req.user.factoryId) {
+      console.log('[Enrich User Data] ✅ Token already has factoryId:', req.user.factoryId);
+      return next();
+    }
+
+    // Platform admins don't need factoryId
+    if (req.user.role === 'PLATFORM_ADMIN') {
+      console.log('[Enrich User Data] ✅ Platform admin, no factoryId needed');
+      return next();
+    }
+
+    // Query database for factoryId
+    console.log('[Enrich User Data] ⚠️ Token missing factoryId, querying database...');
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: { factoryId: true }
+    });
+
+    if (user?.factoryId) {
+      req.user.factoryId = user.factoryId;
+      console.log('[Enrich User Data] ✅ Added factoryId from database:', user.factoryId);
+    } else {
+      console.log('[Enrich User Data] ⚠️ User has no factoryId in database');
+    }
+
+    next();
+  } catch (error) {
+    console.error('[Enrich User Data] ❌ Error:', error);
+    next(error);
+  }
 }

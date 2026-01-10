@@ -19,8 +19,9 @@ import {
   SearchOutlined,
   EditOutlined,
   DeleteOutlined,
-  SendOutlined,
-  BarChartOutlined,
+  AppstoreOutlined,
+  RocketOutlined,
+  PieChartOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
@@ -213,7 +214,7 @@ const SamplesPage = () => {
       key: 'samples',
       label: (
         <span>
-          <SendOutlined />
+          <AppstoreOutlined />
           样品列表
         </span>
       ),
@@ -258,27 +259,27 @@ const SamplesPage = () => {
           <Card variant="elevated" style={{ marginBottom: 16 }}>
             <CardContent>
               <Row gutter={[16, 16]}>
-              <Col xs={24} sm={12} md={8}>
-                <Input.Search
-                  placeholder="搜索 SKU 或样品名称"
-                  allowClear
-                  enterButton={<SearchOutlined />}
-                  onSearch={handleSearch}
-                />
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Select
-                  placeholder="是否可复寄"
-                  allowClear
-                  style={{ width: '100%' }}
-                  onChange={handleCanResendFilter}
-                  options={[
-                    { value: true, label: '可复寄' },
-                    { value: false, label: '不可复寄' },
-                  ]}
-                />
-              </Col>
-            </Row>
+                <Col xs={24} sm={12} md={8}>
+                  <Input.Search
+                    placeholder="搜索 SKU 或样品名称"
+                    allowClear
+                    enterButton={<SearchOutlined />}
+                    onSearch={handleSearch}
+                  />
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <Select
+                    placeholder="是否可复寄"
+                    allowClear
+                    style={{ width: '100%' }}
+                    onChange={handleCanResendFilter}
+                    options={[
+                      { value: true, label: '可复寄' },
+                      { value: false, label: '不可复寄' },
+                    ]}
+                  />
+                </Col>
+              </Row>
             </CardContent>
           </Card>
 
@@ -305,7 +306,7 @@ const SamplesPage = () => {
       key: 'dispatches',
       label: (
         <span>
-          <SendOutlined />
+          <RocketOutlined />
           寄样记录
         </span>
       ),
@@ -315,7 +316,7 @@ const SamplesPage = () => {
       key: 'report',
       label: (
         <span>
-          <BarChartOutlined />
+          <PieChartOutlined />
           成本报表
         </span>
       ),
@@ -324,12 +325,13 @@ const SamplesPage = () => {
   ];
 
   return (
-    <div 
-      style={{ 
+    <div
+      style={{
         minHeight: '100vh',
         background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
         position: 'relative',
-        padding: '24px',
+        padding: '40px',
+        margin: '-24px',
       }}
     >
       {/* 背景装饰元素 */}
@@ -357,22 +359,22 @@ const SamplesPage = () => {
         pointerEvents: 'none',
         zIndex: 0,
       }} />
-      
+
       <div style={{ position: 'relative', zIndex: 1 }}>
-      <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
+        <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
 
-      <SampleModal
-        visible={modalVisible}
-        sample={editingSample}
-        onClose={handleModalClose}
-      />
+        <SampleModal
+          visible={modalVisible}
+          sample={editingSample}
+          onClose={handleModalClose}
+        />
 
-      <ImportWizard
-        visible={importModalVisible}
-        onClose={handleImportClose}
-        defaultType="samples"
-        allowTypeChange={false}
-      />
+        <ImportWizard
+          visible={importModalVisible}
+          onClose={handleImportClose}
+          defaultType="samples"
+          allowTypeChange={false}
+        />
       </div>
     </div>
   );

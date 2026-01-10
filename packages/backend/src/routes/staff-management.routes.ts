@@ -19,7 +19,7 @@ const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => P
 router.get(
   '/',
   authenticate,
-  requireRoles('FACTORY_OWNER'),
+  requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
     const factoryId = req.user!.factoryId!;
     const page = parseInt(req.query.page as string) || 1;
@@ -39,7 +39,7 @@ router.get(
 router.get(
   '/quota',
   authenticate,
-  requireRoles('FACTORY_OWNER'),
+  requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
     const factoryId = req.user!.factoryId!;
 
@@ -57,7 +57,7 @@ router.get(
 router.get(
   '/permission-templates',
   authenticate,
-  requireRoles('FACTORY_OWNER'),
+  requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
     const templates = staffManagementService.getPermissionTemplates();
 
@@ -73,7 +73,7 @@ router.get(
 router.get(
   '/:id',
   authenticate,
-  requireRoles('FACTORY_OWNER'),
+  requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const factoryId = req.user!.factoryId!;
@@ -92,7 +92,7 @@ router.get(
 router.post(
   '/',
   authenticate,
-  requireRoles('FACTORY_OWNER'),
+  requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
     const factoryId = req.user!.factoryId!;
     const { name, email, password } = req.body;
@@ -124,7 +124,7 @@ router.post(
 router.put(
   '/:id/status',
   authenticate,
-  requireRoles('FACTORY_OWNER'),
+  requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const factoryId = req.user!.factoryId!;
@@ -153,7 +153,7 @@ router.put(
 router.delete(
   '/:id',
   authenticate,
-  requireRoles('FACTORY_OWNER'),
+  requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const factoryId = req.user!.factoryId!;
@@ -172,7 +172,7 @@ router.delete(
 router.get(
   '/:staffId/permissions',
   authenticate,
-  requireRoles('FACTORY_OWNER'),
+  requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
     const { staffId } = req.params;
     const factoryId = req.user!.factoryId!;
@@ -191,7 +191,7 @@ router.get(
 router.put(
   '/:staffId/permissions',
   authenticate,
-  requireRoles('FACTORY_OWNER'),
+  requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
     const { staffId } = req.params;
     const factoryId = req.user!.factoryId!;

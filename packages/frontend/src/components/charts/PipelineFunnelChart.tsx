@@ -1,4 +1,4 @@
-import { Card, Spin, Empty, Space, Typography, Tooltip } from 'antd';
+import { Card, Spin, Empty, Typography } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import {
   FunnelChart,
@@ -9,7 +9,7 @@ import {
   Cell,
 } from 'recharts';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 // 管道阶段数据
 export interface PipelineStageData {
@@ -30,39 +30,31 @@ interface PipelineFunnelChartProps {
   data: PipelineFunnelData | null;
   loading?: boolean;
   onStageClick?: (stage: string) => void;
+  isBento?: boolean;
 }
 
 const PipelineFunnelChart: React.FC<PipelineFunnelChartProps> = ({
   data,
   loading = false,
   onStageClick,
+  isBento = false,
 }) => {
-  // 颜色配置 - 从深到浅的渐变色
+  // 颜色配置 - 更加极致轻巧的配色
   const COLORS = [
-    '#1890ff', // 初步接触 - 蓝色
-    '#52c41a', // 寄样阶段 - 绿色
-    '#faad14', // 谈判中 - 橙色
-    '#ff7a45', // 合作确认 - 橙红色
-    '#f5222d', // 内容制作 - 红色
-    '#722ed1', // 已发布 - 紫色
+    '#6366f1', // Indigo
+    '#8b5cf6', // Violet
+    '#d946ef', // Fuchsia
+    '#f43f5e', // Rose
+    '#f97316', // Orange
+    '#10b981', // Emerald
   ];
 
   if (loading) {
-    return (
-      <Card title="合作管道漏斗">
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <Spin size="large" />
-        </div>
-      </Card>
-    );
+    return <div className="flex justify-center items-center py-20 bg-white rounded-3xl"><Spin /></div>;
   }
 
   if (!data || !data.stages.length) {
-    return (
-      <Card title="合作管道漏斗">
-        <Empty description="暂无数据" />
-      </Card>
-    );
+    return <div className="py-20 bg-white rounded-3xl text-center"><Empty description="暂无漏斗数据" /></div>;
   }
 
   // 准备漏斗图数据
@@ -75,9 +67,9 @@ const PipelineFunnelChart: React.FC<PipelineFunnelChartProps> = ({
     fill: COLORS[index] || COLORS[COLORS.length - 1],
   }));
 
-  // 自定义标签
+  // 自定义标签 - 极致精简版
   const renderLabel = (entry: any) => {
-    const { name, value, conversionRate } = entry;
+    if (entry.height < 30) return null;
     return (
       <text
         x={entry.x + entry.width / 2}
@@ -85,192 +77,133 @@ const PipelineFunnelChart: React.FC<PipelineFunnelChartProps> = ({
         fill="#fff"
         textAnchor="middle"
         dominantBaseline="middle"
-        style={{ fontSize: 14, fontWeight: 'bold' }}
+        style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.05em' }}
       >
-        <tspan x={entry.x + entry.width / 2} dy="-0.5em">
-          {name}
-        </tspan>
-        <tspan x={entry.x + entry.width / 2} dy="1.5em">
-          {value} 个
-        </tspan>
-        {conversionRate > 0 && (
-          <tspan x={entry.x + entry.width / 2} dy="1.2em" style={{ fontSize: 12 }}>
-            转化率 {conversionRate.toFixed(1)}%
-          </tspan>
-        )}
+        {entry.name}
       </text>
     );
   };
 
-  // 自定义 Tooltip
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload;
+      const d = payload[0].payload;
       return (
-        <div
-          style={{
-            background: '#fff',
-            border: '1px solid #d9d9d9',
-            borderRadius: 4,
-            padding: '8px 12px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-          }}
-        >
-          <div style={{ marginBottom: 4, fontWeight: 'bold' }}>{data.name}</div>
-          <div>数量: {data.value} 个</div>
-          {data.conversionRate > 0 && (
-            <div style={{ color: '#52c41a' }}>
-              转化率: {data.conversionRate.toFixed(1)}%
+        <div className="bg-white/90 backdrop-blur-md p-3 rounded-2xl border border-neutral-100 shadow-xl">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2 h-2 rounded-full" style={{ background: d.fill }}></div>
+            <Text strong className="text-xs">{d.name}</Text>
+          </div>
+          <div className="space-y-1 text-[10px]">
+            <div className="flex justify-between gap-6">
+              <Text type="secondary">数量</Text>
+              <Text strong>{d.value} 个</Text>
             </div>
-          )}
-          {data.dropRate > 0 && (
-            <div style={{ color: '#ff4d4f' }}>
-              流失率: {data.dropRate.toFixed(1)}%
-            </div>
-          )}
+            {d.conversionRate > 0 && (
+              <div className="flex justify-between gap-6">
+                <Text type="secondary">转化</Text>
+                <Text strong className="text-emerald-600">{d.conversionRate.toFixed(1)}%</Text>
+              </div>
+            )}
+          </div>
         </div>
       );
     }
     return null;
   };
 
-  return (
-    <Card
-      title={
-        <Space>
-          <span>合作管道漏斗</span>
-          <Tooltip title="展示合作从初步接触到发布的各阶段数量和转化情况">
-            <InfoCircleOutlined style={{ color: '#8c8c8c', fontSize: 14 }} />
-          </Tooltip>
-        </Space>
-      }
-    >
-      {/* 总体统计 */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-around',
-          marginBottom: 24,
-          padding: '16px 0',
-          borderBottom: '1px solid #f0f0f0',
-        }}
-      >
-        <div style={{ textAlign: 'center' }}>
-          <Text type="secondary" style={{ fontSize: 12 }}>总合作数</Text>
-          <div>
-            <Text strong style={{ fontSize: 24, color: '#1890ff' }}>
-              {data.totalCount}
-            </Text>
+  const mainContent = (
+    <div className="flex flex-col gap-6">
+      {/* 移除内部标题，使用外部容器标题 */}
+
+      {/* 顶部统计面板 - 更紧致的横向展示 */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: '总项目', value: data.totalCount, color: 'indigo' },
+          { label: '转化率', value: `${data.overallConversionRate.toFixed(1)}%`, color: 'emerald' },
+          { label: '已发布', value: data.stages[data.stages.length - 1]?.count || 0, color: 'violet' }
+        ].map((stat, i) => (
+          <div key={i} className={`bg-${stat.color}-50/40 border border-${stat.color}-100/30 p-3 rounded-2xl`}>
+            <Text type="secondary" className="text-[9px] uppercase font-bold tracking-tighter opacity-60 block mb-0.5">{stat.label}</Text>
+            <Text strong className={`text-xl text-${stat.color}-600 leading-tight block`}>{stat.value}</Text>
           </div>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <Text type="secondary" style={{ fontSize: 12 }}>总转化率</Text>
-          <div>
-            <Text strong style={{ fontSize: 24, color: '#52c41a' }}>
-              {data.overallConversionRate.toFixed(1)}%
-            </Text>
-          </div>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <Text type="secondary" style={{ fontSize: 12 }}>已发布</Text>
-          <div>
-            <Text strong style={{ fontSize: 24, color: '#722ed1' }}>
-              {data.stages[data.stages.length - 1]?.count || 0}
-            </Text>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* 漏斗图 */}
-      <ResponsiveContainer width="100%" height={400}>
-        <FunnelChart>
-          <RechartsTooltip content={<CustomTooltip />} />
-          <Funnel
-            dataKey="value"
-            data={funnelData}
-            isAnimationActive
-            onClick={(data) => {
-              if (onStageClick) {
-                onStageClick(data.stage);
-              }
-            }}
-            style={{ cursor: onStageClick ? 'pointer' : 'default' }}
-          >
-            <LabelList position="center" content={renderLabel} />
-            {funnelData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.fill} />
-            ))}
-          </Funnel>
-        </FunnelChart>
-      </ResponsiveContainer>
+      {/* 核心漏斗区域 - 左右布局 */}
+      <div className="flex flex-col lg:flex-row gap-8 items-center min-h-[320px]">
+        {/* 左侧：漏斗图形 - 赋予固定高度确保稳定渲染 */}
+        <div className="w-full lg:w-1/2 h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <FunnelChart margin={{ top: 10, right: 30, left: 30, bottom: 10 }}>
+              <RechartsTooltip content={<CustomTooltip />} />
+              <Funnel
+                dataKey="value"
+                data={funnelData}
+                isAnimationActive
+                onClick={(d) => onStageClick && onStageClick(d.stage)}
+                style={{ cursor: onStageClick ? 'pointer' : 'default' }}
+              >
+                <LabelList position="center" content={renderLabel} />
+                {funnelData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.fill}
+                    stroke="rgba(255,255,255,0.4)"
+                    strokeWidth={1}
+                    className="hover:opacity-80 transition-opacity"
+                  />
+                ))}
+              </Funnel>
+            </FunnelChart>
+          </ResponsiveContainer>
+        </div>
 
-      {/* 阶段详情列表 */}
-      <div style={{ marginTop: 24 }}>
-        <Title level={5} style={{ marginBottom: 16 }}>阶段详情</Title>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* 右侧：精细化列表 */}
+        <div className="w-full lg:w-1/2 space-y-1.5 self-start">
+          <Text strong className="text-[10px] text-neutral-400 uppercase tracking-widest block mb-3 pl-1">数据穿透</Text>
           {data.stages.map((stage, index) => (
             <div
               key={stage.stage}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '12px 16px',
-                background: '#fafafa',
-                borderRadius: 4,
-                cursor: onStageClick ? 'pointer' : 'default',
-              }}
+              className="group flex items-center justify-between p-2.5 hover:bg-neutral-50/80 rounded-xl transition-all cursor-pointer border border-transparent hover:border-neutral-100"
               onClick={() => onStageClick && onStageClick(stage.stage)}
             >
-              <div
-                style={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: '50%',
-                  background: COLORS[index],
-                  marginRight: 12,
-                }}
-              />
-              <div style={{ flex: 1 }}>
-                <Text strong>{stage.stageName}</Text>
-                <Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
-                  {stage.count} 个
-                </Text>
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-4 rounded-full" style={{ background: COLORS[index] }} />
+                <div className="flex flex-col">
+                  <Text strong className="text-[13px] leading-none mb-0.5">{stage.stageName}</Text>
+                  <Text className="text-[10px] text-neutral-400">{stage.count} 项目</Text>
+                </div>
               </div>
-              {stage.conversionRate > 0 && (
-                <div style={{ marginRight: 16 }}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>转化率</Text>
-                  <Text style={{ marginLeft: 4, color: '#52c41a', fontWeight: 'bold' }}>
-                    {stage.conversionRate.toFixed(1)}%
-                  </Text>
-                </div>
-              )}
-              {stage.dropRate > 0 && (
-                <div>
-                  <Text type="secondary" style={{ fontSize: 12 }}>流失率</Text>
-                  <Text style={{ marginLeft: 4, color: '#ff4d4f', fontWeight: 'bold' }}>
-                    {stage.dropRate.toFixed(1)}%
-                  </Text>
-                </div>
-              )}
+              <div className="flex gap-4 items-center">
+                {stage.conversionRate > 0 && (
+                  <div className="text-right">
+                    <Text className="text-[9px] text-neutral-400 block leading-none mb-0.5">转化率</Text>
+                    <Text strong className="text-[11px] text-emerald-600 leading-none">{stage.conversionRate.toFixed(1)}%</Text>
+                  </div>
+                )}
+                <div className="w-1.5 h-1.5 rounded-full bg-neutral-200 group-hover:bg-brand-400" />
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* 提示信息 */}
-      <div
-        style={{
-          marginTop: 16,
-          padding: 12,
-          background: '#e6f7ff',
-          borderRadius: 4,
-          fontSize: 12,
-          color: '#0050b3',
-        }}
-      >
-        <InfoCircleOutlined style={{ marginRight: 4 }} />
-        转化率 = (当前阶段数量 / 上一阶段数量) × 100%，流失率 = 100% - 转化率
+      <div className="p-3 bg-neutral-50/50 rounded-2xl border border-neutral-100 flex gap-2.5 items-start">
+        <div className="p-1 bg-white rounded-lg shadow-sm">
+          <InfoCircleOutlined className="text-brand-500 text-xs block" />
+        </div>
+        <Text className="text-[11px] text-neutral-500 leading-relaxed">
+          <strong>数据模型：</strong> 转化率按上级阶段递减计算。已排除重复项目，反映当前业务管道最真实流转效率。
+        </Text>
       </div>
+    </div>
+  );
+
+  if (isBento) return mainContent;
+
+  return (
+    <Card className="bento-card overflow-hidden">
+      {mainContent}
     </Card>
   );
 };

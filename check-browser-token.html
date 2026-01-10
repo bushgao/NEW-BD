@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>检查浏览器Token</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .error { color: red; }
+        .success { color: green; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>浏览器Token检查</h1>
+    
+    <div class="section">
+        <h2>LocalStorage内容</h2>
+        <div id="localStorage"></div>
+    </div>
+    
+    <div class="section">
+        <h2>SessionStorage内容</h2>
+        <div id="sessionStorage"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Token解析</h2>
+        <div id="tokenParse"></div>
+    </div>
+    
+    <div class="section">
+        <h2>测试API请求</h2>
+        <button onclick="testAPI()">测试Dashboard API</button>
+        <div id="apiResult"></div>
+    </div>
+
+    <script>
+        // 显示localStorage
+        const localDiv = document.getElementById('localStorage');
+        const localKeys = Object.keys(localStorage);
+        if (localKeys.length === 0) {
+            localDiv.innerHTML = '<p class="error">LocalStorage是空的！</p>';
+        } else {
+            localDiv.innerHTML = '<pre>' + JSON.stringify(
+                Object.fromEntries(localKeys.map(k => [k, localStorage.getItem(k)])),
+                null,
+                2
+            ) + '</pre>';
+        }
+
+        // 显示sessionStorage
+        const sessionDiv = document.getElementById('sessionStorage');
+        const sessionKeys = Object.keys(sessionStorage);
+        if (sessionKeys.length === 0) {
+            sessionDiv.innerHTML = '<p>SessionStorage是空的</p>';
+        } else {
+            sessionDiv.innerHTML = '<pre>' + JSON.stringify(
+                Object.fromEntries(sessionKeys.map(k => [k, sessionStorage.getItem(k)])),
+                null,
+                2
+            ) + '</pre>';
+        }
+
+        // 解析Token
+        const tokenDiv = document.getElementById('tokenParse');
+        try {
+            // 尝试从不同的key中获取token
+            let tokenData = null;
+            
+            // 检查auth-storage
+            const authStorage = localStorage.getItem('auth-storage');
+            if (authStorage) {
+                const parsed = JSON.parse(authStorage);
+                tokenData = parsed.state?.token;
+            }
+            
+            if (!tokenData) {
+                tokenDiv.innerHTML = '<p class="error">找不到token！</p>';
+            } else {
+                // 解析JWT
+                const parts = tokenData.accessToken.split('.');
+                if (parts.length === 3) {
+                    const payload = JSON.parse(atob(parts[1]));
+                    tokenDiv.innerHTML = `
+                        <p class="success">✅ Token找到了！</p>
+                        <pre>${JSON.stringify(payload, null, 2)}</pre>
+                        <p><strong>factoryId:</strong> ${payload.factoryId || '<span class="error">缺失！</span>'}</p>
+                        <p><strong>role:</strong> ${payload.role}</p>
+                        <p><strong>email:</strong> ${payload.email}</p>
+                    `;
+                } else {
+                    tokenDiv.innerHTML = '<p class="error">Token格式错误！</p>';
+                }
+            }
+        } catch (error) {
+            tokenDiv.innerHTML = `<p class="error">解析错误: ${error.message}</p>`;
+        }
+
+        // 测试API
+        async function testAPI() {
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.innerHTML = '<p>测试中...</p>';
+            
+            try {
+                const authStorage = localStorage.getItem('auth-storage');
+                const parsed = JSON.parse(authStorage);
+                const token = parsed.state?.token?.accessToken;
+                
+                if (!token) {
+                    resultDiv.innerHTML = '<p class="error">没有token！</p>';
+                    return;
+                }
+                
+                const response = await fetch('/api/reports/dashboard', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ API请求成功！</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p class="error">❌ API请求失败: ${response.status}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">请求错误: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

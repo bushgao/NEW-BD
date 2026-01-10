@@ -82,8 +82,8 @@ router.get(
       const page = parseInt(req.query.page as string) || 1;
       const pageSize = parseInt(req.query.pageSize as string) || 20;
       const keyword = req.query.keyword as string | undefined;
-      const canResend = req.query.canResend === 'true' ? true : 
-                        req.query.canResend === 'false' ? false : undefined;
+      const canResend = req.query.canResend === 'true' ? true :
+        req.query.canResend === 'false' ? false : undefined;
 
       const result = await sampleService.listSamples(
         factoryId,
@@ -110,7 +110,7 @@ router.get(
   '/report',
   authenticate,
   requireFactoryMember,
-  requireRoles('FACTORY_OWNER'),
+  requireRoles('BRAND'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
       const factoryId = req.user!.factoryId;

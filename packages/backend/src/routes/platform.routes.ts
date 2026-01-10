@@ -710,7 +710,7 @@ router.get(
     query('page').optional().isInt({ min: 1 }).withMessage('页码必须为正整数'),
     query('pageSize').optional().isInt({ min: 1, max: 100 }).withMessage('每页数量必须在1-100之间'),
     query('search').optional().isString(),
-    query('role').optional().isIn(['PLATFORM_ADMIN', 'FACTORY_OWNER', 'BUSINESS_STAFF']).withMessage('无效的角色'),
+    query('role').optional().isIn(['PLATFORM_ADMIN', 'BRAND', 'BUSINESS']).withMessage('无效的角色'),
     query('isActive').optional().isBoolean().withMessage('isActive 必须为布尔值'),
   ],
   handleValidationErrors,

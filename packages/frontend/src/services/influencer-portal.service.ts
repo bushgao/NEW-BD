@@ -161,14 +161,14 @@ function buildHeaders(includeAuth = true): HeadersInit {
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
-  
+
   if (includeAuth) {
     const token = getInfluencerToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
   }
-  
+
   return headers;
 }
 
@@ -177,7 +177,7 @@ function buildHeaders(includeAuth = true): HeadersInit {
  */
 async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
   const data = await response.json();
-  
+
   if (!response.ok) {
     return {
       success: false,
@@ -187,7 +187,7 @@ async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
       },
     };
   }
-  
+
   return {
     success: true,
     data: data.data,
@@ -200,31 +200,18 @@ async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
 // ============================================
 
 /**
- * 发送验证码
- */
-export async function sendVerificationCode(phone: string): Promise<ApiResponse<void>> {
-  const response = await fetch(`${API_BASE}/influencer-portal/auth/send-code`, {
-    method: 'POST',
-    headers: buildHeaders(false),
-    body: JSON.stringify({ phone }),
-  });
-  
-  return handleResponse(response);
-}
-
-/**
- * 验证码登录
+ * 邮箱密码登录
  */
 export async function login(
-  phone: string,
-  code: string
+  email: string,
+  password: string
 ): Promise<ApiResponse<{ contact: InfluencerContact; tokens: InfluencerAuthToken }>> {
   const response = await fetch(`${API_BASE}/influencer-portal/auth/login`, {
     method: 'POST',
     headers: buildHeaders(false),
-    body: JSON.stringify({ phone, code }),
+    body: JSON.stringify({ email, password }),
   });
-  
+
   return handleResponse(response);
 }
 
@@ -239,7 +226,7 @@ export async function refreshToken(
     headers: buildHeaders(false),
     body: JSON.stringify({ refreshToken }),
   });
-  
+
   return handleResponse(response);
 }
 
@@ -251,7 +238,7 @@ export async function getCurrentContact(): Promise<ApiResponse<{ contact: Influe
     method: 'GET',
     headers: buildHeaders(),
   });
-  
+
   return handleResponse(response);
 }
 
@@ -267,7 +254,7 @@ export async function getDashboard(): Promise<ApiResponse<InfluencerDashboard>> 
     method: 'GET',
     headers: buildHeaders(),
   });
-  
+
   return handleResponse(response);
 }
 
@@ -280,20 +267,20 @@ export async function getDashboard(): Promise<ApiResponse<InfluencerDashboard>> 
  */
 export async function getSamples(filter?: SampleFilter): Promise<ApiResponse<InfluencerSampleList>> {
   const params = new URLSearchParams();
-  
+
   if (filter?.factoryId) params.append('factoryId', filter.factoryId);
   if (filter?.receivedStatus) params.append('receivedStatus', filter.receivedStatus);
   if (filter?.startDate) params.append('startDate', filter.startDate);
   if (filter?.endDate) params.append('endDate', filter.endDate);
-  
+
   const queryString = params.toString();
   const url = `${API_BASE}/influencer-portal/samples${queryString ? `?${queryString}` : ''}`;
-  
+
   const response = await fetch(url, {
     method: 'GET',
     headers: buildHeaders(),
   });
-  
+
   return handleResponse(response);
 }
 
@@ -307,7 +294,7 @@ export async function confirmSampleReceived(
     method: 'POST',
     headers: buildHeaders(),
   });
-  
+
   return handleResponse(response);
 }
 
@@ -322,19 +309,19 @@ export async function getCollaborations(
   filter?: CollabFilter
 ): Promise<ApiResponse<InfluencerCollabList>> {
   const params = new URLSearchParams();
-  
+
   if (filter?.factoryId) params.append('factoryId', filter.factoryId);
   if (filter?.stage) params.append('stage', filter.stage);
   if (filter?.isOverdue !== undefined) params.append('isOverdue', String(filter.isOverdue));
-  
+
   const queryString = params.toString();
   const url = `${API_BASE}/influencer-portal/collaborations${queryString ? `?${queryString}` : ''}`;
-  
+
   const response = await fetch(url, {
     method: 'GET',
     headers: buildHeaders(),
   });
-  
+
   return handleResponse(response);
 }
 
@@ -348,7 +335,7 @@ export async function getCollaborationDetail(
     method: 'GET',
     headers: buildHeaders(),
   });
-  
+
   return handleResponse(response);
 }
 
@@ -364,7 +351,7 @@ export async function getAccount(): Promise<ApiResponse<InfluencerAccountInfo>> 
     method: 'GET',
     headers: buildHeaders(),
   });
-  
+
   return handleResponse(response);
 }
 
@@ -376,7 +363,7 @@ export async function getContacts(): Promise<ApiResponse<InfluencerContact[]>> {
     method: 'GET',
     headers: buildHeaders(),
   });
-  
+
   return handleResponse(response);
 }
 
@@ -391,7 +378,7 @@ export async function addContact(
     headers: buildHeaders(),
     body: JSON.stringify(data),
   });
-  
+
   return handleResponse(response);
 }
 
@@ -403,7 +390,7 @@ export async function removeContact(contactId: string): Promise<ApiResponse<void
     method: 'DELETE',
     headers: buildHeaders(),
   });
-  
+
   return handleResponse(response);
 }
 
@@ -419,7 +406,7 @@ export async function updateContact(
     headers: buildHeaders(),
     body: JSON.stringify(data),
   });
-  
+
   return handleResponse(response);
 }
 
@@ -435,6 +422,6 @@ export async function getRelatedFactories(): Promise<ApiResponse<FactoryOption[]
     method: 'GET',
     headers: buildHeaders(),
   });
-  
+
   return handleResponse(response);
 }

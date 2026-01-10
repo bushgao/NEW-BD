@@ -1,10 +1,8 @@
-import { Tag, Typography, Space, Tooltip, Button } from 'antd';
+import { Tag, Typography, Tooltip, Button } from 'antd';
 import {
   UserOutlined,
-  ClockCircleOutlined,
   MessageOutlined,
   WarningOutlined,
-  CalendarOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
 import type { PipelineStage } from '@ics/shared';
@@ -37,7 +35,6 @@ const CollaborationCardComponent = ({
   stage,
   onClick,
   onFollowUpClick,
-  onDeadlineClick,
   onQuickFollowUpClick,
 }: CollaborationCardProps) => {
   const handleDragStart = (e: React.DragEvent) => {
@@ -81,12 +78,16 @@ const CollaborationCardComponent = ({
   return (
     <Card
       variant="elevated"
+      padding="none"
       hoverable
       style={{
-        marginBottom: 8,
+        marginBottom: 4,
         cursor: 'grab',
         borderLeft: card.isOverdue ? '3px solid #ff4d4f' : undefined,
-        backgroundColor: card.isOverdue ? 'rgba(255, 242, 240, 0.8)' : undefined,
+        backgroundColor: card.isOverdue ? 'rgba(255, 242, 240, 0.4)' : undefined,
+        borderRadius: '8px',
+        border: '1px solid rgba(0,0,0,0.04)',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
       }}
       onClick={onClick}
     >
@@ -95,124 +96,123 @@ const CollaborationCardComponent = ({
         onDragStart={handleDragStart}
         style={{ cursor: 'grab' }}
       >
-        <CardContent style={{ padding: 12 }}>
-          {/* Header: Nickname and Platform */}
-          <div style={{ marginBottom: 8 }}>
-            <Space size={4}>
-              <Text strong ellipsis style={{ maxWidth: 150 }}>
-                {card.influencer.nickname}
-              </Text>
-              <Tag color={getPlatformColor(card.influencer.platform)} style={{ marginRight: 0 }}>
-                {PLATFORM_LABELS[card.influencer.platform as keyof typeof PLATFORM_LABELS] ||
-                  card.influencer.platform}
-              </Tag>
-            </Space>
+        <CardContent style={{ padding: '10px 12px' }}>
+          {/* Header Row: Nickname and Platform */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, gap: 4 }}>
+            <Text strong ellipsis style={{ fontSize: 12, lineHeight: '16px', flex: 1 }}>
+              {card.influencer.nickname}
+            </Text>
+            <Tag
+              color={getPlatformColor(card.influencer.platform)}
+              style={{
+                marginRight: 0,
+                fontSize: 10,
+                lineHeight: '13px',
+                height: '14px',
+                padding: '0 3px',
+                borderRadius: '2px',
+                border: 'none',
+                opacity: 0.8,
+                flexShrink: 0
+              }}
+            >
+              {PLATFORM_LABELS[card.influencer.platform as keyof typeof PLATFORM_LABELS] ||
+                card.influencer.platform}
+            </Tag>
           </div>
 
+          {/* Block Reason - Single line if present */}
+          {card.blockReason && (
+            <div style={{ marginBottom: 2 }}>
+              <Tag
+                color="error"
+                icon={<WarningOutlined style={{ fontSize: 9 }} />}
+                style={{ fontSize: 9, borderRadius: '2px', border: 'none', padding: '0 3px', lineHeight: '14px', height: '14px' }}
+              >
+                {BLOCK_REASON_LABELS[card.blockReason]}
+              </Tag>
+            </div>
+          )}
 
-      {/* Block Reason */}
-      {card.blockReason && (
-        <div style={{ marginBottom: 8 }}>
-          <Tag color="error" icon={<WarningOutlined />}>
-            {BLOCK_REASON_LABELS[card.blockReason]}
-          </Tag>
-        </div>
-      )}
+          {/* Info Row: Staff and Deadline combined */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, color: '#8c8c8c', fontSize: 10, marginBottom: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flex: 1, minWidth: 0 }}>
+              <UserOutlined style={{ fontSize: 9, opacity: 0.7 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {card.businessStaff.name}
+              </span>
+            </div>
 
-      {/* Info Row */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          color: '#8c8c8c',
-          fontSize: 12,
-        }}
-      >
-        <Space size={12}>
-          <Tooltip title="负责商务">
-            <span>
-              <UserOutlined /> {card.businessStaff.name}
-            </span>
-          </Tooltip>
+            {deadlineInfo ? (
+              <Tooltip title={card.deadline ? dayjs(card.deadline).format('YYYY-MM-DD HH:mm') : ''}>
+                <Text style={{ fontSize: 10, color: deadlineInfo.color, flexShrink: 0 }}>
+                  {deadlineInfo.text}
+                </Text>
+              </Tooltip>
+            ) : (
+              <span style={{ fontSize: 10, color: '#bfbfbf', flexShrink: 0 }}>待定</span>
+            )}
+          </div>
+
+          {/* Dispatch Count - only show if > 0, very small */}
           {card.dispatchCount > 0 && (
-            <Tooltip title="寄样次数">
-              <span>📦 {card.dispatchCount}</span>
-            </Tooltip>
+            <div style={{ fontSize: 9, color: '#8c8c8c', marginBottom: 2 }}>
+              📦 {card.dispatchCount}
+            </div>
           )}
-        </Space>
-      </div>
 
-      {/* Footer: Deadline and Actions */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginTop: 8,
-          paddingTop: 8,
-          borderTop: '1px solid #f0f0f0',
-        }}
-      >
-        {/* Deadline */}
-        <div>
-          {deadlineInfo ? (
-            <Tooltip title={card.deadline ? dayjs(card.deadline).format('YYYY-MM-DD HH:mm') : ''}>
-              <Text style={{ fontSize: 12, color: deadlineInfo.color }}>
-                <ClockCircleOutlined /> {deadlineInfo.text}
-              </Text>
+          {/* Actions Bar - Compacted */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: '2px',
+            marginTop: 2,
+            paddingTop: 2,
+            borderTop: '1px solid rgba(0,0,0,0.02)'
+          }}>
+            <Tooltip title="快速跟进">
+              <Button
+                type="text"
+                size="small"
+                icon={<ThunderboltOutlined style={{ fontSize: 12, color: '#faad14' }} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onQuickFollowUpClick();
+                }}
+                style={{ width: 20, height: 20, minWidth: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+              />
             </Tooltip>
-          ) : (
-            <Button
-              type="link"
-              size="small"
-              icon={<CalendarOutlined />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeadlineClick();
-              }}
-              style={{ padding: 0, height: 'auto', fontSize: 12 }}
-            >
-              设置截止时间
-            </Button>
+            <Tooltip title="跟进记录">
+              <Button
+                type="text"
+                size="small"
+                icon={<MessageOutlined style={{ fontSize: 11 }} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFollowUpClick();
+                }}
+                style={{
+                  height: 20,
+                  minWidth: 20,
+                  padding: '0 2px',
+                  fontSize: 9,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1px'
+                }}
+              >
+                {card.followUpCount > 0 ? card.followUpCount : ''}
+              </Button>
+            </Tooltip>
+          </div>
+
+          {/* Last Follow Up - optional/compact */}
+          {card.lastFollowUp && (
+            <div style={{ marginTop: 2, fontSize: 9, color: '#bfbfbf', textAlign: 'right' }}>
+              {dayjs(card.lastFollowUp).fromNow()}
+            </div>
           )}
-        </div>
-
-        {/* Actions */}
-        <Space size={4}>
-          <Tooltip title="快速跟进">
-            <Button
-              type="primary"
-              size="small"
-              icon={<ThunderboltOutlined />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onQuickFollowUpClick();
-              }}
-            />
-          </Tooltip>
-          <Tooltip title="跟进记录">
-            <Button
-              type="text"
-              size="small"
-              icon={<MessageOutlined />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onFollowUpClick();
-              }}
-            >
-              {card.followUpCount > 0 && card.followUpCount}
-            </Button>
-          </Tooltip>
-        </Space>
-      </div>
-
-      {/* Last Follow Up */}
-      {card.lastFollowUp && (
-        <div style={{ marginTop: 4, fontSize: 11, color: '#bfbfbf' }}>
-          最近跟进: {dayjs(card.lastFollowUp).fromNow()}
-        </div>
-      )}
         </CardContent>
       </div>
     </Card>

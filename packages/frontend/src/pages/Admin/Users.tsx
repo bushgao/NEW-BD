@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Table, Card, Input, Select, Button, Tag, Space, message } from 'antd';
+import { Table, Input, Select, Button, Tag, Space, message } from 'antd';
+import { Card, CardContent } from '../../components/ui/Card';
+import { useTheme } from '../../theme/ThemeProvider';
 import { SearchOutlined, EyeOutlined, StopOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import * as platformService from '../../services/platform.service';
@@ -21,6 +23,7 @@ interface User {
 }
 
 const Users = () => {
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
@@ -80,8 +83,8 @@ const Users = () => {
   const getRoleLabel = (role: string) => {
     const roleMap: Record<string, { label: string; color: string }> = {
       PLATFORM_ADMIN: { label: '平台管理员', color: 'purple' },
-      FACTORY_OWNER: { label: '工厂老板', color: 'blue' },
-      BUSINESS_STAFF: { label: '商务人员', color: 'green' },
+      BRAND: { label: '品牌', color: 'blue' },
+      BUSINESS: { label: '商务', color: 'green' },
     };
     return roleMap[role] || { label: role, color: 'default' };
   };
@@ -171,8 +174,16 @@ const Users = () => {
   ];
 
   return (
-    <div>
-      <Card>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
+        position: 'relative',
+        padding: '40px',
+        margin: '-24px',
+      }}
+    >
+      <div style={{ position: 'relative', zIndex: 1 }}>
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           <Space wrap>
             <Search
@@ -192,8 +203,8 @@ const Users = () => {
               onChange={setRoleFilter}
             >
               <Option value="PLATFORM_ADMIN">平台管理员</Option>
-              <Option value="FACTORY_OWNER">工厂老板</Option>
-              <Option value="BUSINESS_STAFF">商务人员</Option>
+              <Option value="BRAND">品牌</Option>
+              <Option value="BUSINESS">商务</Option>
             </Select>
             <Select
               placeholder="状态筛选"
@@ -207,38 +218,40 @@ const Users = () => {
             </Select>
           </Space>
 
-          <Table
-            columns={columns}
-            dataSource={users}
-            rowKey="id"
-            loading={loading}
-            scroll={{ x: 1200 }}
-            pagination={{
-              current: currentPage,
-              pageSize,
-              total,
-              showSizeChanger: true,
-              showTotal: (total) => `共 ${total} 个用户`,
-              onChange: (page, size) => {
-                setCurrentPage(page);
-                setPageSize(size);
-              },
-            }}
-          />
+          <Card variant="elevated">
+            <Table
+              columns={columns}
+              dataSource={users}
+              rowKey="id"
+              loading={loading}
+              scroll={{ x: 1200 }}
+              pagination={{
+                current: currentPage,
+                pageSize,
+                total,
+                showSizeChanger: true,
+                showTotal: (total) => `共 ${total} 个用户`,
+                onChange: (page, size) => {
+                  setCurrentPage(page);
+                  setPageSize(size);
+                },
+              }}
+            />
+          </Card>
         </Space>
-      </Card>
 
-      {selectedUser && (
-        <UserDetailModal
-          visible={detailModalVisible}
-          user={selectedUser}
-          onClose={() => {
-            setDetailModalVisible(false);
-            setSelectedUser(null);
-          }}
-          onRefresh={fetchUsers}
-        />
-      )}
+        {selectedUser && (
+          <UserDetailModal
+            visible={detailModalVisible}
+            user={selectedUser}
+            onClose={() => {
+              setDetailModalVisible(false);
+              setSelectedUser(null);
+            }}
+            onRefresh={fetchUsers}
+          />
+        )}
+      </div>
     </div>
   );
 };

@@ -156,9 +156,9 @@ function determineSourceType(userRole: string): 'PLATFORM' | 'FACTORY' | 'STAFF'
   switch (userRole) {
     case 'PLATFORM_ADMIN':
       return 'PLATFORM';
-    case 'FACTORY_OWNER':
+    case 'BRAND':
       return 'FACTORY';
-    case 'BUSINESS_STAFF':
+    case 'BUSINESS':
       return 'STAFF';
     default:
       return 'STAFF';
@@ -337,7 +337,7 @@ export async function list(
   const where: any = { factoryId };
 
   // 权限过滤：基础商务只能看到自己创建的达人
-  if (userId && userRole === 'BUSINESS_STAFF') {
+  if (userId && userRole === 'BUSINESS') {
     // 从数据库获取用户权限
     const user = await prisma.user.findUnique({
       where: { id: userId },

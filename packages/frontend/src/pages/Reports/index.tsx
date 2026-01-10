@@ -49,9 +49,9 @@ const ReportsPage = () => {
     try {
       const range: DateRange | undefined = dateRange
         ? {
-            startDate: dateRange[0].startOf('day').toISOString(),
-            endDate: dateRange[1].endOf('day').toISOString(),
-          }
+          startDate: dateRange[0].startOf('day').toISOString(),
+          endDate: dateRange[1].endOf('day').toISOString(),
+        }
         : undefined;
 
       const data = await getStaffPerformance(range);
@@ -70,9 +70,9 @@ const ReportsPage = () => {
     try {
       const range: DateRange | undefined = dateRange
         ? {
-            startDate: dateRange[0].startOf('day').toISOString(),
-            endDate: dateRange[1].endOf('day').toISOString(),
-          }
+          startDate: dateRange[0].startOf('day').toISOString(),
+          endDate: dateRange[1].endOf('day').toISOString(),
+        }
         : undefined;
 
       await exportStaffPerformance(range);
@@ -180,12 +180,13 @@ const ReportsPage = () => {
   ];
 
   return (
-    <div 
-      style={{ 
+    <div
+      style={{
         minHeight: '100vh',
         background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
         position: 'relative',
-        padding: '24px',
+        padding: '40px',
+        margin: '-24px',
       }}
     >
       {/* 背景装饰元素 */}
@@ -213,159 +214,159 @@ const ReportsPage = () => {
         pointerEvents: 'none',
         zIndex: 0,
       }} />
-      
+
       <div style={{ position: 'relative', zIndex: 1 }}>
-      <Title level={4} style={{ marginBottom: 24 }}>
-        商务绩效报表
-      </Title>
+        <Title level={4} style={{ marginBottom: 24 }}>
+          商务绩效报表
+        </Title>
 
-      {/* 筛选和操作栏 */}
-      <Card variant="elevated" style={{ marginBottom: 24 }}>
-        <CardContent>
-        <Space size="middle" wrap>
-          <span>时间范围：</span>
-          <RangePicker
-            value={dateRange}
-            onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
-            placeholder={['开始日期', '结束日期']}
-          />
-          <Button
-            type="primary"
-            icon={<ReloadOutlined />}
-            onClick={loadData}
-            loading={loading}
-          >
-            查询
-          </Button>
-          <Button
-            icon={<DownloadOutlined />}
-            onClick={handleExport}
-            loading={exporting}
-          >
-            导出Excel
-          </Button>
-        </Space>
-        </CardContent>
-      </Card>
+        {/* 筛选和操作栏 */}
+        <Card variant="elevated" style={{ marginBottom: 24 }}>
+          <CardContent>
+            <Space size="middle" wrap>
+              <span>时间范围：</span>
+              <RangePicker
+                value={dateRange}
+                onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
+                placeholder={['开始日期', '结束日期']}
+              />
+              <Button
+                type="primary"
+                icon={<ReloadOutlined />}
+                onClick={loadData}
+                loading={loading}
+              >
+                查询
+              </Button>
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={handleExport}
+                loading={exporting}
+              >
+                导出Excel
+              </Button>
+            </Space>
+          </CardContent>
+        </Card>
 
-      {/* 汇总统计卡片 */}
-      {report && (
-        <Row gutter={16} style={{ marginBottom: 24 }}>
-          <Col xs={24} sm={12} md={6}>
-            <Card variant="elevated" hoverable>
-              <CardContent>
-              <Statistic
-                title="商务人数"
-                value={report.summary.totalStaff}
-                prefix={<TeamOutlined />}
-                suffix="人"
-              />
-              </CardContent>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card variant="elevated" hoverable>
-              <CardContent>
-              <Statistic
-                title="总成交数"
-                value={report.summary.totalClosedCount}
-                prefix={<ShoppingOutlined />}
-                suffix="单"
-              />
-              </CardContent>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card variant="elevated" hoverable>
-              <CardContent>
-              <Statistic
-                title="总GMV"
-                value={Number(formatMoney(report.summary.totalGmv))}
-                prefix={<DollarOutlined />}
-                suffix="元"
-                precision={2}
-              />
-              </CardContent>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card variant="elevated" hoverable>
-              <CardContent>
-              <Statistic
-                title="整体ROI"
-                value={report.summary.overallRoi}
-                prefix={<RiseOutlined />}
-                precision={2}
-                valueStyle={{
-                  color: report.summary.overallRoi >= 1 ? '#52c41a' : '#ff4d4f',
+        {/* 汇总统计卡片 */}
+        {report && (
+          <Row gutter={16} style={{ marginBottom: 24 }}>
+            <Col xs={24} sm={12} md={6}>
+              <Card variant="elevated" hoverable>
+                <CardContent>
+                  <Statistic
+                    title="商务人数"
+                    value={report.summary.totalStaff}
+                    prefix={<TeamOutlined />}
+                    suffix="人"
+                  />
+                </CardContent>
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Card variant="elevated" hoverable>
+                <CardContent>
+                  <Statistic
+                    title="总成交数"
+                    value={report.summary.totalClosedCount}
+                    prefix={<ShoppingOutlined />}
+                    suffix="单"
+                  />
+                </CardContent>
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Card variant="elevated" hoverable>
+                <CardContent>
+                  <Statistic
+                    title="总GMV"
+                    value={Number(formatMoney(report.summary.totalGmv))}
+                    prefix={<DollarOutlined />}
+                    suffix="元"
+                    precision={2}
+                  />
+                </CardContent>
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Card variant="elevated" hoverable>
+                <CardContent>
+                  <Statistic
+                    title="整体ROI"
+                    value={report.summary.overallRoi}
+                    prefix={<RiseOutlined />}
+                    precision={2}
+                    valueStyle={{
+                      color: report.summary.overallRoi >= 1 ? '#52c41a' : '#ff4d4f',
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            </Col>
+          </Row>
+        )}
+
+        {/* 绩效明细表格 */}
+        <Card variant="elevated">
+          <CardContent>
+            <Spin spinning={loading}>
+              <Table
+                columns={columns}
+                dataSource={report?.items || []}
+                rowKey="staffId"
+                scroll={{ x: 1200 }}
+                pagination={{
+                  showSizeChanger: true,
+                  showQuickJumper: true,
+                  showTotal: (total) => `共 ${total} 条`,
                 }}
+                summary={() =>
+                  report ? (
+                    <Table.Summary fixed>
+                      <Table.Summary.Row>
+                        <Table.Summary.Cell index={0}>
+                          <strong>汇总</strong>
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={1} />
+                        <Table.Summary.Cell index={2} align="right">
+                          <strong>{report.summary.totalContactedCount}</strong>
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={3} align="right">
+                          <strong>{report.summary.totalProgressedCount}</strong>
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={4} align="right">
+                          <strong>{report.summary.totalClosedCount}</strong>
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={5} align="right">
+                          <strong>¥{formatMoney(report.summary.totalGmv)}</strong>
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={6} align="right">
+                          <strong>¥{formatMoney(report.summary.totalCost)}</strong>
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={7} align="right">
+                          <strong
+                            style={{
+                              color: report.summary.overallRoi >= 1 ? '#52c41a' : '#ff4d4f',
+                            }}
+                          >
+                            {formatRoi(report.summary.overallRoi)}
+                          </strong>
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={8} align="right">
+                          <strong>{report.summary.totalDispatchCount}</strong>
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={9} align="right">
+                          <strong>¥{formatMoney(report.summary.totalDispatchCost)}</strong>
+                        </Table.Summary.Cell>
+                      </Table.Summary.Row>
+                    </Table.Summary>
+                  ) : null
+                }
               />
-              </CardContent>
-            </Card>
-          </Col>
-        </Row>
-      )}
-
-      {/* 绩效明细表格 */}
-      <Card variant="elevated">
-        <CardContent>
-        <Spin spinning={loading}>
-          <Table
-            columns={columns}
-            dataSource={report?.items || []}
-            rowKey="staffId"
-            scroll={{ x: 1200 }}
-            pagination={{
-              showSizeChanger: true,
-              showQuickJumper: true,
-              showTotal: (total) => `共 ${total} 条`,
-            }}
-            summary={() =>
-              report ? (
-                <Table.Summary fixed>
-                  <Table.Summary.Row>
-                    <Table.Summary.Cell index={0}>
-                      <strong>汇总</strong>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={1} />
-                    <Table.Summary.Cell index={2} align="right">
-                      <strong>{report.summary.totalContactedCount}</strong>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={3} align="right">
-                      <strong>{report.summary.totalProgressedCount}</strong>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={4} align="right">
-                      <strong>{report.summary.totalClosedCount}</strong>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={5} align="right">
-                      <strong>¥{formatMoney(report.summary.totalGmv)}</strong>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={6} align="right">
-                      <strong>¥{formatMoney(report.summary.totalCost)}</strong>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={7} align="right">
-                      <strong
-                        style={{
-                          color: report.summary.overallRoi >= 1 ? '#52c41a' : '#ff4d4f',
-                        }}
-                      >
-                        {formatRoi(report.summary.overallRoi)}
-                      </strong>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={8} align="right">
-                      <strong>{report.summary.totalDispatchCount}</strong>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={9} align="right">
-                      <strong>¥{formatMoney(report.summary.totalDispatchCost)}</strong>
-                    </Table.Summary.Cell>
-                  </Table.Summary.Row>
-                </Table.Summary>
-              ) : null
-            }
-          />
-        </Spin>
-        </CardContent>
-      </Card>
+            </Spin>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

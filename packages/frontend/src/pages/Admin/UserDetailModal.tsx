@@ -57,7 +57,7 @@ const UserDetailModal = ({ visible, user, onClose, onRefresh }: UserDetailModalP
   const [collaborationsTotal, setCollaborationsTotal] = useState(0);
 
   useEffect(() => {
-    if (visible && user.role === 'BUSINESS_STAFF') {
+    if (visible && user.role === 'BUSINESS') {
       fetchWorkStats();
       fetchInfluencers(1);
       fetchCollaborations(1);
@@ -107,8 +107,8 @@ const UserDetailModal = ({ visible, user, onClose, onRefresh }: UserDetailModalP
   const getRoleLabel = (role: string) => {
     const roleMap: Record<string, string> = {
       PLATFORM_ADMIN: '平台管理员',
-      FACTORY_OWNER: '工厂老板',
-      BUSINESS_STAFF: '商务人员',
+      BRAND: '品牌',
+      BUSINESS: '商务',
     };
     return roleMap[role] || role;
   };
@@ -201,7 +201,7 @@ const UserDetailModal = ({ visible, user, onClose, onRefresh }: UserDetailModalP
     </Descriptions>
   );
 
-  const workStatsTab = user.role === 'BUSINESS_STAFF' ? (
+  const workStatsTab = user.role === 'BUSINESS' ? (
     <div>
       <Card style={{ marginBottom: 16 }}>
         <Row gutter={16}>
@@ -246,7 +246,7 @@ const UserDetailModal = ({ visible, user, onClose, onRefresh }: UserDetailModalP
     </div>
   );
 
-  const influencersTab = user.role === 'BUSINESS_STAFF' ? (
+  const influencersTab = user.role === 'BUSINESS' ? (
     <Table
       columns={influencerColumns}
       dataSource={influencers}
@@ -266,7 +266,7 @@ const UserDetailModal = ({ visible, user, onClose, onRefresh }: UserDetailModalP
     </div>
   );
 
-  const collaborationsTab = user.role === 'BUSINESS_STAFF' ? (
+  const collaborationsTab = user.role === 'BUSINESS' ? (
     <Table
       columns={collaborationColumns}
       dataSource={collaborations}

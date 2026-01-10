@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { query, validationResult } from 'express-validator';
-import { authenticate, requireRoles } from '../middleware/auth.middleware';
+import { authenticate, requireRoles, enrichUserData } from '../middleware/auth.middleware';
 import { checkPermission, checkStaffDataAccess } from '../middleware/permission.middleware';
 import * as reportService from '../services/report.service';
 import * as trendService from '../services/trend.service';
@@ -25,8 +25,9 @@ const validateRequest = (req: Request, res: Response, next: NextFunction): void 
   next();
 };
 
-// 所有报表路由需要认证
+// 所有报表路由需要认证，并自动补充factoryId
 router.use(authenticate);
+router.use(enrichUserData);
 
 // ==================== 商务绩效统计 ====================
 
@@ -37,7 +38,7 @@ router.use(authenticate);
  */
 router.get(
   '/staff-performance',
-  requireRoles('FACTORY_OWNER', 'PLATFORM_ADMIN'),
+  requireRoles('BRAND', 'PLATFORM_ADMIN'),
   [
     query('startDate').optional().isISO8601().withMessage('开始日期格式无效'),
     query('endDate').optional().isISO8601().withMessage('结束日期格式无效'),
@@ -56,9 +57,9 @@ router.get(
 
       const dateRange = req.query.startDate && req.query.endDate
         ? {
-            startDate: new Date(req.query.startDate as string),
-            endDate: new Date(req.query.endDate as string),
-          }
+          startDate: new Date(req.query.startDate as string),
+          endDate: new Date(req.query.endDate as string),
+        }
         : undefined;
 
       const report = await reportService.getStaffPerformance(factoryId, dateRange);
@@ -82,7 +83,7 @@ router.get(
  */
 router.get(
   '/dashboard/trends',
-  requireRoles('FACTORY_OWNER', 'PLATFORM_ADMIN'),
+  requireRoles('BRAND', 'PLATFORM_ADMIN'),
   [
     query('period').isIn(['week', 'month', 'quarter']).withMessage('周期参数无效'),
     query('dataType').isIn(['gmv', 'cost', 'roi']).withMessage('数据类型参数无效'),
@@ -101,20 +102,20 @@ router.get(
 
       const period = req.query.period as 'week' | 'month' | 'quarter';
       const dataType = req.query.dataType as 'gmv' | 'cost' | 'roi';
-      
+
       // 如果查看成本数据，需要检查权限
-      if (dataType === 'cost' && req.user!.role === 'BUSINESS_STAFF') {
+      if (dataType === 'cost' && req.user!.role === 'BUSINESS') {
         const userWithPermissions = await prisma.user.findUnique({
           where: { id: req.user!.userId },
           select: { permissions: true },
         });
-        
+
         const permissions = userWithPermissions?.permissions as any;
         if (!permissions?.advanced?.viewCostData) {
           res.status(403).json({
             success: false,
-            error: { 
-              code: 'PERMISSION_DENIED', 
+            error: {
+              code: 'PERMISSION_DENIED',
               message: '您没有权限查看成本数据',
               details: { permission: 'advanced.viewCostData' }
             },
@@ -122,7 +123,7 @@ router.get(
           return;
         }
       }
-      
+
       const trendData = await trendService.getTrendData(factoryId, period, dataType);
 
       res.json({
@@ -144,7 +145,7 @@ router.get(
  */
 router.get(
   '/dashboard',
-  requireRoles('FACTORY_OWNER', 'PLATFORM_ADMIN'),
+  requireRoles('BRAND', 'PLATFORM_ADMIN'),
   [
     query('period').optional().isIn(['week', 'month']).withMessage('周期参数无效'),
   ],
@@ -179,7 +180,7 @@ router.get(
  */
 router.get(
   '/my-dashboard',
-  requireRoles('BUSINESS_STAFF', 'FACTORY_OWNER'),
+  requireRoles('BUSINESS', 'BRAND'),
   [
     query('period').optional().isIn(['week', 'month']).withMessage('周期参数无效'),
   ],
@@ -188,7 +189,7 @@ router.get(
     try {
       const factoryId = req.user!.factoryId;
       const staffId = req.user!.userId;
-      
+
       if (!factoryId) {
         res.status(400).json({
           success: false,
@@ -219,7 +220,7 @@ router.get(
  */
 router.get(
   '/export/staff-performance',
-  requireRoles('FACTORY_OWNER', 'PLATFORM_ADMIN'),
+  requireRoles('BRAND', 'PLATFORM_ADMIN'),
   [
     query('startDate').optional().isISO8601().withMessage('开始日期格式无效'),
     query('endDate').optional().isISO8601().withMessage('结束日期格式无效'),
@@ -238,9 +239,9 @@ router.get(
 
       const dateRange = req.query.startDate && req.query.endDate
         ? {
-            startDate: new Date(req.query.startDate as string),
-            endDate: new Date(req.query.endDate as string),
-          }
+          startDate: new Date(req.query.startDate as string),
+          endDate: new Date(req.query.endDate as string),
+        }
         : undefined;
 
       const buffer = await reportService.exportStaffPerformanceReport(factoryId, dateRange);
@@ -261,7 +262,7 @@ router.get(
  */
 router.get(
   '/export/roi',
-  requireRoles('FACTORY_OWNER', 'PLATFORM_ADMIN'),
+  requireRoles('BRAND', 'PLATFORM_ADMIN'),
   [
     query('groupBy').isIn(['influencer', 'sample', 'staff', 'month']).withMessage('分组参数无效'),
     query('startDate').optional().isISO8601().withMessage('开始日期格式无效'),
@@ -282,9 +283,9 @@ router.get(
       const groupBy = req.query.groupBy as 'influencer' | 'sample' | 'staff' | 'month';
       const dateRange = req.query.startDate && req.query.endDate
         ? {
-            startDate: new Date(req.query.startDate as string),
-            endDate: new Date(req.query.endDate as string),
-          }
+          startDate: new Date(req.query.startDate as string),
+          endDate: new Date(req.query.endDate as string),
+        }
         : undefined;
 
       const buffer = await reportService.exportRoiReport(factoryId, groupBy, dateRange);
@@ -311,7 +312,7 @@ router.get(
  */
 router.get(
   '/export/collaborations',
-  requireRoles('FACTORY_OWNER', 'BUSINESS_STAFF', 'PLATFORM_ADMIN'),
+  requireRoles('BRAND', 'BUSINESS', 'PLATFORM_ADMIN'),
   [
     query('startDate').optional().isISO8601().withMessage('开始日期格式无效'),
     query('endDate').optional().isISO8601().withMessage('结束日期格式无效'),
@@ -330,9 +331,9 @@ router.get(
 
       const dateRange = req.query.startDate && req.query.endDate
         ? {
-            startDate: new Date(req.query.startDate as string),
-            endDate: new Date(req.query.endDate as string),
-          }
+          startDate: new Date(req.query.startDate as string),
+          endDate: new Date(req.query.endDate as string),
+        }
         : undefined;
 
       const buffer = await reportService.exportCollaborationReport(factoryId, dateRange);
@@ -355,7 +356,7 @@ router.get(
  */
 router.get(
   '/dashboard/roi-analysis',
-  requireRoles('FACTORY_OWNER', 'PLATFORM_ADMIN'),
+  requireRoles('BRAND', 'PLATFORM_ADMIN'),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const factoryId = req.user!.factoryId;
@@ -387,7 +388,7 @@ router.get(
  */
 router.get(
   '/dashboard/pipeline-funnel',
-  requireRoles('FACTORY_OWNER', 'PLATFORM_ADMIN'),
+  requireRoles('BRAND', 'PLATFORM_ADMIN'),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const factoryId = req.user!.factoryId;
@@ -419,7 +420,7 @@ router.get(
  */
 router.get(
   '/staff/comparison',
-  requireRoles('FACTORY_OWNER', 'PLATFORM_ADMIN'),
+  requireRoles('BRAND', 'PLATFORM_ADMIN'),
   [
     query('staffIds').isString().withMessage('商务ID列表参数无效'),
   ],
@@ -468,7 +469,7 @@ router.get(
  */
 router.get(
   '/dashboard/daily-summary',
-  requireRoles('FACTORY_OWNER', 'PLATFORM_ADMIN'),
+  requireRoles('BRAND', 'PLATFORM_ADMIN'),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const factoryId = req.user!.factoryId;
@@ -503,7 +504,7 @@ router.get(
  */
 router.get(
   '/staff/:staffId/quality-score',
-  requireRoles('FACTORY_OWNER', 'BUSINESS_STAFF', 'PLATFORM_ADMIN'),
+  requireRoles('BRAND', 'BUSINESS', 'PLATFORM_ADMIN'),
   checkStaffDataAccess(),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -523,7 +524,7 @@ router.get(
         where: {
           id: staffId,
           factoryId,
-          role: 'BUSINESS_STAFF'
+          role: 'BUSINESS'
         }
       });
 
@@ -558,7 +559,7 @@ router.get(
  */
 router.get(
   '/staff/:staffId/calendar',
-  requireRoles('FACTORY_OWNER', 'BUSINESS_STAFF', 'PLATFORM_ADMIN'),
+  requireRoles('BRAND', 'BUSINESS', 'PLATFORM_ADMIN'),
   checkStaffDataAccess(),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -597,7 +598,7 @@ router.get(
         where: {
           id: staffId,
           factoryId,
-          role: 'BUSINESS_STAFF'
+          role: 'BUSINESS'
         }
       });
 
@@ -631,7 +632,7 @@ router.get(
  */
 router.get(
   '/dashboard/alerts',
-  requireRoles('FACTORY_OWNER', 'BUSINESS_STAFF', 'PLATFORM_ADMIN'),
+  requireRoles('BRAND', 'BUSINESS', 'PLATFORM_ADMIN'),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const factoryId = req.user!.factoryId;
@@ -664,7 +665,7 @@ router.get(
  */
 router.put(
   '/dashboard/alerts/:alertId/read',
-  requireRoles('FACTORY_OWNER', 'BUSINESS_STAFF', 'PLATFORM_ADMIN'),
+  requireRoles('BRAND', 'BUSINESS', 'PLATFORM_ADMIN'),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { alertId } = req.params;
@@ -689,7 +690,7 @@ router.put(
  */
 router.put(
   '/dashboard/alerts/read-all',
-  requireRoles('FACTORY_OWNER', 'BUSINESS_STAFF', 'PLATFORM_ADMIN'),
+  requireRoles('BRAND', 'BUSINESS', 'PLATFORM_ADMIN'),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const factoryId = req.user!.factoryId;
@@ -724,7 +725,7 @@ router.put(
  */
 router.get(
   '/my-dashboard/today-todos',
-  requireRoles('BUSINESS_STAFF', 'FACTORY_OWNER'),
+  requireRoles('BUSINESS', 'BRAND'),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const factoryId = req.user!.factoryId;
@@ -757,7 +758,7 @@ router.get(
  */
 router.get(
   '/my-dashboard/work-stats',
-  requireRoles('BUSINESS_STAFF', 'FACTORY_OWNER'),
+  requireRoles('BUSINESS', 'BRAND'),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const factoryId = req.user!.factoryId;

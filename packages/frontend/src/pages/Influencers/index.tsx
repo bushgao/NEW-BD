@@ -13,6 +13,9 @@ import {
   Typography,
   Tooltip,
   Alert,
+  Avatar,
+  Collapse,
+  Badge,
 } from 'antd';
 import {
   PlusOutlined,
@@ -21,8 +24,7 @@ import {
   EditOutlined,
   DeleteOutlined,
   TagsOutlined,
-  WarningOutlined,
-  DownloadOutlined,
+  BulbOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { Platform } from '@ics/shared';
@@ -61,6 +63,15 @@ import InfluencerGroups from './InfluencerGroups';
 import { ExportButton } from '../Import';
 
 const { Title, Text: AntText } = Typography;
+
+// Premium Soft Colors for Avatars
+const PLATFORM_COLORS: Record<Platform, { bg: string; text: string; border: string }> = {
+  DOUYIN: { bg: '#fdf2f8', text: '#be185d', border: '#fbcfe8' },     // Pink (Soft)
+  KUAISHOU: { bg: '#fff7ed', text: '#c2410c', border: '#fed7aa' },   // Orange (Soft)
+  XIAOHONGSHU: { bg: '#fef2f2', text: '#b91c1c', border: '#fecaca' }, // Red (Soft)
+  WEIBO: { bg: '#fefce8', text: '#a16207', border: '#fef08a' },      // Yellow (Soft)
+  OTHER: { bg: '#f8fafc', text: '#475569', border: '#e2e8f0' },      // Slate (Soft)
+};
 
 const InfluencersPage = () => {
   const { theme } = useTheme();
@@ -114,7 +125,7 @@ const InfluencersPage = () => {
   const fetchMetadata = useCallback(async () => {
     try {
       const [tags, categories, filters] = await Promise.all([
-        getAllTags(), 
+        getAllTags(),
         getAllCategories(),
         getSavedFilters(),
       ]);
@@ -294,7 +305,7 @@ const InfluencersPage = () => {
   const handleBatchExport = async () => {
     const ids = selectedRowKeys as string[];
     const blob = await exportInfluencers(ids);
-    
+
     // Create download link
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -332,150 +343,232 @@ const InfluencersPage = () => {
   //   }
   // };
 
+  // Helper functions for column rendering
+  const formatFollowers = (followers: string | null) => {
+    if (!followers) return '-';
+    const num = parseInt(followers);
+    if (isNaN(num)) return followers;
+    if (num >= 10000) return (num / 10000).toFixed(1) + '万';
+    return num.toLocaleString();
+  };
+
   const columns: ColumnsType<Influencer> = [
     {
-      title: '昵称',
-      dataIndex: 'nickname',
-      key: 'nickname',
-      width: 150,
-      ellipsis: true,
-      render: (nickname: string, record: Influencer) => (
-        <Button
-          type="link"
-          onClick={() => handleViewInfluencer(record)}
-          style={{ padding: 0, height: 'auto' }}
-        >
-          {nickname}
-        </Button>
+      title: '达人信息',
+      key: 'influencer',
+      width: 220,
+      fixed: 'left',
+      render: (_, record: Influencer) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Avatar
+            shape="square"
+            size={42}
+            className="flex-shrink-0"
+            style={{
+              backgroundColor: PLATFORM_COLORS[record.platform].bg, // Use soft background
+              color: PLATFORM_COLORS[record.platform].text, // Use darker text
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '16px',
+              fontWeight: 700,
+              borderRadius: '10px', // Squircle
+              border: `1px solid ${PLATFORM_COLORS[record.platform].border}`,
+              boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+            }}
+          >
+            {record.nickname.charAt(0).toUpperCase()}
+          </Avatar>
+          <div style={{ minWidth: 0 }}>
+            <Button
+              type="link"
+              onClick={() => handleViewInfluencer(record)}
+              style={{
+                padding: 0,
+                height: 'auto',
+                fontSize: '15px',
+                fontWeight: 700,
+                color: '#1e293b',
+                display: 'block',
+                marginBottom: '2px'
+              }}
+              className="hover:text-brand-600 transition-colors"
+            >
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {record.nickname}
+              </div>
+            </Button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Tag
+                color={getPlatformColor(record.platform)}
+                style={{
+                  margin: 0,
+                  fontSize: '10px',
+                  padding: '0 6px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  fontWeight: 600,
+                  lineHeight: '18px',
+                  height: '18px'
+                }}
+              >
+                {PLATFORM_LABELS[record.platform]}
+              </Tag>
+              <AntText
+                type="secondary"
+                style={{
+                  fontSize: '11px',
+                  display: 'block',
+                  maxWidth: '100px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                ID: {record.platformId}
+              </AntText>
+            </div>
+          </div>
+        </div>
       ),
     },
     {
-      title: '平台',
-      dataIndex: 'platform',
-      key: 'platform',
-      width: 100,
-      render: (platform: Platform) => (
-        <Tag color={getPlatformColor(platform)}>{PLATFORM_LABELS[platform]}</Tag>
-      ),
-    },
-    {
-      title: '平台账号ID',
-      dataIndex: 'platformId',
-      key: 'platformId',
-      width: 150,
-      ellipsis: true,
-    },
-    {
-      title: '粉丝数',
-      dataIndex: 'followers',
-      key: 'followers',
+      title: '基础数据',
+      key: 'data',
       width: 120,
-      render: (followers: string | null) => {
-        if (!followers) return '-';
-        // 格式化显示粉丝数
-        const num = parseInt(followers);
-        if (isNaN(num)) return followers;
-        if (num >= 10000) {
-          return (num / 10000).toFixed(1) + '万';
-        }
-        return num.toLocaleString();
-      },
+      render: (_, record) => (
+        <div>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>
+            {formatFollowers(record.followers)}
+          </div>
+          <AntText type="secondary" style={{ fontSize: '12px' }}>粉丝数</AntText>
+        </div>
+      ),
     },
     {
-      title: '微信号',
-      dataIndex: 'wechat',
-      key: 'wechat',
-      width: 130,
-      render: (wechat: string | null) => wechat || '-',
+      title: '联系方式',
+      key: 'contact',
+      width: 140,
+      render: (_, record) => (
+        <div style={{ fontSize: '13px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '11px', color: '#64748b', minWidth: '28px' }}>手机</span>
+            <AntText style={{ fontWeight: 500, color: record.phone ? '#334155' : '#94a3b8' }}>
+              {record.phone || '-'}
+            </AntText>
+          </div>
+        </div>
+      ),
     },
     {
-      title: '手机号',
-      dataIndex: 'phone',
-      key: 'phone',
-      width: 130,
-      render: (phone: string | null) => phone || '-',
-    },
-    {
-      title: '类目',
-      dataIndex: 'categories',
-      key: 'categories',
-      width: 150,
-      render: (categories: string[]) =>
-        categories.length > 0 ? (
-          <Space size={[0, 4]} wrap>
-            {categories.slice(0, 2).map((cat) => (
-              <Tag key={cat}>{cat}</Tag>
+      title: '分类 & 标签',
+      key: 'classification',
+      width: 250,
+      render: (_, record) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {record.categories.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+              {record.categories.slice(0, 2).map((cat) => (
+                <span
+                  key={cat}
+                  style={{
+                    fontSize: '11px',
+                    color: '#6366f1',
+                    background: 'rgba(99, 102, 241, 0.08)',
+                    padding: '1px 8px',
+                    borderRadius: '6px',
+                    fontWeight: 500
+                  }}
+                >
+                  {cat}
+                </span>
+              ))}
+            </div>
+          )}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
+            {record.tags.slice(0, 2).map((tag) => (
+              <Tag
+                key={tag}
+                style={{
+                  margin: 0,
+                  fontSize: '11px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: '#f1f5f9',
+                  color: '#475569',
+                  padding: '1px 8px'
+                }}
+              >
+                {tag}
+              </Tag>
             ))}
-            {categories.length > 2 && <Tag>+{categories.length - 2}</Tag>}
-          </Space>
-        ) : (
-          '-'
-        ),
-    },
-    {
-      title: '标签',
-      dataIndex: 'tags',
-      key: 'tags',
-      width: 180,
-      render: (tags: string[], record: Influencer) => (
-        <Space size={[0, 4]} wrap>
-          {tags.slice(0, 2).map((tag) => (
-            <Tag key={tag} color="blue">
-              {tag}
-            </Tag>
-          ))}
-          {tags.length > 2 && <Tag color="blue">+{tags.length - 2}</Tag>}
-          <Tooltip title="管理标签">
+            {record.tags.length > 2 && <AntText type="secondary" style={{ fontSize: '11px' }}>+{record.tags.length - 2}</AntText>}
             <TagsOutlined
-              style={{ cursor: 'pointer', color: '#1890ff' }}
+              style={{ cursor: 'pointer', color: '#6366f1', fontSize: '14px', marginLeft: '6px' }}
               onClick={() => handleTagsClick(record)}
             />
-          </Tooltip>
-        </Space>
+          </div>
+        </div>
       ),
     },
     {
-      title: '备注',
+      title: '备注信息',
       dataIndex: 'notes',
       key: 'notes',
-      width: 150,
+      width: 180,
       ellipsis: true,
-      render: (notes: string | null) => notes || '-',
+      render: (notes: string | null) => (
+        <AntText type="secondary" style={{ fontSize: '13px' }}>
+          {notes || '-'}
+        </AntText>
+      ),
     },
     {
       title: '操作',
       key: 'action',
-      width: 150,
+      width: 120,
       fixed: 'right',
       render: (_, record) => (
-        <Space size="small">
-          <Button 
-            type="link" 
-            size="small" 
-            onClick={() => handleViewInfluencer(record)}
-          >
-            查看
-          </Button>
+        <Space size={4}>
+          <Tooltip title="查看详情">
+            <Button
+              type="text"
+              size="small"
+              className="rounded-lg"
+              icon={<SearchOutlined style={{ color: '#6366f1' }} />}
+              onClick={() => handleViewInfluencer(record)}
+            />
+          </Tooltip>
           {hasPermission('operations.manageInfluencers') ? (
             <>
-              <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
-                编辑
-              </Button>
+              <Tooltip title="编辑">
+                <Button
+                  type="text"
+                  size="small"
+                  className="rounded-lg"
+                  icon={<EditOutlined style={{ color: '#64748b' }} />}
+                  onClick={() => handleEdit(record)}
+                />
+              </Tooltip>
               <Popconfirm
                 title="确定删除该达人吗？"
                 onConfirm={() => handleDelete(record.id)}
                 okText="确定"
                 cancelText="取消"
               >
-                <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-                  删除
-                </Button>
+                <Tooltip title="删除">
+                  <Button
+                    type="text"
+                    size="small"
+                    danger
+                    className="rounded-lg"
+                    icon={<DeleteOutlined />}
+                  />
+                </Tooltip>
               </Popconfirm>
             </>
           ) : (
-            <Tooltip title="您没有权限管理达人">
-              <AntText type="secondary">-</AntText>
-            </Tooltip>
+            <AntText type="secondary" style={{ fontSize: '12px' }}>-</AntText>
           )}
         </Space>
       ),
@@ -483,12 +576,13 @@ const InfluencersPage = () => {
   ];
 
   return (
-    <div 
-      style={{ 
+    <div
+      style={{
         minHeight: '100vh',
         background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
         position: 'relative',
-        padding: '24px',
+        padding: '40px',
+        margin: '-24px',
       }}
     >
       {/* 背景装饰元素 */}
@@ -516,11 +610,27 @@ const InfluencersPage = () => {
         pointerEvents: 'none',
         zIndex: 0,
       }} />
-      
-      <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 16 }}>
-        {/* Left Sidebar - Groups */}
-        <div style={{ width: 240, flexShrink: 0 }}>
-          <Card variant="elevated" style={{ height: 'calc(100vh - 48px)', overflow: 'hidden' }}>
+
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 20 }}>
+        {/* Left Sidebar - Groups - Updated styling */}
+        <div style={{
+          width: 200,
+          flexShrink: 0,
+          position: 'sticky',
+          top: 80,
+          alignSelf: 'flex-start',
+          height: 'calc(100vh - 100px)' // Adjusted height to account for top offset
+        }}>
+          <Card
+            variant="elevated"
+            style={{
+              height: '100%',
+              overflow: 'hidden',
+              borderRadius: '24px',
+              border: '1px solid rgba(0,0,0,0.05)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
+            }}
+          >
             <InfluencerGroups
               selectedGroupId={selectedGroupId}
               onGroupSelect={handleGroupSelect}
@@ -531,212 +641,254 @@ const InfluencersPage = () => {
 
         {/* Main Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
-      {/* 配额警告 */}
-      {isQuotaReached && (
-        <Alert
-          message="达人数量已达上限"
-          description={`当前已添加 ${influencerCount}/${influencerLimit} 个达人，请升级套餐以添加更多达人。`}
-          type="warning"
-          icon={<WarningOutlined />}
-          showIcon
-          closable
-          style={{ marginBottom: 16 }}
-        />
-      )}
-
-      {/* 权限提示 */}
-      {!canViewOthersData && (
-        <Alert
-          message="数据权限提示"
-          description="您当前只能查看自己创建的达人信息。如需查看其他商务的达人，请联系管理员调整权限。"
-          type="info"
-          showIcon
-          closable
-          style={{ marginBottom: 16 }}
-        />
-      )}
-
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          {selectedRowKeys.length > 0 ? (
-            <BatchOperations
-              selectedCount={selectedRowKeys.length}
-              selectedIds={selectedRowKeys as string[]}
-              allTags={allTags}
-              onBatchTag={handleBatchTag}
-              onBatchExport={handleBatchExport}
-              onClearSelection={handleClearSelection}
-            />
-          ) : (
-            <>
-              <Title level={4} style={{ margin: 0 }}>
-                达人管理
+          {/* Top Glassmorphism Header */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.7)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: '24px',
+            padding: '20px 24px',
+            marginBottom: '20px',
+            border: '1px solid rgba(255, 255, 255, 0.4)',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.04)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <div>
+              <Title level={4} style={{ margin: 0, fontSize: '20px', fontWeight: 800, letterSpacing: '-0.01em' }}>
+                达人库
               </Title>
-              <AntText type="secondary" style={{ fontSize: 12 }}>
-                已添加 {influencerCount}/{influencerLimit} 个达人
-              </AntText>
-            </>
-          )}
-        </Col>
-        <Col>
-          <Space>
-            {hasPermission('operations.exportData') ? (
-              <ExportButton types={['influencers']} buttonText="导出" showDateRange={false} />
-            ) : (
-              <Tooltip title="您没有权限导出数据">
-                <Button icon={<DownloadOutlined />} disabled>
-                  导出
-                </Button>
-              </Tooltip>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                <AntText type="secondary" style={{ fontSize: '13px' }}>
+                  库容使用: {influencerCount} / {influencerLimit}
+                </AntText>
+                <div style={{
+                  width: '60px',
+                  height: '4px',
+                  background: '#f1f5f9',
+                  borderRadius: '2px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: `${Math.min(100, (influencerCount / influencerLimit) * 100)}%`,
+                    height: '100%',
+                    background: isQuotaReached ? '#ef4444' : '#6366f1'
+                  }} />
+                </div>
+              </div>
+            </div>
+
+            <Space size="middle">
+              {selectedRowKeys.length > 0 ? (
+                <BatchOperations
+                  selectedCount={selectedRowKeys.length}
+                  selectedIds={selectedRowKeys as string[]}
+                  allTags={allTags}
+                  onBatchTag={handleBatchTag}
+                  onBatchExport={handleBatchExport}
+                  onClearSelection={handleClearSelection}
+                />
+              ) : (
+                <Space size="small">
+                  {hasPermission('operations.exportData') && (
+                    <ExportButton types={['influencers']} buttonText="导出数据" showDateRange={false} />
+                  )}
+                  {hasPermission('operations.batchOperations') && (
+                    <Button
+                      icon={<UploadOutlined />}
+                      onClick={() => setImportModalVisible(true)}
+                      disabled={isQuotaReached}
+                      className="rounded-xl border-neutral-200"
+                    >
+                      批量导入
+                    </Button>
+                  )}
+                  {hasPermission('operations.manageInfluencers') && (
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={handleAdd}
+                      disabled={isQuotaReached}
+                      className="rounded-xl shadow-indigo"
+                      style={{ height: '40px', fontWeight: 600 }}
+                    >
+                      添加达人
+                    </Button>
+                  )}
+                </Space>
+              )}
+            </Space>
+          </div>
+
+          {/* Quota/Permission Alerts - More compact */}
+          <div style={{ marginBottom: 16 }}>
+            {isQuotaReached && (
+              <Alert
+                message="库容已满：请升级套餐以继续添加达人"
+                type="warning"
+                showIcon
+                closable
+                style={{ borderRadius: '12px' }}
+              />
             )}
-            {hasPermission('operations.batchOperations') ? (
-              <Button icon={<UploadOutlined />} onClick={() => setImportModalVisible(true)} disabled={isQuotaReached}>
-                批量导入
-              </Button>
-            ) : (
-              <Tooltip title="您没有权限执行批量操作">
-                <Button icon={<UploadOutlined />} disabled>
-                  批量导入
-                </Button>
-              </Tooltip>
+            {!canViewOthersData && (
+              <Alert
+                message="隐私模式：您目前只能查看自己建档的达人"
+                type="info"
+                showIcon
+                closable
+                style={{ borderRadius: '12px', marginTop: 8 }}
+              />
             )}
-            {hasPermission('operations.manageInfluencers') ? (
-              <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd} disabled={isQuotaReached}>
-                添加达人
-              </Button>
-            ) : (
-              <Tooltip title="您没有权限管理达人">
-                <Button type="primary" icon={<PlusOutlined />} disabled>
-                  添加达人
-                </Button>
-              </Tooltip>
-            )}
-          </Space>
-        </Col>
-      </Row>
+          </div>
 
-      {/* Quick Filters */}
-      <QuickFilters
-        savedFilters={savedFilters}
-        currentFilter={filter}
-        allCategories={allCategories}
-        allTags={allTags}
-        onApplyFilter={handleApplyQuickFilter}
-        onSaveFilter={handleSaveQuickFilter}
-        onDeleteFilter={handleDeleteQuickFilter}
-        onToggleFavorite={handleToggleFilterFavorite}
-      />
+          {/* Quick Filters */}
+          <QuickFilters
+            savedFilters={savedFilters}
+            currentFilter={filter}
+            allCategories={allCategories}
+            allTags={allTags}
+            onApplyFilter={handleApplyQuickFilter}
+            onSaveFilter={handleSaveQuickFilter}
+            onDeleteFilter={handleDeleteQuickFilter}
+            onToggleFavorite={handleToggleFilterFavorite}
+          />
 
-      {/* Smart Recommendations */}
-      <SmartRecommendations
-        recommendations={recommendations}
-        loading={recommendationsLoading}
-        onRefresh={fetchRecommendations}
-        onViewInfluencer={handleViewInfluencer}
-      />
+          {/* Smart Recommendations */}
+          {/* Smart Recommendations - Collapsible */}
+          <Collapse
+            ghost
+            expandIconPosition="end"
+            style={{ marginBottom: 16 }}
+            items={[{
+              key: 'recommendations',
+              label: (
+                <Space size="small">
+                  <BulbOutlined style={{ color: '#6366f1', fontSize: '16px' }} />
+                  <AntText strong style={{ fontSize: '14px' }}>智能推荐与分析</AntText>
+                  <Badge count="New" style={{ backgroundColor: '#6366f1', fontSize: '10px' }} />
+                </Space>
+              ),
+              children: (
+                <div style={{
+                  background: 'rgba(99, 102, 241, 0.03)',
+                  borderRadius: '16px',
+                  padding: '4px',
+                  border: '1px solid rgba(99, 102, 241, 0.1)'
+                }}>
+                  <SmartRecommendations
+                    recommendations={recommendations}
+                    loading={recommendationsLoading}
+                    onRefresh={fetchRecommendations}
+                    onViewInfluencer={handleViewInfluencer}
+                  />
+                </div>
+              )
+            }]}
+          />
 
-      <Card variant="elevated" style={{ marginBottom: 16 }}>
-        <CardContent>
-          <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} md={6}>
-            <Input.Search
-              placeholder="搜索达人昵称"
-              allowClear
-              enterButton={<SearchOutlined />}
-              onSearch={handleSearch}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Select
-              placeholder="选择平台"
-              allowClear
-              style={{ width: '100%' }}
-              onChange={handlePlatformFilter}
-              options={Object.entries(PLATFORM_LABELS).map(([value, label]) => ({
-                value,
-                label,
-              }))}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Select
-              placeholder="选择类目"
-              allowClear
-              style={{ width: '100%' }}
-              onChange={handleCategoryFilter}
-              options={allCategories.map((cat) => ({ value: cat, label: cat }))}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Select
-              mode="multiple"
-              placeholder="选择标签"
-              allowClear
-              style={{ width: '100%' }}
-              onChange={handleTagsFilter}
-              options={allTags.map((tag) => ({ value: tag, label: tag }))}
-              maxTagCount={2}
-            />
-          </Col>
-        </Row>
-        </CardContent>
-      </Card>
+          <Card variant="elevated" style={{ marginBottom: 16 }}>
+            <CardContent>
+              <Row gutter={[16, 16]}>
+                <Col xs={24} sm={12} md={6}>
+                  <Input.Search
+                    placeholder="搜索达人昵称"
+                    allowClear
+                    enterButton={<SearchOutlined />}
+                    onSearch={handleSearch}
+                  />
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <Select
+                    placeholder="选择平台"
+                    allowClear
+                    style={{ width: '100%' }}
+                    onChange={handlePlatformFilter}
+                    options={Object.entries(PLATFORM_LABELS).map(([value, label]) => ({
+                      value,
+                      label,
+                    }))}
+                  />
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <Select
+                    placeholder="选择类目"
+                    allowClear
+                    style={{ width: '100%' }}
+                    onChange={handleCategoryFilter}
+                    options={allCategories.map((cat) => ({ value: cat, label: cat }))}
+                  />
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <Select
+                    mode="multiple"
+                    placeholder="选择标签"
+                    allowClear
+                    style={{ width: '100%' }}
+                    onChange={handleTagsFilter}
+                    options={allTags.map((tag) => ({ value: tag, label: tag }))}
+                    maxTagCount={2}
+                  />
+                </Col>
+              </Row>
+            </CardContent>
+          </Card>
 
-      <Table
-        columns={columns}
-        dataSource={data}
-        rowKey="id"
-        loading={loading}
-        rowSelection={
-          hasPermission('operations.batchOperations')
-            ? {
-                selectedRowKeys,
-                onChange: setSelectedRowKeys,
-                selections: [
-                  Table.SELECTION_ALL,
-                  Table.SELECTION_INVERT,
-                  Table.SELECTION_NONE,
-                ],
-              }
-            : undefined
-        }
-        pagination={{
-          current: pagination.page,
-          pageSize: pagination.pageSize,
-          total,
-          showSizeChanger: true,
-          showQuickJumper: true,
-          showTotal: (total) => `共 ${total} 条`,
-        }}
-        onChange={handleTableChange}
-        scroll={{ x: 1200 }}
-      />
+          <Table
+            columns={columns}
+            dataSource={data}
+            rowKey="id"
+            loading={loading}
+            rowSelection={
+              hasPermission('operations.batchOperations')
+                ? {
+                  selectedRowKeys,
+                  onChange: setSelectedRowKeys,
+                  selections: [
+                    Table.SELECTION_ALL,
+                    Table.SELECTION_INVERT,
+                    Table.SELECTION_NONE,
+                  ],
+                }
+                : undefined
+            }
+            pagination={{
+              current: pagination.page,
+              pageSize: pagination.pageSize,
+              total,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `共 ${total} 条`,
+            }}
+            onChange={handleTableChange}
+            scroll={{ x: 1200 }}
+          />
 
-      <InfluencerModal
-        visible={modalVisible}
-        influencer={editingInfluencer}
-        onClose={handleModalClose}
-        allCategories={allCategories}
-        allTags={allTags}
-      />
+          <InfluencerModal
+            visible={modalVisible}
+            influencer={editingInfluencer}
+            onClose={handleModalClose}
+            allCategories={allCategories}
+            allTags={allTags}
+          />
 
-      <ImportModal visible={importModalVisible} onClose={handleImportClose} />
+          <ImportModal visible={importModalVisible} onClose={handleImportClose} />
 
-      <TagsModal
-        visible={tagsModalVisible}
-        influencer={tagsInfluencer}
-        onClose={handleTagsClose}
-        allTags={allTags}
-      />
+          <TagsModal
+            visible={tagsModalVisible}
+            influencer={tagsInfluencer}
+            onClose={handleTagsClose}
+            allTags={allTags}
+          />
 
-      <InfluencerDetailPanel
-        visible={detailPanelVisible}
-        influencer={detailInfluencer}
-        onClose={handleDetailPanelClose}
-      />
+          <InfluencerDetailPanel
+            visible={detailPanelVisible}
+            influencer={detailInfluencer}
+            onClose={handleDetailPanelClose}
+          />
 
-      {/* QuickAddModal 已废弃，改用 Chrome 浏览器插件实现达人采集 */}
-      {/* <QuickAddModal
+          {/* QuickAddModal 已废弃，改用 Chrome 浏览器插件实现达人采集 */}
+          {/* <QuickAddModal
         visible={quickAddModalVisible}
         onCancel={() => setQuickAddModalVisible(false)}
         onSuccess={handleQuickAddSuccess}

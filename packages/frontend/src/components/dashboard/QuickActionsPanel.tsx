@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Row, Col, Badge, Button } from 'antd';
+import { Card, Badge, Button } from 'antd';
 import {
   ClockCircleOutlined,
   InboxOutlined,
@@ -24,6 +24,7 @@ interface QuickActionsPanelProps {
   pendingReceipts: number;
   pendingResults: number;
   onExport?: () => void;
+  isBento?: boolean;
 }
 
 const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
@@ -31,6 +32,7 @@ const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   pendingReceipts,
   pendingResults,
   onExport,
+  isBento,
 }) => {
   const navigate = useNavigate();
 
@@ -38,34 +40,33 @@ const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
     {
       id: 'overdue',
       title: '超期合作',
-      icon: <ClockCircleOutlined style={{ fontSize: 24 }} />,
+      icon: <ClockCircleOutlined style={{ fontSize: 20 }} />,
       count: overdueCollaborations,
-      color: '#ff4d4f',
+      color: '#C89B9C',  // 豆沙粉 - 柔和警告色
       route: '/app/pipeline',
       filter: { status: 'overdue' },
     },
     {
       id: 'pending-receipts',
       title: '待签收样品',
-      icon: <InboxOutlined style={{ fontSize: 24 }} />,
+      icon: <InboxOutlined style={{ fontSize: 20 }} />,
       count: pendingReceipts,
-      color: '#faad14',
+      color: '#D4A574',  // 驼色 - 柔和提示色
       route: '/app/samples',
       filter: { status: 'pending' },
     },
     {
       id: 'pending-results',
       title: '待录入结果',
-      icon: <FileTextOutlined style={{ fontSize: 24 }} />,
+      icon: <FileTextOutlined style={{ fontSize: 20 }} />,
       count: pendingResults,
-      color: '#1890ff',
+      color: '#8EACBB',  // 雾霾蓝 - 柔和信息色
       route: '/app/results',
       filter: { status: 'pending' },
     },
   ];
 
   const handleActionClick = (action: QuickAction) => {
-    // 导航到对应页面并应用筛选
     navigate(action.route, { state: { filter: action.filter } });
   };
 
@@ -74,6 +75,64 @@ const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
       onExport();
     }
   };
+
+  const content = (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {actions.map((action) => (
+        <div
+          key={action.id}
+          className="group cursor-pointer bg-neutral-50 hover:bg-white p-4 rounded-2xl border border-neutral-100 transition-all hover:shadow-soft flex flex-col items-center text-center"
+          onClick={() => handleActionClick(action)}
+        >
+          <div
+            className="mb-3 p-3 rounded-full transition-colors"
+            style={{
+              backgroundColor: action.count > 0 ? `${action.color}15` : '#f3f4f6',
+              color: action.count > 0 ? action.color : '#9ca3af',
+            }}
+          >
+            {action.icon}
+          </div>
+          <div
+            className="text-sm font-bold mb-1"
+            style={{
+              color: action.count > 0 ? action.color : '#4b5563',
+            }}
+          >
+            {action.title}
+          </div>
+          <Badge
+            count={action.count}
+            overflowCount={99}
+            style={{
+              backgroundColor: action.count > 0 ? action.color : '#d1d5db'
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+
+  if (isBento) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex justify-end items-center mb-4 px-1">
+          <Button
+            type="text"
+            icon={<DownloadOutlined className="text-xs" />}
+            onClick={handleExport}
+            size="small"
+            className="text-neutral-400 hover:text-brand-600 hover:bg-neutral-50 transition-all rounded-lg"
+          >
+            <span className="text-[10px]">导出报表</span>
+          </Button>
+        </div>
+        <div className="flex-1">
+          {content}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Card
@@ -88,61 +147,17 @@ const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
           type="link"
           icon={<DownloadOutlined />}
           onClick={handleExport}
+          size="small"
         >
           导出报表
         </Button>
       }
-      style={{ marginBottom: 16 }}
+      style={{
+        borderRadius: '12px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+      }}
     >
-      <Row gutter={16}>
-        {actions.map((action) => (
-          <Col key={action.id} span={8}>
-            <Card
-              hoverable
-              onClick={() => handleActionClick(action)}
-              style={{
-                textAlign: 'center',
-                cursor: 'pointer',
-                borderColor: action.count > 0 ? action.color : undefined,
-              }}
-              bodyStyle={{ padding: '20px 12px' }}
-            >
-              <Badge count={action.count} overflowCount={99}>
-                <div
-                  style={{
-                    color: action.count > 0 ? action.color : '#8c8c8c',
-                    marginBottom: 8,
-                  }}
-                >
-                  {action.icon}
-                </div>
-              </Badge>
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 500,
-                  color: action.count > 0 ? action.color : '#595959',
-                  marginTop: 8,
-                }}
-              >
-                {action.title}
-              </div>
-              {action.count > 0 && (
-                <div
-                  style={{
-                    fontSize: 24,
-                    fontWeight: 'bold',
-                    color: action.color,
-                    marginTop: 4,
-                  }}
-                >
-                  {action.count}
-                </div>
-              )}
-            </Card>
-          </Col>
-        ))}
-      </Row>
+      {content}
     </Card>
   );
 };

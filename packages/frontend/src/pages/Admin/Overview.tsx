@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Row, Col, Statistic, message, Spin, Typography } from 'antd';
+import { message, Spin, Typography, Tag } from 'antd';
 import {
   ShopOutlined,
   TeamOutlined,
@@ -13,7 +13,7 @@ import {
   getPlatformStats,
   type PlatformStats,
 } from '../../services/platform.service';
-import { Card, CardContent } from '../../components/ui/Card';
+import { BentoGrid, BentoCard } from '../../components/ui/Bento';
 import { useTheme } from '../../theme/ThemeProvider';
 
 const { Title } = Typography;
@@ -40,14 +40,30 @@ const AdminOverview = () => {
     loadStats();
   }, []);
 
+  const renderStatCard = (title: string, value: number, icon: React.ReactNode, colorClass: string, bgClass: string) => (
+    <BentoCard span={1} className="h-full">
+      <div className="flex flex-col h-full justify-between gap-4">
+        <div className="flex justify-between items-start">
+          <div className={`p-2.5 rounded-xl ${bgClass} ${colorClass} flex items-center justify-center text-lg shadow-sm`}>
+            {icon}
+          </div>
+        </div>
+        <div>
+          <div className="text-neutral-500 text-xs font-bold uppercase tracking-wider mb-1">{title}</div>
+          <div className="text-2xl font-bold text-neutral-800">{value}</div>
+        </div>
+      </div>
+    </BentoCard>
+  );
+
   return (
     <Spin spinning={loading}>
-      <div 
-        style={{ 
+      <div
+        style={{
           minHeight: '100vh',
           background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
           position: 'relative',
-          padding: '24px',
+          padding: '40px',
           margin: '-24px',
         }}
       >
@@ -76,131 +92,62 @@ const AdminOverview = () => {
           pointerEvents: 'none',
           zIndex: 0,
         }} />
-        
+
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <Title level={4} style={{ marginBottom: 24 }}>
-            数据概览
-          </Title>
+          <div className="mb-6 flex items-center justify-between">
+            <Title level={4} style={{ margin: 0 }}>
+              数据概览
+            </Title>
+            <Tag color="geekblue">{new Date().toLocaleDateString()}</Tag>
+          </div>
 
-          {/* 统计卡片 */}
-          <Row gutter={16} style={{ marginBottom: 24 }}>
-            <Col xs={24} sm={12} md={8} lg={4}>
-              <Card variant="elevated" hoverable>
-                <CardContent>
-                  <Statistic
-                    title="工厂总数"
-                    value={stats?.totalFactories || 0}
-                    prefix={<ShopOutlined />}
-                  />
-                </CardContent>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={4}>
-              <Card variant="elevated" hoverable>
-                <CardContent>
-                  <Statistic
-                    title="待审核"
-                    value={stats?.pendingFactories || 0}
-                    prefix={<ClockCircleOutlined />}
-                    valueStyle={{ color: '#faad14' }}
-                  />
-                </CardContent>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={4}>
-              <Card variant="elevated" hoverable>
-                <CardContent>
-                  <Statistic
-                    title="已通过"
-                    value={stats?.approvedFactories || 0}
-                    prefix={<CheckCircleOutlined />}
-                    valueStyle={{ color: '#52c41a' }}
-                  />
-                </CardContent>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={4}>
-              <Card variant="elevated" hoverable>
-                <CardContent>
-                  <Statistic
-                    title="用户总数"
-                    value={stats?.totalUsers || 0}
-                    prefix={<UserOutlined />}
-                  />
-                </CardContent>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={4}>
-              <Card variant="elevated" hoverable>
-                <CardContent>
-                  <Statistic
-                    title="达人总数"
-                    value={stats?.totalInfluencers || 0}
-                    prefix={<TeamOutlined />}
-                  />
-                </CardContent>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={4}>
-              <Card variant="elevated" hoverable>
-                <CardContent>
-                  <Statistic
-                    title="合作总数"
-                    value={stats?.totalCollaborations || 0}
-                    prefix={<ProjectOutlined />}
-                  />
-                </CardContent>
-              </Card>
-            </Col>
-          </Row>
+          <BentoGrid>
+            {/* 顶层关键指标 */}
+            {renderStatCard("工厂总数", stats?.totalFactories || 0, <ShopOutlined />, "text-blue-600", "bg-blue-50")}
+            {renderStatCard("待审核", stats?.pendingFactories || 0, <ClockCircleOutlined />, "text-amber-500", "bg-amber-50")}
+            {renderStatCard("已通过", stats?.approvedFactories || 0, <CheckCircleOutlined />, "text-emerald-500", "bg-emerald-50")}
+            {renderStatCard("用户总数", stats?.totalUsers || 0, <UserOutlined />, "text-indigo-500", "bg-indigo-50")}
+            {renderStatCard("达人总数", stats?.totalInfluencers || 0, <TeamOutlined />, "text-purple-500", "bg-purple-50")}
+            {renderStatCard("合作总数", stats?.totalCollaborations || 0, <ProjectOutlined />, "text-rose-500", "bg-rose-50")}
 
-          {/* 套餐分布 */}
-          {stats && (
-            <Row gutter={16} style={{ marginBottom: 24 }}>
-              <Col xs={24} sm={8}>
-                <Card variant="elevated" hoverable>
-                  <CardContent>
-                    <Statistic
-                      title="免费版工厂"
-                      value={stats.factoriesByPlan.FREE || 0}
-                      suffix="家"
-                    />
-                  </CardContent>
-                </Card>
-              </Col>
-              <Col xs={24} sm={8}>
-                <Card variant="elevated" hoverable>
-                  <CardContent>
-                    <Statistic
-                      title="专业版工厂"
-                      value={stats.factoriesByPlan.PROFESSIONAL || 0}
-                      suffix="家"
-                      valueStyle={{ color: '#1890ff' }}
-                    />
-                  </CardContent>
-                </Card>
-              </Col>
-              <Col xs={24} sm={8}>
-                <Card variant="elevated" hoverable>
-                  <CardContent>
-                    <Statistic
-                      title="企业版工厂"
-                      value={stats.factoriesByPlan.ENTERPRISE || 0}
-                      suffix="家"
-                      valueStyle={{ color: '#faad14' }}
-                    />
-                  </CardContent>
-                </Card>
-              </Col>
-            </Row>
-          )}
+            {/* 套餐分布 */}
+            {stats && (
+              <>
+                <BentoCard title="免费版工厂" span={2}>
+                  <div className="flex items-end gap-2 mt-2">
+                    <span className="text-4xl font-bold text-neutral-800">{stats.factoriesByPlan.FREE || 0}</span>
+                    <span className="text-neutral-400 mb-1.5">家</span>
+                  </div>
+                  <div className="mt-4 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-neutral-400 rounded-full" style={{ width: `${(stats.factoriesByPlan.FREE / stats.totalFactories) * 100}%` }} />
+                  </div>
+                </BentoCard>
+                <BentoCard title="专业版工厂" span={2}>
+                  <div className="flex items-end gap-2 mt-2">
+                    <span className="text-4xl font-bold text-blue-600">{stats.factoriesByPlan.PROFESSIONAL || 0}</span>
+                    <span className="text-neutral-400 mb-1.5">家</span>
+                  </div>
+                  <div className="mt-4 h-1.5 bg-blue-50 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(stats.factoriesByPlan.PROFESSIONAL / stats.totalFactories) * 100}%` }} />
+                  </div>
+                </BentoCard>
+                <BentoCard title="企业版工厂" span={2}>
+                  <div className="flex items-end gap-2 mt-2">
+                    <span className="text-4xl font-bold text-amber-500">{stats.factoriesByPlan.ENTERPRISE || 0}</span>
+                    <span className="text-neutral-400 mb-1.5">家</span>
+                  </div>
+                  <div className="mt-4 h-1.5 bg-amber-50 rounded-full overflow-hidden">
+                    <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(stats.factoriesByPlan.ENTERPRISE / stats.totalFactories) * 100}%` }} />
+                  </div>
+                </BentoCard>
+              </>
+            )}
 
-          {/* 达人统计看板 */}
-          <Card variant="elevated">
-            <CardContent>
+            {/* 达人统计 - 占据全宽 (Span 6) */}
+            <BentoCard span={6} className="!p-0 overflow-hidden bg-transparent shadow-none border-none">
               <InfluencerStatsPanel />
-            </CardContent>
-          </Card>
+            </BentoCard>
+          </BentoGrid>
         </div>
       </div>
     </Spin>

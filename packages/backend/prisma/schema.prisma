@@ -12,9 +12,9 @@ datasource db {
 
 // Enums
 enum UserRole {
-  PLATFORM_ADMIN
-  FACTORY_OWNER
-  BUSINESS_STAFF
+  PLATFORM_ADMIN  // 平台管理员
+  BRAND           // 品牌（原 FACTORY_OWNER）
+  BUSINESS        // 商务（原 BUSINESS_STAFF）
 }
 
 enum UserStatus {
@@ -103,8 +103,14 @@ model User {
   email        String     @unique
   passwordHash String
   name         String
+  phone        String?    // 手机号（必填）
+  wechat       String?    // 微信号（必填）
   role         UserRole
   factoryId    String?
+  
+  // 商务独立性：商务可独立注册，后续可加入品牌
+  isIndependent Boolean   @default(true)   // 是否独立商务（未加入品牌）
+  joinedAt      DateTime?                   // 加入品牌时间
   
   // 新增：权限配置（商务人员权限管理）
   permissions  Json?      @default("{}")
@@ -134,6 +140,7 @@ model User {
 
   @@index([email])
   @@index([factoryId])
+  @@index([phone])
 }
 
 model Factory {

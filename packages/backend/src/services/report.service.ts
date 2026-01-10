@@ -234,7 +234,7 @@ export async function getStaffPerformance(
   const staffMembers = await prisma.user.findMany({
     where: {
       factoryId,
-      role: 'BUSINESS_STAFF',
+      role: 'BUSINESS',
     },
     select: {
       id: true,
@@ -522,7 +522,7 @@ export async function getFactoryDashboard(
   const staffMembers = await prisma.user.findMany({
     where: {
       factoryId,
-      role: 'BUSINESS_STAFF',
+      role: 'BUSINESS',
     },
     select: { id: true, name: true },
   });
@@ -1210,7 +1210,7 @@ export async function getBusinessStaffDashboard(
   const allStaff = await prisma.user.findMany({
     where: {
       factoryId,
-      role: 'BUSINESS_STAFF',
+      role: 'BUSINESS',
     },
     select: { id: true, name: true },
   });
@@ -1576,7 +1576,7 @@ export async function getRoiAnalysis(factoryId: string): Promise<ROIAnalysisData
   const staffMembers = await prisma.user.findMany({
     where: {
       factoryId,
-      role: 'BUSINESS_STAFF',
+      role: 'BUSINESS',
     },
     select: { id: true, name: true },
   });
@@ -4021,7 +4021,7 @@ async function getStaffRanking(
   const staffMembers = await prisma.user.findMany({
     where: {
       factoryId,
-      role: 'BUSINESS_STAFF',
+      role: 'BUSINESS',
     },
     select: { id: true },
   });

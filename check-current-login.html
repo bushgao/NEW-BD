@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>检查当前登录状态</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .section {
+            background: #f5f5f5;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        pre {
+            background: #fff;
+            padding: 10px;
+            border: 1px solid #ddd;
+            overflow-x: auto;
+        }
+        button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #40a9ff;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 检查当前登录状态</h1>
+    
+    <div class="section">
+        <h2>1. LocalStorage中的Token</h2>
+        <div id="tokenInfo"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. 解码后的Token内容</h2>
+        <div id="decodedToken"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. 测试API调用</h2>
+        <button onclick="testDashboardAPI()">测试 Dashboard API</button>
+        <button onclick="testROIAPI()">测试 ROI API</button>
+        <button onclick="testPipelineAPI()">测试 Pipeline API</button>
+        <div id="apiResults"></div>
+    </div>
+
+    <div class="section">
+        <h2>4. 操作</h2>
+        <button onclick="clearAndReload()">清除Token并刷新</button>
+        <button onclick="location.reload()">刷新页面</button>
+    </div>
+
+    <script>
+        // 解码JWT token
+        function parseJwt(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // 检查token
+        function checkToken() {
+            const authData = localStorage.getItem('auth-storage');
+            const tokenDiv = document.getElementById('tokenInfo');
+            const decodedDiv = document.getElementById('decodedToken');
+
+            if (!authData) {
+                tokenDiv.innerHTML = '<p class="error">❌ 没有找到auth-storage</p>';
+                decodedDiv.innerHTML = '<p class="error">❌ 无法解码</p>';
+                return null;
+            }
+
+            try {
+                const parsed = JSON.parse(authData);
+                const token = parsed.state?.token;
+
+                if (!token) {
+                    tokenDiv.innerHTML = '<p class="error">❌ auth-storage中没有token</p>';
+                    decodedDiv.innerHTML = '<p class="error">❌ 无法解码</p>';
+                    return null;
+                }
+
+                tokenDiv.innerHTML = `
+                    <p class="success">✅ 找到Token</p>
+                    <pre>${token.substring(0, 50)}...</pre>
+                `;
+
+                const decoded = parseJwt(token);
+                if (decoded) {
+                    const now = Math.floor(Date.now() / 1000);
+                    const isExpired = decoded.exp < now;
+                    
+                    decodedDiv.innerHTML = `
+                        <p class="${isExpired ? 'error' : 'success'}">
+                            ${isExpired ? '❌ Token已过期' : '✅ Token有效'}
+                        </p>
+                        <pre>${JSON.stringify(decoded, null, 2)}</pre>
+                        <p><strong>用户邮箱:</strong> ${decoded.email}</p>
+                        <p><strong>角色:</strong> ${decoded.role}</p>
+                        <p><strong>Factory ID:</strong> ${decoded.factoryId || '<span class="error">NULL</span>'}</p>
+                        <p><strong>过期时间:</strong> ${new Date(decoded.exp * 1000).toLocaleString()}</p>
+                    `;
+
+                    return { token, decoded };
+                } else {
+                    decodedDiv.innerHTML = '<p class="error">❌ 无法解码Token</p>';
+                    return null;
+                }
+            } catch (e) {
+                tokenDiv.innerHTML = `<p class="error">❌ 解析失败: ${e.message}</p>`;
+                decodedDiv.innerHTML = '<p class="error">❌ 无法解码</p>';
+                return null;
+            }
+        }
+
+        // 测试API
+        async function testAPI(url, name) {
+            const resultsDiv = document.getElementById('apiResults');
+            resultsDiv.innerHTML += `<p>测试 ${name}...</p>`;
+
+            const authData = localStorage.getItem('auth-storage');
+            if (!authData) {
+                resultsDiv.innerHTML += `<p class="error">❌ 没有token</p>`;
+                return;
+            }
+
+            const parsed = JSON.parse(authData);
+            const token = parsed.state?.token;
+
+            try {
+                const response = await fetch(`http://localhost:3000${url}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultsDiv.innerHTML += `
+                        <p class="success">✅ ${name} 成功 (${response.status})</p>
+                        <pre>${JSON.stringify(data, null, 2).substring(0, 500)}...</pre>
+                    `;
+                } else {
+                    resultsDiv.innerHTML += `
+                        <p class="error">❌ ${name} 失败 (${response.status})</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (e) {
+                resultsDiv.innerHTML += `
+                    <p class="error">❌ ${name} 错误: ${e.message}</p>
+                `;
+            }
+        }
+
+        async function testDashboardAPI() {
+            document.getElementById('apiResults').innerHTML = '';
+            await testAPI('/api/reports/dashboard?period=month', 'Dashboard API');
+        }
+
+        async function testROIAPI() {
+            document.getElementById('apiResults').innerHTML = '';
+            await testAPI('/api/reports/dashboard/roi-analysis', 'ROI Analysis API');
+        }
+
+        async function testPipelineAPI() {
+            document.getElementById('apiResults').innerHTML = '';
+            await testAPI('/api/reports/dashboard/pipeline-funnel', 'Pipeline Funnel API');
+        }
+
+        function clearAndReload() {
+            if (confirm('确定要清除Token并刷新吗？')) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        // 页面加载时检查
+        window.onload = function() {
+            checkToken();
+        };
+    </script>
+</body>
+</html>

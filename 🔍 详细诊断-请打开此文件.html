@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 详细诊断 - Token分析</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #667eea;
+            font-size: 32px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+        
+        .status {
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+        
+        .status.warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            border: 2px solid #17a2b8;
+            color: #0c5460;
+        }
+        
+        .token-info {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        
+        .token-field {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+        }
+        
+        .token-field strong {
+            color: #667eea;
+            display: inline-block;
+            width: 120px;
+        }
+        
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-block;
+            text-decoration: none;
+            margin: 10px 10px 10px 0;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .button.danger {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .button.success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .steps {
+            counter-reset: step;
+        }
+        
+        .step {
+            counter-increment: step;
+            padding: 20px;
+            margin: 15px 0;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 8px;
+            position: relative;
+            padding-left: 70px;
+        }
+        
+        .step::before {
+            content: counter(step);
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #667eea;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .icon {
+            font-size: 40px;
+        }
+        
+        code {
+            background: #f8f9fa;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #e83e8c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>
+                <span class="icon">🔍</span>
+                Token 详细诊断
+            </h1>
+            <p class="subtitle">分析当前浏览器中的认证Token状态</p>
+            
+            <div id="diagnosis"></div>
+            
+            <div id="actions" style="margin-top: 30px;"></div>
+        </div>
+        
+        <div class="card">
+            <h1>
+                <span class="icon">📋</span>
+                解决步骤
+            </h1>
+            <div class="steps" id="steps"></div>
+        </div>
+    </div>
+
+    <script>
+        function parseJwt(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function diagnose() {
+            const diagnosisDiv = document.getElementById('diagnosis');
+            const actionsDiv = document.getElementById('actions');
+            const stepsDiv = document.getElementById('steps');
+            
+            // 检查 localStorage
+            const authStorage = localStorage.getItem('auth-storage');
+            const adminStorage = localStorage.getItem('admin-storage');
+            
+            let diagnosis = '';
+            let actions = '';
+            let steps = '';
+            let hasIssue = false;
+            
+            if (!authStorage && !adminStorage) {
+                diagnosis = `
+                    <div class="status info">
+                        <strong>ℹ️ 未找到Token</strong><br>
+                        浏览器中没有存储任何认证Token。<br>
+                        这是正常的，如果您还没有登录的话。
+                    </div>
+                `;
+                
+                steps = `
+                    <div class="step">
+                        <strong>前往登录页面</strong><br>
+                        点击下方按钮前往登录页面
+                    </div>
+                    <div class="step">
+                        <strong>使用测试账号登录</strong><br>
+                        邮箱: <code>pinpai001@gmail.com</code><br>
+                        密码: <code>password123</code>
+                    </div>
+                    <div class="step">
+                        <strong>验证Dashboard</strong><br>
+                        登录后应该能看到完整的Dashboard数据
+                    </div>
+                `;
+                
+                actions = `
+                    <a href="/login" class="button success">前往登录</a>
+                `;
+            } else {
+                // 解析Token
+                let tokenData = null;
+                let tokenSource = '';
+                
+                if (authStorage) {
+                    try {
+                        const parsed = JSON.parse(authStorage);
+                        if (parsed.state && parsed.state.token && parsed.state.token.accessToken) {
+                            tokenData = parseJwt(parsed.state.token.accessToken);
+                            tokenSource = 'auth-storage (工厂客户)';
+                        }
+                    } catch (e) {
+                        console.error('解析 auth-storage 失败:', e);
+                    }
+                }
+                
+                if (!tokenData && adminStorage) {
+                    try {
+                        const parsed = JSON.parse(adminStorage);
+                        if (parsed.state && parsed.state.token && parsed.state.token.accessToken) {
+                            tokenData = parseJwt(parsed.state.token.accessToken);
+                            tokenSource = 'admin-storage (平台管理员)';
+                        }
+                    } catch (e) {
+                        console.error('解析 admin-storage 失败:', e);
+                    }
+                }
+                
+                if (!tokenData) {
+                    diagnosis = `
+                        <div class="status error">
+                            <strong>❌ Token解析失败</strong><br>
+                            找到了存储的Token，但无法解析。Token可能已损坏。
+                        </div>
+                    `;
+                    hasIssue = true;
+                } else {
+                    // 检查Token内容
+                    const hasFactoryId = tokenData.factoryId !== undefined && tokenData.factoryId !== null;
+                    const isExpired = tokenData.exp && (Date.now() / 1000) > tokenData.exp;
+                    
+                    diagnosis += `
+                        <div class="status ${hasFactoryId && !isExpired ? 'success' : 'error'}">
+                            <strong>${hasFactoryId && !isExpired ? '✅ Token状态' : '❌ Token有问题'}</strong><br>
+                            来源: ${tokenSource}
+                        </div>
+                        
+                        <div class="token-info">
+                            <div class="token-field">
+                                <strong>用户ID:</strong> ${tokenData.userId || '❌ 缺失'}
+                            </div>
+                            <div class="token-field">
+                                <strong>邮箱:</strong> ${tokenData.email || '❌ 缺失'}
+                            </div>
+                            <div class="token-field">
+                                <strong>角色:</strong> ${tokenData.role || '❌ 缺失'}
+                            </div>
+                            <div class="token-field" style="background: ${hasFactoryId ? '#d4edda' : '#f8d7da'};">
+                                <strong>工厂ID:</strong> ${hasFactoryId ? '✅ ' + tokenData.factoryId : '❌ 缺失 (这是问题所在!)'}
+                            </div>
+                            <div class="token-field">
+                                <strong>签发时间:</strong> ${tokenData.iat ? new Date(tokenData.iat * 1000).toLocaleString('zh-CN') : '未知'}
+                            </div>
+                            <div class="token-field" style="background: ${isExpired ? '#f8d7da' : '#d4edda'};">
+                                <strong>过期时间:</strong> ${tokenData.exp ? new Date(tokenData.exp * 1000).toLocaleString('zh-CN') : '未知'}
+                                ${isExpired ? ' ❌ 已过期' : ' ✅ 有效'}
+                            </div>
+                        </div>
+                    `;
+                    
+                    if (!hasFactoryId) {
+                        diagnosis += `
+                            <div class="status error">
+                                <strong>🎯 问题确认</strong><br>
+                                您的Token中<span class="highlight">缺少 factoryId 字段</span>！<br><br>
+                                这是一个<strong>旧Token</strong>，在代码修复之前生成的。<br>
+                                后端代码已经修复，但浏览器还在使用旧Token。<br><br>
+                                <strong>解决方案：清除Token并重新登录</strong>
+                            </div>
+                        `;
+                        hasIssue = true;
+                        
+                        steps = `
+                            <div class="step">
+                                <strong>点击"清除Token"按钮</strong><br>
+                                这会删除浏览器中的旧Token
+                            </div>
+                            <div class="step">
+                                <strong>页面会自动跳转到登录页</strong><br>
+                                不要担心，这是正常的
+                            </div>
+                            <div class="step">
+                                <strong>重新登录</strong><br>
+                                使用相同的账号密码登录<br>
+                                邮箱: <code>pinpai001@gmail.com</code><br>
+                                密码: <code>password123</code>
+                            </div>
+                            <div class="step">
+                                <strong>验证修复</strong><br>
+                                登录后，Dashboard应该正常显示，不再有400错误
+                            </div>
+                            <div class="step">
+                                <strong>（可选）再次打开此页面</strong><br>
+                                确认新Token包含 factoryId 字段
+                            </div>
+                        `;
+                        
+                        actions = `
+                            <button class="button danger" onclick="clearAndReload()">
+                                🗑️ 清除Token并重新登录
+                            </button>
+                            <button class="button" onclick="location.reload()">
+                                🔄 刷新诊断
+                            </button>
+                        `;
+                    } else if (isExpired) {
+                        diagnosis += `
+                            <div class="status warning">
+                                <strong>⚠️ Token已过期</strong><br>
+                                您的Token已经过期，需要重新登录。
+                            </div>
+                        `;
+                        hasIssue = true;
+                        
+                        steps = `
+                            <div class="step">
+                                <strong>清除过期Token</strong><br>
+                                点击下方按钮清除过期的Token
+                            </div>
+                            <div class="step">
+                                <strong>重新登录</strong><br>
+                                使用您的账号密码重新登录
+                            </div>
+                        `;
+                        
+                        actions = `
+                            <button class="button danger" onclick="clearAndReload()">
+                                🗑️ 清除过期Token
+                            </button>
+                        `;
+                    } else {
+                        diagnosis += `
+                            <div class="status success">
+                                <strong>✅ Token完全正常</strong><br>
+                                您的Token包含所有必需字段，且未过期。<br><br>
+                                如果Dashboard仍然显示错误，可能是其他问题。<br>
+                                请检查：
+                                <ul style="margin-top: 10px; margin-left: 20px;">
+                                    <li>浏览器控制台是否有错误信息</li>
+                                    <li>Network标签中API请求的响应</li>
+                                    <li>后端服务是否正常运行</li>
+                                </ul>
+                            </div>
+                        `;
+                        
+                        steps = `
+                            <div class="step">
+                                <strong>Token正常</strong><br>
+                                您的Token包含正确的 factoryId，应该可以正常使用
+                            </div>
+                            <div class="step">
+                                <strong>如果仍有问题</strong><br>
+                                请打开浏览器开发者工具 (F12)<br>
+                                查看 Console 和 Network 标签中的错误信息
+                            </div>
+                            <div class="step">
+                                <strong>联系技术支持</strong><br>
+                                提供控制台截图和错误信息
+                            </div>
+                        `;
+                        
+                        actions = `
+                            <a href="/app/dashboard" class="button success">前往Dashboard</a>
+                            <button class="button" onclick="location.reload()">🔄 刷新诊断</button>
+                        `;
+                    }
+                }
+            }
+            
+            diagnosisDiv.innerHTML = diagnosis;
+            actionsDiv.innerHTML = actions;
+            stepsDiv.innerHTML = steps;
+        }
+
+        function clearAndReload() {
+            if (confirm('确定要清除所有Token并重新登录吗？')) {
+                localStorage.removeItem('auth-storage');
+                localStorage.removeItem('admin-storage');
+                sessionStorage.clear();
+                alert('Token已清除！页面将跳转到登录页面。');
+                window.location.href = '/login';
+            }
+        }
+
+        // 页面加载时执行诊断
+        diagnose();
+    </script>
+</body>
+</html>

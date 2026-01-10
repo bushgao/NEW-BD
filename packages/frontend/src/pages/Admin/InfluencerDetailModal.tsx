@@ -70,15 +70,15 @@ export default function InfluencerDetailModal({ open, onClose, influencerId }: P
       <Descriptions.Item label="分类" span={2}>
         {influencer.categories?.length > 0
           ? influencer.categories.map((cat: string) => (
-              <Tag key={cat}>{cat}</Tag>
-            ))
+            <Tag key={cat}>{cat}</Tag>
+          ))
           : '-'}
       </Descriptions.Item>
       <Descriptions.Item label="标签" span={2}>
         {influencer.tags?.length > 0
           ? influencer.tags.map((tag: string) => (
-              <Tag key={tag} color="blue">{tag}</Tag>
-            ))
+            <Tag key={tag} color="blue">{tag}</Tag>
+          ))
           : '-'}
       </Descriptions.Item>
       <Descriptions.Item label="备注" span={2}>
@@ -99,9 +99,9 @@ export default function InfluencerDetailModal({ open, onClose, influencerId }: P
         {influencer.creator?.name || '-'}
       </Descriptions.Item>
       <Descriptions.Item label="添加人角色">
-        {influencer.creator?.role === 'FACTORY_OWNER' ? '工厂老板' : 
-         influencer.creator?.role === 'BUSINESS_STAFF' ? '商务人员' :
-         influencer.creator?.role === 'PLATFORM_ADMIN' ? '平台管理员' : '-'}
+        {influencer.creator?.role === 'BRAND' ? '品牌' :
+          influencer.creator?.role === 'BUSINESS' ? '商务' :
+            influencer.creator?.role === 'PLATFORM_ADMIN' ? '平台管理员' : '-'}
       </Descriptions.Item>
       <Descriptions.Item label="添加时间" span={2}>
         {new Date(influencer.createdAt).toLocaleString('zh-CN')}
@@ -111,7 +111,7 @@ export default function InfluencerDetailModal({ open, onClose, influencerId }: P
 
   const renderVerificationInfo = () => {
     const history = influencer.verificationHistory?.entries || [];
-    
+
     return (
       <div>
         <Descriptions bordered column={2} style={{ marginBottom: 24 }}>
@@ -153,8 +153,8 @@ export default function InfluencerDetailModal({ open, onClose, influencerId }: P
                     entry.action === 'VERIFIED'
                       ? 'green'
                       : entry.action === 'REJECTED'
-                      ? 'red'
-                      : 'blue'
+                        ? 'red'
+                        : 'blue'
                   }
                 >
                   <p>
@@ -176,7 +176,7 @@ export default function InfluencerDetailModal({ open, onClose, influencerId }: P
 
   const renderCollaborations = () => {
     const collaborations = influencer.collaborations || [];
-    
+
     if (collaborations.length === 0) {
       return <Empty description="暂无合作记录" />;
     }

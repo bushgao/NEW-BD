@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Form, Input, Button, Typography, message, Select, Divider } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined, ShopOutlined, LoginOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, MailOutlined, ShopOutlined, LoginOutlined, PhoneOutlined, WechatOutlined } from '@ant-design/icons';
 import { useAuthStore, getDefaultPathForRole } from '../../stores/authStore';
 import * as authService from '../../services/auth.service';
 import type { UserRole } from '@ics/shared';
@@ -16,13 +16,15 @@ interface RegisterFormValues {
   password: string;
   confirmPassword: string;
   name: string;
+  phone: string;
+  wechat: string;
   role: UserRole;
-  factoryName?: string;
+  brandName?: string;
 }
 
 const roleLabels: Record<UserRole, string> = {
-  FACTORY_OWNER: '工厂老板',
-  BUSINESS_STAFF: '商务人员',
+  BRAND: '品牌',
+  BUSINESS: '商务',
   PLATFORM_ADMIN: '平台管理员',
 };
 
@@ -39,12 +41,12 @@ const RegisterPage = () => {
     try {
       const { confirmPassword, ...registerData } = values;
       const response = await authService.register(registerData);
-      
+
       if (response.success && response.data) {
         const { user, tokens } = response.data;
         setAuth(user, tokens);
         message.success('注册成功');
-        
+
         // Redirect based on role
         const defaultPath = getDefaultPathForRole(user.role);
         navigate(defaultPath, { replace: true });
@@ -60,9 +62,9 @@ const RegisterPage = () => {
 
   const handleRoleChange = (role: UserRole) => {
     setSelectedRole(role);
-    // Clear factory name if not factory owner
-    if (role !== 'FACTORY_OWNER') {
-      form.setFieldValue('factoryName', undefined);
+    // Clear brand name if not brand owner
+    if (role !== 'BRAND') {
+      form.setFieldValue('brandName', undefined);
     }
   };
 
@@ -153,6 +155,29 @@ const RegisterPage = () => {
             </Form.Item>
 
             <Form.Item
+              name="phone"
+              rules={[
+                { required: true, message: '请输入手机号' },
+                { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号' },
+              ]}
+            >
+              <Input
+                prefix={<PhoneOutlined style={{ color: '#bfbfbf' }} />}
+                placeholder="手机号"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="wechat"
+              rules={[{ required: true, message: '请输入微信号' }]}
+            >
+              <Input
+                prefix={<WechatOutlined style={{ color: '#bfbfbf' }} />}
+                placeholder="微信号"
+              />
+            </Form.Item>
+
+            <Form.Item
               name="password"
               rules={[
                 { required: true, message: '请输入密码' },
@@ -195,27 +220,27 @@ const RegisterPage = () => {
                 onChange={handleRoleChange}
                 suffixIcon={<UserOutlined style={{ color: '#bfbfbf' }} />}
               >
-                <Option value="FACTORY_OWNER">{roleLabels.FACTORY_OWNER}</Option>
-                <Option value="BUSINESS_STAFF">{roleLabels.BUSINESS_STAFF}</Option>
+                <Option value="BRAND">{roleLabels.BRAND}</Option>
+                <Option value="BUSINESS">{roleLabels.BUSINESS}</Option>
               </Select>
             </Form.Item>
 
-            {selectedRole === 'FACTORY_OWNER' && (
+            {selectedRole === 'BRAND' && (
               <Form.Item
-                name="factoryName"
-                rules={[{ required: true, message: '请输入工厂名称' }]}
+                name="brandName"
+                rules={[{ required: true, message: '请输入品牌名称' }]}
               >
                 <Input
                   prefix={<ShopOutlined style={{ color: '#bfbfbf' }} />}
-                  placeholder="工厂名称"
+                  placeholder="品牌名称"
                 />
               </Form.Item>
             )}
 
-            {selectedRole === 'BUSINESS_STAFF' && (
+            {selectedRole === 'BUSINESS' && (
               <div style={{ marginBottom: 16 }}>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  注意：商务人员需要由工厂老板邀请加入，请联系您的工厂老板获取邀请。
+                  注意：您可以先独立注册使用，后续可加入品牌团队。
                 </Text>
               </div>
             )}
@@ -227,7 +252,6 @@ const RegisterPage = () => {
                 loading={loading}
                 block
                 style={{ height: 44 }}
-                disabled={selectedRole === 'BUSINESS_STAFF'}
               >
                 注册
               </Button>

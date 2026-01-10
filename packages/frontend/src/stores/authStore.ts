@@ -51,7 +51,7 @@ export const useAuthStore = create<AuthState>()(
           console.error('[AuthStore] ❌ Attempted to set invalid token:', token);
           throw new Error('Invalid token: accessToken is null or missing');
         }
-        
+
         console.log('[AuthStore] ✅ Setting valid token');
         set({
           user,
@@ -70,7 +70,7 @@ export const useAuthStore = create<AuthState>()(
           isLoading: false,
         }),
       updateToken: (token) => set({ token }),
-      loginAsDemo: (role: UserRole = 'FACTORY_OWNER') => set({
+      loginAsDemo: (role: UserRole = 'BRAND') => set({
         isAuthenticated: true,
         token: { accessToken: 'demo-token', refreshToken: 'demo-refresh', expiresIn: 3600 },
         user: {
@@ -98,14 +98,16 @@ export const useAuthStore = create<AuthState>()(
 
 /**
  * Get the default redirect path based on user role
+ * 注意：PLATFORM_ADMIN 现在使用独立的认证系统，此处重定向到管理员登录页
  */
 export function getDefaultPathForRole(role: UserRole): string {
   switch (role) {
     case 'PLATFORM_ADMIN':
-      return '/app/admin';
-    case 'FACTORY_OWNER':
+      // 平台管理员应使用独立的登录入口
+      return '/admin/login';
+    case 'BRAND':
       return '/app/dashboard';
-    case 'BUSINESS_STAFF':
+    case 'BUSINESS':
       return '/app/dashboard';
     default:
       return '/app/dashboard';
@@ -118,8 +120,9 @@ export function getDefaultPathForRole(role: UserRole): string {
 export function hasAccessToPath(role: UserRole, path: string): boolean {
   const rolePermissions: Record<UserRole, string[]> = {
     PLATFORM_ADMIN: ['/app/admin', '/app/dashboard', '/app/notifications'],
-    FACTORY_OWNER: ['/app/dashboard', '/app/influencers', '/app/samples', '/app/pipeline', '/app/results', '/app/reports', '/app/notifications'],
-    BUSINESS_STAFF: ['/app/dashboard', '/app/influencers', '/app/pipeline', '/app/results', '/app/notifications'],
+    BRAND: ['/app/dashboard', '/app/influencers', '/app/samples', '/app/pipeline', '/app/results', '/app/reports', '/app/notifications'],
+    BUSINESS: ['/app/dashboard', '/app/influencers', '/app/pipeline', '/app/results', '/app/notifications'],
+    INFLUENCER: [],
   };
 
   const allowedPaths = rolePermissions[role] || [];

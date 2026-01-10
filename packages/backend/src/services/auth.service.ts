@@ -108,21 +108,21 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
   }
 
   // Validate role-specific requirements
-  if (role === 'BUSINESS_STAFF' && !factoryId) {
+  if (role === 'BUSINESS' && !factoryId) {
     throw createBadRequestError('商务人员必须关联工厂');
   }
 
-  if (role === 'FACTORY_OWNER' && !factoryName) {
-    throw createBadRequestError('工厂老板必须提供工厂名称');
+  if (role === 'BRAND' && !factoryName) {
+    throw createBadRequestError('品牌用户必须提供品牌名称');
   }
 
   // Hash password
   const passwordHash = await bcrypt.hash(password, 12);
 
-  // Create user (and factory if FACTORY_OWNER)
+  // Create user (and factory if BRAND)
   let user;
   
-  if (role === 'FACTORY_OWNER') {
+  if (role === 'BRAND') {
     // Create user and factory in a transaction
     const result = await prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
@@ -158,7 +158,7 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
         passwordHash,
         name,
         role,
-        factoryId: role === 'BUSINESS_STAFF' ? factoryId : undefined,
+        factoryId: role === 'BUSINESS' ? factoryId : undefined,
       },
     });
   }
@@ -240,7 +240,8 @@ export async function login(data: LoginInput): Promise<{ user: UserWithoutPasswo
   let factoryId = user.factoryId;
   let factoryInfo = undefined;
   
-  if (user.role === 'FACTORY_OWNER' && user.ownedFactory) {
+  // BRAND (formerly FACTORY_OWNER) - use ownedFactory
+  if (user.role === 'BRAND' && user.ownedFactory) {
     factoryId = user.ownedFactory.id;
     factoryInfo = {
       id: user.ownedFactory.id,
@@ -251,7 +252,9 @@ export async function login(data: LoginInput): Promise<{ user: UserWithoutPasswo
       influencerLimit: user.ownedFactory.influencerLimit,
       _count: user.ownedFactory._count,
     };
-  } else if (user.role === 'BUSINESS_STAFF' && user.factory) {
+  } 
+  // BUSINESS (formerly BUSINESS_STAFF) - use factory relation
+  else if (user.role === 'BUSINESS' && user.factory) {
     factoryInfo = {
       id: user.factory.id,
       name: user.factory.name,
@@ -320,7 +323,8 @@ export async function refreshToken(refreshTokenStr: string): Promise<AuthToken> 
 
     // Determine factoryId based on role
     let factoryId = user.factoryId;
-    if (user.role === 'FACTORY_OWNER' && user.ownedFactory) {
+    // BRAND (formerly FACTORY_OWNER) - use ownedFactory
+    if (user.role === 'BRAND' && user.ownedFactory) {
       factoryId = user.ownedFactory.id;
     }
 
@@ -381,7 +385,8 @@ export async function getCurrentUser(userId: string): Promise<UserWithoutPasswor
   let factoryId = user.factoryId;
   let factoryInfo = undefined;
   
-  if (user.role === 'FACTORY_OWNER' && user.ownedFactory) {
+  // BRAND (formerly FACTORY_OWNER) - use ownedFactory
+  if (user.role === 'BRAND' && user.ownedFactory) {
     factoryId = user.ownedFactory.id;
     factoryInfo = {
       id: user.ownedFactory.id,
@@ -392,7 +397,9 @@ export async function getCurrentUser(userId: string): Promise<UserWithoutPasswor
       influencerLimit: user.ownedFactory.influencerLimit,
       _count: user.ownedFactory._count,
     };
-  } else if (user.role === 'BUSINESS_STAFF' && user.factory) {
+  } 
+  // BUSINESS (formerly BUSINESS_STAFF) - use factory relation
+  else if (user.role === 'BUSINESS' && user.factory) {
     factoryInfo = {
       id: user.factory.id,
       name: user.factory.name,

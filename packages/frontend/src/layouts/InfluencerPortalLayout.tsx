@@ -160,11 +160,8 @@ const InfluencerPortalLayout = () => {
         </Header>
         <Content
           style={{
-            margin: 24,
-            padding: 24,
-            background: '#fff',
-            borderRadius: 8,
             minHeight: 280,
+            background: 'transparent',
           }}
         >
           <Outlet />

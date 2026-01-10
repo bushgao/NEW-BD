@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FileSpreadsheet, MessageCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { FileSpreadsheet, MessageCircle, AlertTriangle, XCircle, ChevronRight } from 'lucide-react';
 
 const PainPoints: React.FC = () => {
   const pains = [
@@ -8,68 +8,71 @@ const PainPoints: React.FC = () => {
       icon: FileSpreadsheet,
       title: "Excel 表格地狱",
       desc: "表格满天飞，版本永远对不上。不仅效率极低，更是数据错误的温床。",
-      highlight: "每天浪费 2+ 小时"
+      highlight: "每天浪费 2+ 小时",
+      color: "text-blue-400"
     },
     {
       icon: MessageCircle,
       title: "微信消息黑洞",
       desc: "承诺埋在聊天记录里，截图找不到。员工离职，核心数据直接清零。",
-      highlight: "客户资产流失"
+      highlight: "客户资产流失",
+      color: "text-green-400"
     },
     {
       icon: XCircle,
       title: "样品有去无回",
       desc: "样品寄出几十份，回收寥寥无几。这是一笔巨大的、被忽视的隐形亏损。",
-      highlight: "每年亏损数万元"
+      highlight: "每年亏损数万元",
+      color: "text-red-400"
     },
     {
       icon: AlertTriangle,
       title: "虚荣 ROI 陷阱",
       desc: "只看 GMV 不看净利？扣除各项隐形费用，你可能其实一直在赔钱赚吆喝。",
-      highlight: "盲目亏损推广"
+      highlight: "盲目亏损推广",
+      color: "text-yellow-400"
     }
   ];
 
   return (
-    <section className="py-32 relative overflow-hidden">
-      {/* Dynamic Background Pattern */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
-            x: [0, 50, 0],
-            y: [0, 30, 0]
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-brand-900/30 rounded-full blur-[100px] mix-blend-screen"
-        />
-      </div>
+    <section className="py-32 relative bg-surface-950">
 
       <div className="container mx-auto px-6 relative z-10">
-        <div className="text-center mb-20">
+        {/* Section Header */}
+        <div className="mb-20 max-w-2xl">
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="flex items-center gap-2 mb-6"
+          >
+            <span className="w-12 h-[1px] bg-brand-500"></span>
+            <span className="text-brand-300 font-mono text-sm uppercase tracking-widest">核心痛点</span>
+          </motion.div>
+
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="inline-block mb-6 px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 font-bold text-sm shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+            className="text-4xl md:text-5xl font-display font-bold text-white mb-6"
           >
-            ⚠️ 警惕低效陷阱
-          </motion.div>
-          <h2 className="text-4xl md:text-5xl font-black mb-6 text-white tracking-tight">
-            别让 <span className="text-red-500 relative inline-block px-2">
-              混乱
-              <svg className="absolute w-full h-3 -bottom-1 left-0 text-red-500/50" viewBox="0 0 100 10" preserveAspectRatio="none">
-                <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="8" fill="none" />
-              </svg>
-            </span> 吞噬你的利润
-          </h2>
-          <p className="text-slate-400 max-w-2xl mx-auto text-xl leading-relaxed">
-            大多数团队在"找达人"上花了大钱，却在"执行管理"上<br className="hidden md:block" />把利润一点点漏光。
-          </p>
+            别让 <span className="text-gradient-brand">混乱</span> <br />
+            蚕食你的利润
+          </motion.h2>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="text-surface-300 text-lg"
+          >
+            大多数团队在 "找达人" 上花了大钱，却在 "执行管理" 上把利润一点点漏光。
+            传统的管理方式已经跟不上你的增长速度。
+          </motion.p>
         </div>
 
+        {/* Bento Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {pains.map((pain, idx) => (
             <motion.div
@@ -78,21 +81,30 @@ const PainPoints: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: idx * 0.1 }}
-              whileHover={{ y: -8, transition: { duration: 0.2 } }}
-              className="bg-white/5 backdrop-blur-md p-8 rounded-3xl border border-white/10 shadow-xl shadow-black/20 relative overflow-hidden group hover:border-brand-500/30 hover:bg-white/10 transition-all duration-300"
+              whileHover={{ y: -5 }}
+              className="glass-panel p-8 rounded-3xl group relative overflow-hidden"
             >
-              {/* Hover gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-brand-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              {/* Background gradient on hover */}
+              <div className="absolute inset-0 bg-gradient-to-br from-brand-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-              <div className="relative z-10">
-                <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 shadow-inner border border-white/5">
-                  <pain.icon className="w-8 h-8 text-brand-300" />
+              <div className="relative z-10 flex flex-col h-full">
+                <div className="mb-6 inline-flex p-3 rounded-2xl bg-surface-800/50 border border-white/5">
+                  <pain.icon className={`w-6 h-6 ${pain.color}`} />
                 </div>
-                <h3 className="text-xl font-black mb-3 text-white">{pain.title}</h3>
-                <p className="text-slate-400 leading-relaxed mb-6 h-20 text-sm md:text-base">{pain.desc}</p>
-                <div className="flex items-center gap-2 text-red-300 font-bold text-sm bg-red-500/10 p-3 rounded-xl border border-red-500/20">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                  {pain.highlight}
+
+                <h3 className="text-xl font-bold text-white mb-3 group-hover:text-brand-200 transition-colors">
+                  {pain.title}
+                </h3>
+
+                <p className="text-surface-400 text-sm leading-relaxed mb-8 flex-grow">
+                  {pain.desc}
+                </p>
+
+                <div className="pt-6 border-t border-white/5 flex items-center justify-between">
+                  <span className={`text-xs font-bold uppercase tracking-wider ${pain.color}`}>
+                    {pain.highlight}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-surface-500 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
             </motion.div>

@@ -285,7 +285,7 @@ export async function listCollaborations(
   const where: any = { factoryId };
 
   // 权限过滤：基础商务只能看到自己的合作
-  if (userId && userRole === 'BUSINESS_STAFF') {
+  if (userId && userRole === 'BUSINESS') {
     // 从数据库获取用户权限
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -764,7 +764,7 @@ export async function getPipelineView(
   const where: any = { factoryId };
 
   // 权限过滤：基础商务只能看到自己的合作
-  if (userId && userRole === 'BUSINESS_STAFF') {
+  if (userId && userRole === 'BUSINESS') {
     // 从数据库获取用户权限
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -1048,7 +1048,7 @@ export async function getFollowUpReminders(
   };
 
   // 权限过滤：基础商务只能看到自己的合作
-  if (userId && userRole === 'BUSINESS_STAFF') {
+  if (userId && userRole === 'BUSINESS') {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { permissions: true },

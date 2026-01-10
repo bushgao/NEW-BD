@@ -10,9 +10,9 @@
     "lint": "eslint src --ext .ts,.tsx"
   },
   "dependencies": {
-    "@ant-design/icons": "^5.3.5",
+    "@ant-design/icons": "^5.6.1",
     "@ics/shared": "*",
-    "antd": "^5.15.3",
+    "antd": "^5.29.3",
     "axios": "^1.6.8",
     "dayjs": "^1.11.10",
     "framer-motion": "^12.23.26",
