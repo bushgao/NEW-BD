@@ -2,7 +2,7 @@ import api from './api';
 
 export interface InfluencerGroup {
   id: string;
-  factoryId: string;
+  brandId: string;
   name: string;
   color: string;
   description: string | null;

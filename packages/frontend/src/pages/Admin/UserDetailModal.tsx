@@ -9,7 +9,7 @@ interface User {
   name: string;
   email: string;
   role: string;
-  factoryId?: string;
+  brandId?: string;
   factoryName?: string;
   isActive: boolean;
   createdAt: string;
@@ -186,7 +186,7 @@ const UserDetailModal = ({ visible, user, onClose, onRefresh }: UserDetailModalP
       <Descriptions.Item label="姓名">{user.name}</Descriptions.Item>
       <Descriptions.Item label="邮箱">{user.email}</Descriptions.Item>
       <Descriptions.Item label="角色">{getRoleLabel(user.role)}</Descriptions.Item>
-      <Descriptions.Item label="所属工厂">{user.factoryName || '-'}</Descriptions.Item>
+      <Descriptions.Item label="所属品牌">{user.brandName || '-'}</Descriptions.Item>
       <Descriptions.Item label="账号状态">
         <Tag color={user.isActive ? 'success' : 'error'}>
           {user.isActive ? '启用' : '禁用'}

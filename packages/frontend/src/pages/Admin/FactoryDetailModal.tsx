@@ -4,40 +4,40 @@ import { EyeOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import {
   getFactoryById,
-  getFactoryStaff,
+  getBrandStaff,
   getStatusColor,
   getStatusText,
   getPlanTypeColor,
   getPlanTypeText,
   type FactoryWithOwner,
-  type FactoryStaffMember,
+  type BrandStaffMember,
 } from '../../services/platform.service';
 import StaffDetailModal from './StaffDetailModal';
 
 interface FactoryDetailModalProps {
-  factoryId: string | null;
+  brandId: string | null;
   visible: boolean;
   onClose: () => void;
 }
 
-const FactoryDetailModal = ({ factoryId, visible, onClose }: FactoryDetailModalProps) => {
+const FactoryDetailModal = ({ brandId, visible, onClose }: FactoryDetailModalProps) => {
   const [loading, setLoading] = useState(false);
   const [factory, setFactory] = useState<FactoryWithOwner | null>(null);
-  const [staff, setStaff] = useState<FactoryStaffMember[]>([]);
+  const [staff, setStaff] = useState<BrandStaffMember[]>([]);
   const [activeTab, setActiveTab] = useState('basic');
   const [staffDetailVisible, setStaffDetailVisible] = useState(false);
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
 
-  // 加载工厂详情
+  // 加载品牌详情
   const loadFactory = async () => {
-    if (!factoryId) return;
+    if (!brandId) return;
 
     setLoading(true);
     try {
-      const data = await getFactoryById(factoryId);
+      const data = await getFactoryById(brandId);
       setFactory(data);
     } catch (error) {
-      message.error('加载工厂详情失败');
+      message.error('加载品牌详情失败');
       console.error(error);
     } finally {
       setLoading(false);
@@ -46,11 +46,11 @@ const FactoryDetailModal = ({ factoryId, visible, onClose }: FactoryDetailModalP
 
   // 加载商务列表
   const loadStaff = async () => {
-    if (!factoryId) return;
+    if (!brandId) return;
 
     setLoading(true);
     try {
-      const data = await getFactoryStaff(factoryId);
+      const data = await getBrandStaff(brandId);
       setStaff(data);
     } catch (error) {
       message.error('加载商务列表失败');
@@ -61,11 +61,11 @@ const FactoryDetailModal = ({ factoryId, visible, onClose }: FactoryDetailModalP
   };
 
   useEffect(() => {
-    if (visible && factoryId) {
+    if (visible && brandId) {
       loadFactory();
       loadStaff();
     }
-  }, [visible, factoryId]);
+  }, [visible, brandId]);
 
   // 查看商务详情
   const handleViewStaff = (staffId: string) => {
@@ -74,7 +74,7 @@ const FactoryDetailModal = ({ factoryId, visible, onClose }: FactoryDetailModalP
   };
 
   // 商务列表列定义
-  const staffColumns: ColumnsType<FactoryStaffMember> = [
+  const staffColumns: ColumnsType<BrandStaffMember> = [
     {
       title: '姓名',
       dataIndex: 'name',
@@ -106,7 +106,7 @@ const FactoryDetailModal = ({ factoryId, visible, onClose }: FactoryDetailModalP
     {
       title: '操作',
       key: 'actions',
-      render: (_: any, record: FactoryStaffMember) => (
+      render: (_: any, record: BrandStaffMember) => (
         <Button
           type="link"
           size="small"
@@ -127,7 +127,7 @@ const FactoryDetailModal = ({ factoryId, visible, onClose }: FactoryDetailModalP
         <Spin spinning={loading}>
           {factory && (
             <Descriptions bordered column={2}>
-              <Descriptions.Item label="工厂名称">{factory.name}</Descriptions.Item>
+              <Descriptions.Item label="品牌名称">{factory.name}</Descriptions.Item>
               <Descriptions.Item label="状态">
                 <Tag color={getStatusColor(factory.status)}>
                   {getStatusText(factory.status)}
@@ -180,7 +180,7 @@ const FactoryDetailModal = ({ factoryId, visible, onClose }: FactoryDetailModalP
   return (
     <>
       <Modal
-        title={factory ? `工厂详情 - ${factory.name}` : '工厂详情'}
+        title={factory ? `品牌详情 - ${factory.name}` : '品牌详情'}
         open={visible}
         onCancel={onClose}
         footer={null}

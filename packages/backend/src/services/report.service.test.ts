@@ -26,7 +26,7 @@ describe('报表与看板服务测试', () => {
     testOwnerId = testOwner.id;
 
     // 创建测试工厂
-    const testFactory = await prisma.factory.create({
+    const testFactory = await prisma.brand.create({
       data: {
         name: 'Report Test Factory',
         ownerId: testOwner.id,
@@ -41,7 +41,7 @@ describe('报表与看板服务测试', () => {
     // 更新老板关联工厂
     await prisma.user.update({
       where: { id: testOwner.id },
-      data: { factoryId: testFactory.id },
+      data: { brandId: testFactory.id },
     });
 
     // 创建测试商务人员1
@@ -51,7 +51,7 @@ describe('报表与看板服务测试', () => {
         passwordHash: 'test-hash',
         name: '商务员工1',
         role: 'BUSINESS_STAFF',
-        factoryId: testFactory.id,
+        brandId: testFactory.id,
       },
     });
     testStaffId1 = testStaff1.id;
@@ -63,7 +63,7 @@ describe('报表与看板服务测试', () => {
         passwordHash: 'test-hash',
         name: '商务员工2',
         role: 'BUSINESS_STAFF',
-        factoryId: testFactory.id,
+        brandId: testFactory.id,
       },
     });
     testStaffId2 = testStaff2.id;
@@ -71,7 +71,7 @@ describe('报表与看板服务测试', () => {
     // 创建测试达人
     const testInfluencer = await prisma.influencer.create({
       data: {
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '报表测试达人',
         platform: 'DOUYIN',
         platformId: `report-test-${Date.now()}`,
@@ -84,7 +84,7 @@ describe('报表与看板服务测试', () => {
     // 创建测试样品
     const testSample = await prisma.sample.create({
       data: {
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         sku: 'REPORT-TEST-001',
         name: '报表测试样品',
         unitCost: 5000, // 50元
@@ -97,24 +97,24 @@ describe('报表与看板服务测试', () => {
 
   afterAll(async () => {
     // 清理测试数据 - 注意顺序，先删除依赖的数据
-    await prisma.collaborationResult.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.followUpRecord.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.stageHistory.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.sampleDispatch.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.collaboration.deleteMany({ where: { factoryId: testFactoryId } });
-    await prisma.sample.deleteMany({ where: { factoryId: testFactoryId } });
-    await prisma.influencer.deleteMany({ where: { factoryId: testFactoryId } });
+    await prisma.collaborationResult.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.followUpRecord.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.stageHistory.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.sampleDispatch.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.collaboration.deleteMany({ where: { brandId: testFactoryId } });
+    await prisma.sample.deleteMany({ where: { brandId: testFactoryId } });
+    await prisma.influencer.deleteMany({ where: { brandId: testFactoryId } });
     
     // 先删除商务人员（他们引用了工厂）
     await prisma.user.deleteMany({ 
       where: { 
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         id: { not: testOwnerId } // 不删除老板，因为工厂引用了他
       } 
     });
     
     // 删除工厂
-    await prisma.factory.delete({ where: { id: testFactoryId } });
+    await prisma.brand.delete({ where: { id: testFactoryId } });
     
     // 最后删除老板
     await prisma.user.delete({ where: { id: testOwnerId } });
@@ -124,11 +124,11 @@ describe('报表与看板服务测试', () => {
 
   beforeEach(async () => {
     // 每个测试前清理合作相关数据
-    await prisma.collaborationResult.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.followUpRecord.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.stageHistory.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.sampleDispatch.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.collaboration.deleteMany({ where: { factoryId: testFactoryId } });
+    await prisma.collaborationResult.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.followUpRecord.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.stageHistory.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.sampleDispatch.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.collaboration.deleteMany({ where: { brandId: testFactoryId } });
   });
 
   describe('商务绩效统计正确性', () => {
@@ -136,13 +136,13 @@ describe('报表与看板服务测试', () => {
       // 商务1创建2个合作
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'LEAD',
       });
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'CONTACTED',
       });
@@ -150,7 +150,7 @@ describe('报表与看板服务测试', () => {
       // 商务2创建1个合作
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId2,
         stage: 'LEAD',
       });
@@ -169,13 +169,13 @@ describe('报表与看板服务测试', () => {
       // 商务1：1个线索，1个已联系
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'LEAD',
       });
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'CONTACTED',
       });
@@ -191,19 +191,19 @@ describe('报表与看板服务测试', () => {
       // 创建不同阶段的合作
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'SAMPLED',
       });
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'PUBLISHED',
       });
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'REVIEWED',
       });
@@ -219,7 +219,7 @@ describe('报表与看板服务测试', () => {
       // 创建合作并录入结果
       const collab = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'PUBLISHED',
       });
@@ -268,25 +268,25 @@ describe('报表与看板服务测试', () => {
       // 创建不同阶段的合作
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'LEAD',
       });
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'LEAD',
       });
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'CONTACTED',
       });
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'SAMPLED',
       });
@@ -303,7 +303,7 @@ describe('报表与看板服务测试', () => {
       // 创建超期合作
       const collab = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'CONTACTED',
       });
@@ -323,7 +323,7 @@ describe('报表与看板服务测试', () => {
     it('应该正确计算寄样成本', async () => {
       const collab = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'SAMPLED',
       });
@@ -353,7 +353,7 @@ describe('报表与看板服务测试', () => {
     it('应该正确计算整体ROI', async () => {
       const collab = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'PUBLISHED',
       });
@@ -399,7 +399,7 @@ describe('报表与看板服务测试', () => {
       // 商务1创建成交合作
       const collab1 = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'PUBLISHED',
       });
@@ -449,7 +449,7 @@ describe('报表与看板服务测试', () => {
       // 创建一些测试数据
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'CONTACTED',
       });
@@ -466,7 +466,7 @@ describe('报表与看板服务测试', () => {
     it('应该能导出ROI报表为Excel', async () => {
       const collab = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'PUBLISHED',
       });
@@ -510,7 +510,7 @@ describe('报表与看板服务测试', () => {
     it('应该能导出合作记录为Excel', async () => {
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'SAMPLED',
       });
@@ -532,7 +532,7 @@ describe('报表与看板服务测试', () => {
 
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testStaffId1,
         stage: 'CONTACTED',
       });

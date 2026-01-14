@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Table, Input, Select, Button, Tag, Space, message } from 'antd';
+import { Table, Input, Select, Button, Tag, Space, message, Modal } from 'antd';
 import { Card, CardContent } from '../../components/ui/Card';
 import { useTheme } from '../../theme/ThemeProvider';
 import { SearchOutlined, EyeOutlined, StopOutlined, CheckCircleOutlined } from '@ant-design/icons';
@@ -15,7 +15,7 @@ interface User {
   name: string;
   email: string;
   role: string;
-  factoryId?: string;
+  brandId?: string;
   factoryName?: string;
   isActive: boolean;
   createdAt: string;
@@ -80,11 +80,31 @@ const Users = () => {
     }
   };
 
+  const handleDeleteUser = (user: User) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除用户「${user.name}」吗？此操作不可恢复。`,
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await platformService.deleteUser(user.id);
+          message.success('删除成功');
+          fetchUsers();
+        } catch (error: any) {
+          message.error(error.message || '删除失败');
+        }
+      },
+    });
+  };
+
   const getRoleLabel = (role: string) => {
     const roleMap: Record<string, { label: string; color: string }> = {
       PLATFORM_ADMIN: { label: '平台管理员', color: 'purple' },
       BRAND: { label: '品牌', color: 'blue' },
       BUSINESS: { label: '商务', color: 'green' },
+      INFLUENCER: { label: '达人', color: 'cyan' },
     };
     return roleMap[role] || { label: role, color: 'default' };
   };
@@ -113,7 +133,7 @@ const Users = () => {
       },
     },
     {
-      title: '所属工厂',
+      title: '所属品牌',
       dataIndex: 'factoryName',
       key: 'factoryName',
       width: 150,
@@ -147,7 +167,7 @@ const Users = () => {
     {
       title: '操作',
       key: 'actions',
-      width: 150,
+      width: 200,
       fixed: 'right',
       render: (_, record) => (
         <Space>
@@ -168,6 +188,16 @@ const Users = () => {
           >
             {record.isActive ? '禁用' : '启用'}
           </Button>
+          {record.role !== 'PLATFORM_ADMIN' && (
+            <Button
+              type="link"
+              size="small"
+              danger
+              onClick={() => handleDeleteUser(record)}
+            >
+              删除
+            </Button>
+          )}
         </Space>
       ),
     },
@@ -205,6 +235,7 @@ const Users = () => {
               <Option value="PLATFORM_ADMIN">平台管理员</Option>
               <Option value="BRAND">品牌</Option>
               <Option value="BUSINESS">商务</Option>
+              <Option value="INFLUENCER">达人</Option>
             </Select>
             <Select
               placeholder="状态筛选"

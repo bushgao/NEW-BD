@@ -8,11 +8,11 @@ import { validateQuota } from '../services/platform.service';
 export function checkQuota(type: 'staff' | 'influencer') {
   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
-      // Get factoryId from user context or request body
-      const factoryId = req.user?.factoryId || req.body.factoryId;
+      // Get brandId from user context or request body
+      const brandId = req.user?.brandId || req.body.brandId;
 
-      if (!factoryId) {
-        // If no factoryId, skip quota check (will be handled by other validation)
+      if (!brandId) {
+        // If no brandId, skip quota check (will be handled by other validation)
         return next();
       }
 
@@ -21,7 +21,7 @@ export function checkQuota(type: 'staff' | 'influencer') {
         return next();
       }
 
-      await validateQuota(factoryId, type);
+      await validateQuota(brandId, type);
       next();
     } catch (error) {
       next(error);

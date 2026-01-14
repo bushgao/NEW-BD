@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Card,
   List,
   Button,
   Space,
@@ -13,6 +12,8 @@ import {
   Tabs,
   Badge,
 } from 'antd';
+import { Card, CardTitle, CardContent } from '../../components/ui/Card';
+import { useTheme } from '../../theme/ThemeProvider';
 import {
   BellOutlined,
   CheckOutlined,
@@ -69,7 +70,7 @@ const NotificationsPage = () => {
         page,
         pageSize,
       };
-      
+
       if (activeTab === 'unread') {
         filter.isRead = false;
       }
@@ -287,66 +288,108 @@ const NotificationsPage = () => {
     },
   ];
 
-  return (
-    <div>
-      <Card
-        title={
-          <Space>
-            <BellOutlined />
-            <span>通知中心</span>
-          </Space>
-        }
-        extra={
-          <Space>
-            <Button
-              icon={<CheckOutlined />}
-              onClick={handleMarkAllAsRead}
-              disabled={unreadCount === 0}
-            >
-              全部已读
-            </Button>
-            <Popconfirm
-              title="确定清空所有已读通知？"
-              onConfirm={handleClearRead}
-              okText="确定"
-              cancelText="取消"
-            >
-              <Button icon={<ClearOutlined />}>清空已读</Button>
-            </Popconfirm>
-          </Space>
-        }
-      >
-        <Tabs
-          activeKey={activeTab}
-          onChange={(key) => {
-            setActiveTab(key as 'all' | 'unread');
-            setPage(1);
-          }}
-          items={tabItems}
-        />
+  const { theme } = useTheme();
 
-        <Spin spinning={loading}>
-          {notifications.length === 0 ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={activeTab === 'unread' ? '暂无未读通知' : '暂无通知'}
-            />
-          ) : (
-            <List
-              dataSource={notifications}
-              renderItem={renderNotificationItem}
-              pagination={{
-                current: page,
-                pageSize,
-                total,
-                onChange: setPage,
-                showSizeChanger: false,
-                showTotal: (total) => `共 ${total} 条通知`,
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
+        position: 'relative',
+        padding: '40px',
+        margin: '-24px',
+      }}
+    >
+      {/* 背景装饰元素 */}
+      <div style={{
+        position: 'absolute',
+        top: '10%',
+        left: '5%',
+        width: '400px',
+        height: '400px',
+        background: 'linear-gradient(135deg, rgba(90, 200, 250, 0.08), rgba(191, 90, 242, 0.08))',
+        borderRadius: '50%',
+        filter: 'blur(80px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: '40%',
+        right: '10%',
+        width: '500px',
+        height: '500px',
+        background: 'linear-gradient(135deg, rgba(255, 107, 107, 0.08), rgba(255, 217, 61, 0.08))',
+        borderRadius: '50%',
+        filter: 'blur(100px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <Card
+          variant="elevated"
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+            <CardTitle level={4} style={{ margin: 0 }}>
+              <Space>
+                <BellOutlined />
+                <span>通知中心</span>
+              </Space>
+            </CardTitle>
+            <Space>
+              <Button
+                icon={<CheckOutlined />}
+                onClick={handleMarkAllAsRead}
+                disabled={unreadCount === 0}
+              >
+                全部已读
+              </Button>
+              <Popconfirm
+                title="确定清空所有已读通知？"
+                onConfirm={handleClearRead}
+                okText="确定"
+                cancelText="取消"
+              >
+                <Button icon={<ClearOutlined />}>清空已读</Button>
+              </Popconfirm>
+            </Space>
+          </div>
+
+          <CardContent>
+            <Tabs
+              activeKey={activeTab}
+              onChange={(key) => {
+                setActiveTab(key as 'all' | 'unread');
+                setPage(1);
               }}
+              items={tabItems}
             />
-          )}
-        </Spin>
-      </Card>
+
+            <Spin spinning={loading}>
+              {notifications.length === 0 ? (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={activeTab === 'unread' ? '暂无未读通知' : '暂无通知'}
+                />
+              ) : (
+                <List
+                  dataSource={notifications}
+                  renderItem={renderNotificationItem}
+                  pagination={{
+                    current: page,
+                    pageSize,
+                    total,
+                    onChange: setPage,
+                    showSizeChanger: false,
+                    showTotal: (total) => `共 ${total} 条通知`,
+                  }}
+                />
+              )}
+            </Spin>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

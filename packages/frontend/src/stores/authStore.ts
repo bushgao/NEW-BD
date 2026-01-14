@@ -7,7 +7,7 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
-  factoryId?: string;
+  brandId?: string;
   factory?: {
     id: string;
     name: string;
@@ -78,7 +78,7 @@ export const useAuthStore = create<AuthState>()(
           name: 'Demo User',
           email: 'demo@example.com',
           role: role,
-          factoryId: 'demo-factory',
+          brandId: 'demo-factory',
         }
       }),
       setHasHydrated: (state) => {
@@ -109,6 +109,9 @@ export function getDefaultPathForRole(role: UserRole): string {
       return '/app/dashboard';
     case 'BUSINESS':
       return '/app/dashboard';
+    case 'INFLUENCER':
+      // 达人用户跳转到达人端口
+      return '/influencer-portal';
     default:
       return '/app/dashboard';
   }

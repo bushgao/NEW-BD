@@ -1,7 +1,13 @@
+/**
+ * 注册页面
+ * 
+ * 【简化版】只需：昵称、手机号、密码、确认密码、角色
+ */
+
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Form, Input, Button, Typography, message, Select, Divider } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined, ShopOutlined, LoginOutlined, PhoneOutlined, WechatOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, PhoneOutlined, ShopOutlined, LoginOutlined } from '@ant-design/icons';
 import { useAuthStore, getDefaultPathForRole } from '../../stores/authStore';
 import * as authService from '../../services/auth.service';
 import type { UserRole } from '@ics/shared';
@@ -12,20 +18,18 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 interface RegisterFormValues {
-  email: string;
+  name: string;        // 昵称
+  phone: string;       // 手机号
   password: string;
   confirmPassword: string;
-  name: string;
-  phone: string;
-  wechat: string;
   role: UserRole;
-  brandName?: string;
+  brandName?: string;  // 品牌名称（仅品牌角色需要）
 }
 
-const roleLabels: Record<UserRole, string> = {
+const roleLabels: Record<string, string> = {
   BRAND: '品牌',
   BUSINESS: '商务',
-  PLATFORM_ADMIN: '平台管理员',
+  INFLUENCER: '达人',
 };
 
 const RegisterPage = () => {
@@ -40,7 +44,11 @@ const RegisterPage = () => {
     setLoading(true);
     try {
       const { confirmPassword, ...registerData } = values;
-      const response = await authService.register(registerData);
+      // 使用手机号生成默认邮箱（后端兼容）
+      const response = await authService.register({
+        ...registerData,
+        email: `${registerData.phone}@phone.local`,
+      });
 
       if (response.success && response.data) {
         const { user, tokens } = response.data;
@@ -62,7 +70,6 @@ const RegisterPage = () => {
 
   const handleRoleChange = (role: UserRole) => {
     setSelectedRole(role);
-    // Clear brand name if not brand owner
     if (role !== 'BRAND') {
       form.setFieldValue('brandName', undefined);
     }
@@ -99,7 +106,7 @@ const RegisterPage = () => {
         right: '10%',
         width: '400px',
         height: '400px',
-        background: 'linear-gradient(135deg, rgba(255, 107, 107, 0.12), rgba(255, 217, 61, 0.12))',
+        background: 'linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(255, 217, 61, 0.1))',
         borderRadius: '50%',
         filter: 'blur(80px)',
         pointerEvents: 'none',
@@ -130,27 +137,16 @@ const RegisterPage = () => {
             autoComplete="off"
             size="large"
             layout="vertical"
+            requiredMark={false}
           >
             <Form.Item
-              name="email"
-              rules={[
-                { required: true, message: '请输入邮箱' },
-                { type: 'email', message: '请输入有效的邮箱地址' },
-              ]}
-            >
-              <Input
-                prefix={<MailOutlined style={{ color: '#bfbfbf' }} />}
-                placeholder="邮箱"
-              />
-            </Form.Item>
-
-            <Form.Item
               name="name"
-              rules={[{ required: true, message: '请输入姓名' }]}
+              rules={[{ required: true, message: '请输入昵称' }]}
             >
               <Input
                 prefix={<UserOutlined style={{ color: '#bfbfbf' }} />}
-                placeholder="姓名"
+                placeholder="昵称"
+                style={{ borderRadius: theme.borderRadius.sm }}
               />
             </Form.Item>
 
@@ -158,22 +154,13 @@ const RegisterPage = () => {
               name="phone"
               rules={[
                 { required: true, message: '请输入手机号' },
-                { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号' },
+                { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' },
               ]}
             >
               <Input
                 prefix={<PhoneOutlined style={{ color: '#bfbfbf' }} />}
                 placeholder="手机号"
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="wechat"
-              rules={[{ required: true, message: '请输入微信号' }]}
-            >
-              <Input
-                prefix={<WechatOutlined style={{ color: '#bfbfbf' }} />}
-                placeholder="微信号"
+                style={{ borderRadius: theme.borderRadius.sm }}
               />
             </Form.Item>
 
@@ -181,12 +168,13 @@ const RegisterPage = () => {
               name="password"
               rules={[
                 { required: true, message: '请输入密码' },
-                { min: 6, message: '密码长度至少为6位' },
+                { min: 6, message: '密码至少6位' },
               ]}
             >
               <Input.Password
                 prefix={<LockOutlined style={{ color: '#bfbfbf' }} />}
                 placeholder="密码"
+                style={{ borderRadius: theme.borderRadius.sm }}
               />
             </Form.Item>
 
@@ -200,7 +188,7 @@ const RegisterPage = () => {
                     if (!value || getFieldValue('password') === value) {
                       return Promise.resolve();
                     }
-                    return Promise.reject(new Error('两次输入的密码不一致'));
+                    return Promise.reject(new Error('两次密码不一致'));
                   },
                 }),
               ]}
@@ -208,6 +196,7 @@ const RegisterPage = () => {
               <Input.Password
                 prefix={<LockOutlined style={{ color: '#bfbfbf' }} />}
                 placeholder="确认密码"
+                style={{ borderRadius: theme.borderRadius.sm }}
               />
             </Form.Item>
 
@@ -218,10 +207,11 @@ const RegisterPage = () => {
               <Select
                 placeholder="选择角色"
                 onChange={handleRoleChange}
-                suffixIcon={<UserOutlined style={{ color: '#bfbfbf' }} />}
+                style={{ borderRadius: theme.borderRadius.sm }}
               >
-                <Option value="BRAND">{roleLabels.BRAND}</Option>
-                <Option value="BUSINESS">{roleLabels.BUSINESS}</Option>
+                {Object.entries(roleLabels).map(([value, label]) => (
+                  <Option key={value} value={value}>{label}</Option>
+                ))}
               </Select>
             </Form.Item>
 
@@ -233,16 +223,9 @@ const RegisterPage = () => {
                 <Input
                   prefix={<ShopOutlined style={{ color: '#bfbfbf' }} />}
                   placeholder="品牌名称"
+                  style={{ borderRadius: theme.borderRadius.sm }}
                 />
               </Form.Item>
-            )}
-
-            {selectedRole === 'BUSINESS' && (
-              <div style={{ marginBottom: 16 }}>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  注意：您可以先独立注册使用，后续可加入品牌团队。
-                </Text>
-              </div>
             )}
 
             <Form.Item style={{ marginBottom: 16 }}>
@@ -251,7 +234,10 @@ const RegisterPage = () => {
                 htmlType="submit"
                 loading={loading}
                 block
-                style={{ height: 44 }}
+                style={{
+                  height: 44,
+                  borderRadius: theme.borderRadius.sm,
+                }}
               >
                 注册
               </Button>

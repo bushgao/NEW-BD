@@ -237,6 +237,107 @@ export async function loginWithCode(
 }
 
 /**
+ * 密码登录（用于通过主系统注册的达人用户）
+ * 
+ * 验证 User 表中 role=INFLUENCER 的用户，并为其创建/获取 GlobalInfluencer 和 InfluencerContact
+ */
+export async function loginWithPassword(
+  email: string,
+  password: string,
+  deviceInfo: DeviceInfo
+): Promise<{ contact: InfluencerContactInfo; tokens: InfluencerAuthToken }> {
+  const bcrypt = await import('bcryptjs');
+
+  // 查找 INFLUENCER 角色用户
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    throw createBadRequestError('邮箱或密码错误');
+  }
+
+  if (user.role as string !== 'INFLUENCER') {
+    throw createBadRequestError('该账号不是达人账号');
+  }
+
+  // 验证密码
+  const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+  if (!isPasswordValid) {
+    throw createBadRequestError('邮箱或密码错误');
+  }
+
+  // 从邮箱提取手机号（格式：phone@phone.local）
+  const phone = email.replace('@phone.local', '');
+
+  // 查找或创建达人账号
+  let account = await prisma.influencerAccount.findFirst({
+    where: { primaryPhone: phone },
+    include: { contacts: true },
+  });
+
+  if (!account) {
+    // 创建达人账号和联系人
+    account = await prisma.influencerAccount.create({
+      data: {
+        primaryPhone: phone,
+        contacts: {
+          create: {
+            phone,
+            name: user.name,
+            contactType: 'SELF',
+          },
+        },
+      },
+      include: { contacts: true },
+    });
+  }
+
+  // 获取或创建联系人
+  let contact = account.contacts.find((c: { phone: string }) => c.phone === phone);
+  if (!contact) {
+    contact = await prisma.influencerContact.create({
+      data: {
+        accountId: account.id,
+        phone,
+        name: user.name,
+        contactType: 'SELF',
+      },
+    });
+  }
+
+  // 更新最后登录时间
+  await prisma.influencerContact.update({
+    where: { id: contact.id },
+    data: { lastLoginAt: new Date() },
+  });
+
+  // 记录登录日志
+  await prisma.influencerLoginLog.create({
+    data: {
+      contactId: contact.id,
+      userAgent: deviceInfo.userAgent,
+      ip: deviceInfo.ip,
+      platform: deviceInfo.platform || 'web',
+    },
+  });
+
+  const contactInfo: InfluencerContactInfo = {
+    id: contact.id,
+    accountId: account.id,
+    phone: contact.phone,
+    name: contact.name,
+    contactType: contact.contactType,
+    createdAt: contact.createdAt,
+    lastLoginAt: new Date(),
+  };
+
+  const tokens = generateInfluencerTokens(contactInfo);
+
+  return { contact: contactInfo, tokens };
+}
+
+/**
  * 验证达人 Token
  */
 export function verifyInfluencerToken(token: string): InfluencerTokenPayload {

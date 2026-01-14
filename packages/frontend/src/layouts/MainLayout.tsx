@@ -89,7 +89,12 @@ const getMenuItems = (role: string): MenuProps['items'] => {
     {
       key: '/app/admin/factories',
       icon: <ShopOutlined />,
-      label: '工厂管理',
+      label: '品牌管理',
+    },
+    {
+      key: '/app/admin/independent',
+      icon: <UserOutlined />,
+      label: '独立商务',
     },
     {
       key: '/app/admin/influencers',

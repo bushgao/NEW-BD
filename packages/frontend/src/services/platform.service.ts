@@ -1,9 +1,9 @@
 import { request } from './api';
-import type { FactoryStatus, PlanType, PaginatedResult } from '@ics/shared';
+import type { BrandStatus, PlanType, PaginatedResult } from '@ics/shared';
 
 // ============ Types ============
 
-export interface FactoryOwner {
+export interface BrandOwner {
   id: string;
   name: string;
   email: string;
@@ -13,13 +13,13 @@ export interface FactoryWithOwner {
   id: string;
   name: string;
   ownerId: string;
-  status: FactoryStatus;
+  status: BrandStatus;
   planType: PlanType;
   staffLimit: number;
   influencerLimit: number;
   createdAt: string;
   updatedAt: string;
-  owner: FactoryOwner;
+  owner: BrandOwner;
   _count?: {
     staff: number;
     influencers: number;
@@ -47,11 +47,12 @@ export interface PlatformStats {
   totalUsers: number;
   totalCollaborations: number;
   totalInfluencers: number;
+  independentBusinessUsers: number; // 独立商务数量
   factoriesByPlan: Record<PlanType, number>;
 }
 
 export interface FactoryFilter {
-  status?: FactoryStatus;
+  status?: BrandStatus;
   planType?: PlanType;
   keyword?: string;
   page?: number;
@@ -59,7 +60,7 @@ export interface FactoryFilter {
 }
 
 export interface UpdateFactoryInput {
-  status?: FactoryStatus;
+  status?: BrandStatus;
   planType?: PlanType;
   staffLimit?: number;
   influencerLimit?: number;
@@ -114,10 +115,10 @@ export async function listFactories(
 /**
  * 获取工厂详情
  */
-export async function getFactoryById(factoryId: string): Promise<FactoryWithOwner> {
+export async function getFactoryById(brandId: string): Promise<FactoryWithOwner> {
   const response = await request<FactoryWithOwner>(
     'get',
-    `/platform/factories/${factoryId}`
+    `/platform/factories/${brandId}`
   );
 
   if (!response.success || !response.data) {
@@ -131,13 +132,13 @@ export async function getFactoryById(factoryId: string): Promise<FactoryWithOwne
  * 审核工厂入驻申请
  */
 export async function reviewFactory(
-  factoryId: string,
+  brandId: string,
   status: 'APPROVED' | 'REJECTED',
   reason?: string
 ): Promise<FactoryWithOwner> {
   const response = await request<FactoryWithOwner>(
     'post',
-    `/platform/factories/${factoryId}/review`,
+    `/platform/factories/${brandId}/review`,
     { status, reason }
   );
 
@@ -152,12 +153,12 @@ export async function reviewFactory(
  * 更新工厂信息
  */
 export async function updateFactory(
-  factoryId: string,
+  brandId: string,
   data: UpdateFactoryInput
 ): Promise<FactoryWithOwner> {
   const response = await request<FactoryWithOwner>(
     'put',
-    `/platform/factories/${factoryId}`,
+    `/platform/factories/${brandId}`,
     data
   );
 
@@ -171,13 +172,13 @@ export async function updateFactory(
 /**
  * 暂停/恢复工厂
  */
-export async function toggleFactoryStatus(
-  factoryId: string,
+export async function toggleBrandStatus(
+  brandId: string,
   suspend: boolean
 ): Promise<FactoryWithOwner> {
   const response = await request<FactoryWithOwner>(
     'post',
-    `/platform/factories/${factoryId}/toggle-status`,
+    `/platform/factories/${brandId}/toggle-status`,
     { suspend }
   );
 
@@ -186,6 +187,20 @@ export async function toggleFactoryStatus(
   }
 
   return response.data;
+}
+
+/**
+ * 删除品牌
+ */
+export async function deleteBrand(brandId: string): Promise<void> {
+  const response = await request<{ message: string }>(
+    'delete',
+    `/platform/factories/${brandId}`
+  );
+
+  if (!response.success) {
+    throw new Error(response.error?.message || '删除品牌失败');
+  }
 }
 
 // ============ Plan Configuration ============
@@ -274,12 +289,12 @@ export async function deletePlanConfig(planType: PlanType): Promise<void> {
  * 检查工厂配额
  */
 export async function checkFactoryQuota(
-  factoryId: string,
+  brandId: string,
   type: 'staff' | 'influencer'
 ): Promise<QuotaInfo> {
   const response = await request<QuotaInfo>(
     'get',
-    `/platform/factories/${factoryId}/quota`,
+    `/platform/factories/${brandId}/quota`,
     { type }
   );
 
@@ -307,7 +322,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
 
 // ============ Factory Staff Management ============
 
-export interface FactoryStaffMember {
+export interface BrandStaffMember {
   id: string;
   name: string;
   email: string;
@@ -324,7 +339,7 @@ export interface StaffWorkStats {
   name: string;
   email: string;
   role: string;
-  factoryId: string;
+  brandId: string;
   factoryName: string;
   createdAt: string;
   influencersAdded: number;
@@ -336,10 +351,10 @@ export interface StaffWorkStats {
 /**
  * 获取工厂的商务列表
  */
-export async function getFactoryStaff(factoryId: string): Promise<FactoryStaffMember[]> {
-  const response = await request<FactoryStaffMember[]>(
+export async function getBrandStaff(brandId: string): Promise<BrandStaffMember[]> {
+  const response = await request<BrandStaffMember[]>(
     'get',
-    `/platform/factories/${factoryId}/staff`
+    `/platform/factories/${brandId}/staff`
   );
 
   if (!response.success || !response.data) {
@@ -412,7 +427,7 @@ export interface UserListItem {
   name: string;
   email: string;
   role: string;
-  factoryId?: string;
+  brandId?: string;
   factoryName?: string;
   isActive: boolean;
   createdAt: string;
@@ -488,6 +503,20 @@ export async function toggleUserStatus(userId: string, isActive: boolean): Promi
   }
 }
 
+/**
+ * 删除用户
+ */
+export async function deleteUser(userId: string): Promise<void> {
+  const response = await request<{ message: string }>(
+    'delete',
+    `/platform/users/${userId}`
+  );
+
+  if (!response.success) {
+    throw new Error(response.error?.message || '删除用户失败');
+  }
+}
+
 // ============ Helper Functions ============
 
 /**
@@ -500,8 +529,8 @@ export function formatMoney(cents: number): string {
 /**
  * 获取状态标签颜色
  */
-export function getStatusColor(status: FactoryStatus): string {
-  const colors: Record<FactoryStatus, string> = {
+export function getStatusColor(status: BrandStatus): string {
+  const colors: Record<BrandStatus, string> = {
     PENDING: 'orange',
     APPROVED: 'green',
     REJECTED: 'red',
@@ -513,8 +542,8 @@ export function getStatusColor(status: FactoryStatus): string {
 /**
  * 获取状态标签文本
  */
-export function getStatusText(status: FactoryStatus): string {
-  const texts: Record<FactoryStatus, string> = {
+export function getStatusText(status: BrandStatus): string {
+  const texts: Record<BrandStatus, string> = {
     PENDING: '待审核',
     APPROVED: '已通过',
     REJECTED: '已拒绝',
@@ -546,3 +575,47 @@ export function getPlanTypeColor(planType: PlanType): string {
   };
   return colors[planType] || 'default';
 }
+
+// ============ 独立商务管理 ============
+
+/**
+ * 获取独立商务列表
+ */
+export async function getIndependentBusinessUsers(params: {
+  page?: number;
+  pageSize?: number;
+  keyword?: string;
+}): Promise<PaginatedResult<any>> {
+  const response = await request<PaginatedResult<any>>('get', '/platform/users/independent', params);
+  if (!response.success) {
+    throw new Error(response.error?.message || '获取独立商务列表失败');
+  }
+  return response.data!;
+}
+
+/**
+ * 获取品牌成员列表
+ */
+export async function getBrandMembers(brandId: string): Promise<{
+  brandId: string;
+  brandName: string;
+  members: any[];
+}> {
+  const response = await request<any>('get', `/platform/brands/${brandId}/members`);
+  if (!response.success) {
+    throw new Error(response.error?.message || '获取品牌成员列表失败');
+  }
+  return response.data!;
+}
+
+/**
+ * 将独立商务划归到品牌
+ */
+export async function assignUserToBrand(userId: string, brandId: string): Promise<void> {
+  const response = await request('post', `/platform/users/${userId}/assign-brand`, { brandId });
+  if (!response.success) {
+    throw new Error(response.error?.message || '划归失败');
+  }
+}
+
+

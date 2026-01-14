@@ -1,0 +1,21 @@
+﻿======================================================================
+微信 4.x UI 分析工具 v3
+======================================================================
+
+找到 2 个微信窗口：
+  hwnd=396516, class=Qt51514QWindowIcon, title=微信
+  hwnd=1773350, class=Qt51514QWindowIcon, title=微信
+
+子窗口列表 (hwnd=396516)：
+  找到 0 个子窗口
+
+使用 pywinauto 分析 (hwnd=396516)：
+  窗口名称: 微信
+  窗口类名: Qt51514QWindowIcon
+
+  控件树（使用 print_control_identifiers）：
+Control Identifiers:
+
+Dialog - '微信'    (L1181, T361, R1921, B1048)
+['微信Dialog', 'Dialog', '微信']
+child_window(title="微信", control_type="Window")

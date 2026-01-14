@@ -39,7 +39,7 @@ const Factories = () => {
     >
       <div style={{ position: 'relative', zIndex: 1 }}>
         <Title level={4} style={{ marginBottom: 24 }}>
-          工厂管理
+          品牌管理
         </Title>
         <FactoryList onRefresh={loadStats} />
       </div>

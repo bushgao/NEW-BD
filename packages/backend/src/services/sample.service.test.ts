@@ -21,7 +21,7 @@ describe('样品服务测试', () => {
     });
     testUserId = testUser.id;
 
-    const testFactory = await prisma.factory.create({
+    const testFactory = await prisma.brand.create({
       data: {
         name: 'Test Sample Factory',
         ownerId: testUser.id,
@@ -36,13 +36,13 @@ describe('样品服务测试', () => {
     // 更新用户关联工厂ID
     await prisma.user.update({
       where: { id: testUser.id },
-      data: { factoryId: testFactory.id },
+      data: { brandId: testFactory.id },
     });
 
     // 创建测试达人
     const testInfluencer = await prisma.influencer.create({
       data: {
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '样品测试达人',
         platform: 'DOUYIN',
         platformId: `sample-test-${Date.now()}`,
@@ -56,7 +56,7 @@ describe('样品服务测试', () => {
     const testCollaboration = await prisma.collaboration.create({
       data: {
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
         isOverdue: false,
@@ -67,25 +67,25 @@ describe('样品服务测试', () => {
 
   afterAll(async () => {
     // 清理测试数据
-    await prisma.sampleDispatch.deleteMany({ where: { sample: { factoryId: testFactoryId } } });
-    await prisma.sample.deleteMany({ where: { factoryId: testFactoryId } });
-    await prisma.collaboration.deleteMany({ where: { factoryId: testFactoryId } });
-    await prisma.influencer.deleteMany({ where: { factoryId: testFactoryId } });
-    await prisma.factory.delete({ where: { id: testFactoryId } });
+    await prisma.sampleDispatch.deleteMany({ where: { sample: { brandId: testFactoryId } } });
+    await prisma.sample.deleteMany({ where: { brandId: testFactoryId } });
+    await prisma.collaboration.deleteMany({ where: { brandId: testFactoryId } });
+    await prisma.influencer.deleteMany({ where: { brandId: testFactoryId } });
+    await prisma.brand.delete({ where: { id: testFactoryId } });
     await prisma.user.delete({ where: { id: testUserId } });
     await prisma.$disconnect();
   });
 
   beforeEach(async () => {
     // 每个测试前清理样品和寄样数据
-    await prisma.sampleDispatch.deleteMany({ where: { sample: { factoryId: testFactoryId } } });
-    await prisma.sample.deleteMany({ where: { factoryId: testFactoryId } });
+    await prisma.sampleDispatch.deleteMany({ where: { sample: { brandId: testFactoryId } } });
+    await prisma.sample.deleteMany({ where: { brandId: testFactoryId } });
   });
 
   describe('样品 CRUD 操作', () => {
     it('应该能创建样品', async () => {
       const sample = await sampleService.createSample({
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         sku: 'TEST-SKU-001',
         name: '测试样品',
         unitCost: 1000, // 10元
@@ -104,7 +104,7 @@ describe('样品服务测试', () => {
 
     it('应该能获取样品列表', async () => {
       await sampleService.createSample({
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         sku: 'LIST-SKU-001',
         name: '列表测试样品1',
         unitCost: 500,
@@ -112,7 +112,7 @@ describe('样品服务测试', () => {
       });
 
       await sampleService.createSample({
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         sku: 'LIST-SKU-002',
         name: '列表测试样品2',
         unitCost: 800,
@@ -163,7 +163,7 @@ describe('样品服务测试', () => {
           async (unitCost: number, quantity: number, shippingCost: number) => {
             // 创建样品
             const sample = await sampleService.createSample({
-              factoryId: testFactoryId,
+              brandId: testFactoryId,
               sku: `PBT-SKU-${Date.now()}-${Math.random().toString(36).slice(2)}`,
               name: `属性测试样品_${Date.now()}`,
               unitCost,
@@ -218,7 +218,7 @@ describe('样品服务测试', () => {
 
             // 创建样品
             const sample = await sampleService.createSample({
-              factoryId: testFactoryId,
+              brandId: testFactoryId,
               sku: `SNAP-SKU-${Date.now()}-${Math.random().toString(36).slice(2)}`,
               name: `快照测试样品_${Date.now()}`,
               unitCost: originalCost,
@@ -274,7 +274,7 @@ describe('样品服务测试', () => {
             // 创建样品
             const unitCost = 1000;
             const sample = await sampleService.createSample({
-              factoryId: testFactoryId,
+              brandId: testFactoryId,
               sku: `MULTI-SKU-${Date.now()}-${Math.random().toString(36).slice(2)}`,
               name: `多次寄样测试_${Date.now()}`,
               unitCost,
@@ -353,7 +353,7 @@ describe('样品服务测试', () => {
             // 创建样品
             const unitCost = 1000;
             const sample = await sampleService.createSample({
-              factoryId: testFactoryId,
+              brandId: testFactoryId,
               sku: `REPORT-SKU-${Date.now()}-${Math.random().toString(36).slice(2)}`,
               name: `报表测试样品_${Date.now()}`,
               unitCost,
@@ -447,7 +447,7 @@ describe('样品服务测试', () => {
               for (let i = 0; i < sampleDataList.length; i++) {
                 const data = sampleDataList[i];
                 const sample = await sampleService.createSample({
-                  factoryId: testFactoryId,
+                  brandId: testFactoryId,
                   sku: `MULTI-REPORT-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`,
                   name: `多样品报表测试_${i}_${Date.now()}`,
                   unitCost: data.unitCost,

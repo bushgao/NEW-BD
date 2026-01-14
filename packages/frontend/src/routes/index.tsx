@@ -23,6 +23,7 @@ const AdminOverview = lazy(() => import('../pages/Admin/Overview'));
 const AdminFactories = lazy(() => import('../pages/Admin/Factories'));
 const AdminInfluencers = lazy(() => import('../pages/Admin/Influencers'));
 const AdminUsers = lazy(() => import('../pages/Admin/Users'));
+const AdminIndependent = lazy(() => import('../pages/Admin/IndependentBusinessList'));
 const NotificationsPage = lazy(() => import('../pages/Notifications'));
 const UIShowcase = lazy(() => import('../pages/UIShowcase'));
 const TeamPage = lazy(() => import('../pages/Team'));
@@ -290,6 +291,7 @@ const AppRoutes = () => {
           <Route index element={<AdminPage />} />
           <Route path="overview" element={<AdminOverview />} />
           <Route path="factories" element={<AdminFactories />} />
+          <Route path="independent" element={<AdminIndependent />} />
           <Route path="influencers" element={<AdminInfluencers />} />
           <Route path="users" element={<AdminUsers />} />
         </Route>

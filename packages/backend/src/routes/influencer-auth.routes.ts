@@ -74,9 +74,46 @@ router.post(
     try {
       const { phone, code } = req.body;
       const deviceInfo = getDeviceInfo(req);
-      
+
       const result = await loginWithCode(phone, code, deviceInfo);
-      
+
+      res.json({
+        success: true,
+        data: {
+          contact: result.contact,
+          tokens: result.tokens,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * POST /api/influencer-portal/auth/login-password
+ * 密码登录（用于通过主系统注册的达人用户）
+ */
+router.post(
+  '/login-password',
+  [
+    body('email')
+      .notEmpty().withMessage('邮箱不能为空')
+      .isEmail().withMessage('邮箱格式不正确'),
+    body('password')
+      .notEmpty().withMessage('密码不能为空')
+      .isLength({ min: 6 }).withMessage('密码至少6位'),
+  ],
+  validateRequest,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email, password } = req.body;
+      const deviceInfo = getDeviceInfo(req);
+
+      // 使用密码登录服务
+      const { loginWithPassword } = await import('../services/influencer-auth.service');
+      const result = await loginWithPassword(email, password, deviceInfo);
+
       res.json({
         success: true,
         data: {
@@ -104,7 +141,7 @@ router.post(
     try {
       const { refreshToken } = req.body;
       const tokens = await refreshInfluencerToken(refreshToken);
-      
+
       res.json({
         success: true,
         data: { tokens },
@@ -125,7 +162,7 @@ router.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const contact = await getCurrentInfluencerContact(req.influencer!.contactId);
-      
+
       res.json({
         success: true,
         data: { contact },

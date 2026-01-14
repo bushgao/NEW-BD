@@ -62,12 +62,12 @@ export interface QuotaUsage {
  */
 export async function getStaffPermissions(
   staffId: string,
-  factoryId: string
+  brandId: string
 ): Promise<{ permissions: StaffPermissions; template: string }> {
   const user = await prisma.user.findFirst({
     where: {
       id: staffId,
-      factoryId,
+      brandId,
       role: 'BUSINESS',
     },
     select: {
@@ -93,13 +93,13 @@ export async function getStaffPermissions(
  */
 export async function updateStaffPermissions(
   staffId: string,
-  factoryId: string,
+  brandId: string,
   permissions: StaffPermissions
 ): Promise<{ user: StaffMember; permissions: StaffPermissions; template: string }> {
   const user = await prisma.user.findFirst({
     where: {
       id: staffId,
-      factoryId,
+      brandId,
       role: 'BUSINESS',
     },
   });
@@ -151,14 +151,14 @@ export function getPermissionTemplates(): PermissionTemplate[] {
  * 获取工厂商务账号列表
  */
 export async function listStaff(
-  factoryId: string,
+  brandId: string,
   pagination: Pagination
 ): Promise<PaginatedResult<StaffMember>> {
   const { page, pageSize } = pagination;
 
   // 验证工厂存在
-  const factory = await prisma.factory.findUnique({
-    where: { id: factoryId },
+  const factory = await prisma.brand.findUnique({
+    where: { id: brandId },
   });
 
   if (!factory) {
@@ -168,7 +168,7 @@ export async function listStaff(
   const [staff, total] = await Promise.all([
     prisma.user.findMany({
       where: {
-        factoryId,
+        brandId,
         role: 'BUSINESS',
       },
       select: {
@@ -184,7 +184,7 @@ export async function listStaff(
     }),
     prisma.user.count({
       where: {
-        factoryId,
+        brandId,
         role: 'BUSINESS',
       },
     }),
@@ -211,11 +211,11 @@ export async function listStaff(
 /**
  * 获取商务账号详情（含工作统计）
  */
-export async function getStaffDetail(staffId: string, factoryId: string): Promise<StaffDetail> {
+export async function getStaffDetail(staffId: string, brandId: string): Promise<StaffDetail> {
   const user = await prisma.user.findFirst({
     where: {
       id: staffId,
-      factoryId,
+      brandId,
       role: 'BUSINESS',
     },
     select: {
@@ -234,10 +234,10 @@ export async function getStaffDetail(staffId: string, factoryId: string): Promis
   // 获取工作统计
   const [influencerCount, collaborationCount, dispatchCount, closedDeals, gmvResult] =
     await Promise.all([
-      // 管理的达人数量（注：当前 Influencer 模型没有 createdBy 字段，使用 factoryId 统计）
+      // 管理的达人数量（注：当前 Influencer 模型没有 createdBy 字段，使用 brandId 统计）
       prisma.influencer.count({
         where: {
-          factoryId,
+          brandId,
         },
       }),
       // 创建的合作数量
@@ -296,14 +296,14 @@ export async function getStaffDetail(staffId: string, factoryId: string): Promis
  * 创建商务账号（检查配额）
  */
 export async function createStaff(
-  factoryId: string,
+  brandId: string,
   data: CreateStaffInput
 ): Promise<StaffMember> {
   const { name, email, password } = data;
 
   // 验证工厂存在
-  const factory = await prisma.factory.findUnique({
-    where: { id: factoryId },
+  const factory = await prisma.brand.findUnique({
+    where: { id: brandId },
   });
 
   if (!factory) {
@@ -311,7 +311,7 @@ export async function createStaff(
   }
 
   // 检查配额
-  await validateQuota(factoryId, 'staff');
+  await validateQuota(brandId, 'staff');
 
   // 检查邮箱是否已存在
   const existingUser = await prisma.user.findUnique({
@@ -332,7 +332,7 @@ export async function createStaff(
       passwordHash,
       name,
       role: 'BUSINESS',
-      factoryId,
+      brandId,
     },
     select: {
       id: true,
@@ -356,13 +356,13 @@ export async function createStaff(
  */
 export async function updateStaffStatus(
   staffId: string,
-  factoryId: string,
+  brandId: string,
   status: 'ACTIVE' | 'DISABLED'
 ): Promise<StaffMember> {
   const user = await prisma.user.findFirst({
     where: {
       id: staffId,
-      factoryId,
+      brandId,
       role: 'BUSINESS',
     },
   });
@@ -399,11 +399,11 @@ export async function updateStaffStatus(
 /**
  * 删除商务账号（保留业务数据）
  */
-export async function deleteStaff(staffId: string, factoryId: string): Promise<void> {
+export async function deleteStaff(staffId: string, brandId: string): Promise<void> {
   const user = await prisma.user.findFirst({
     where: {
       id: staffId,
-      factoryId,
+      brandId,
       role: 'BUSINESS',
     },
   });
@@ -428,9 +428,9 @@ export async function deleteStaff(staffId: string, factoryId: string): Promise<v
 /**
  * 获取配额使用情况
  */
-export async function getQuotaUsage(factoryId: string): Promise<QuotaUsage> {
-  const factory = await prisma.factory.findUnique({
-    where: { id: factoryId },
+export async function getQuotaUsage(brandId: string): Promise<QuotaUsage> {
+  const factory = await prisma.brand.findUnique({
+    where: { id: brandId },
     include: {
       _count: {
         select: {

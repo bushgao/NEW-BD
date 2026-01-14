@@ -12,7 +12,7 @@ const router = Router();
 router.post('/', authenticate, requireFactoryMember, async (req, res, next) => {
   try {
     const { name, color, description } = req.body;
-    const { factoryId, userId } = req.user!;
+    const { brandId, userId } = req.user!;
 
     if (!name) {
       return res.status(400).json({
@@ -22,7 +22,7 @@ router.post('/', authenticate, requireFactoryMember, async (req, res, next) => {
     }
 
     const group = await groupService.createGroup({
-      factoryId,
+      brandId,
       name,
       color,
       description,
@@ -45,9 +45,9 @@ router.post('/', authenticate, requireFactoryMember, async (req, res, next) => {
  */
 router.get('/', authenticate, requireFactoryMember, async (req, res, next) => {
   try {
-    const { factoryId } = req.user!;
+    const { brandId } = req.user!;
 
-    const groups = await groupService.listGroups(factoryId);
+    const groups = await groupService.listGroups(brandId);
 
     res.json({
       success: true,
@@ -66,9 +66,9 @@ router.get('/', authenticate, requireFactoryMember, async (req, res, next) => {
 router.get('/:id', authenticate, requireFactoryMember, async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { factoryId } = req.user!;
+    const { brandId } = req.user!;
 
-    const group = await groupService.getGroupById(id, factoryId);
+    const group = await groupService.getGroupById(id, brandId);
 
     res.json({
       success: true,
@@ -87,9 +87,9 @@ router.get('/:id', authenticate, requireFactoryMember, async (req, res, next) =>
 router.get('/:id/stats', authenticate, requireFactoryMember, async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { factoryId } = req.user!;
+    const { brandId } = req.user!;
 
-    const stats = await groupService.getGroupStats(id, factoryId);
+    const stats = await groupService.getGroupStats(id, brandId);
 
     res.json({
       success: true,
@@ -108,9 +108,9 @@ router.get('/:id/stats', authenticate, requireFactoryMember, async (req, res, ne
 router.get('/:id/influencers', authenticate, requireFactoryMember, async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { factoryId } = req.user!;
+    const { brandId } = req.user!;
 
-    const influencers = await groupService.getGroupInfluencers(id, factoryId);
+    const influencers = await groupService.getGroupInfluencers(id, brandId);
 
     res.json({
       success: true,
@@ -129,10 +129,10 @@ router.get('/:id/influencers', authenticate, requireFactoryMember, async (req, r
 router.put('/:id', authenticate, requireFactoryMember, async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { factoryId } = req.user!;
+    const { brandId } = req.user!;
     const { name, color, description } = req.body;
 
-    const group = await groupService.updateGroup(id, factoryId, {
+    const group = await groupService.updateGroup(id, brandId, {
       name,
       color,
       description,
@@ -155,9 +155,9 @@ router.put('/:id', authenticate, requireFactoryMember, async (req, res, next) =>
 router.delete('/:id', authenticate, requireFactoryMember, async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { factoryId } = req.user!;
+    const { brandId } = req.user!;
 
-    await groupService.deleteGroup(id, factoryId);
+    await groupService.deleteGroup(id, brandId);
 
     res.json({
       success: true,
@@ -176,7 +176,7 @@ router.delete('/:id', authenticate, requireFactoryMember, async (req, res, next)
 router.post('/batch-move', authenticate, requireFactoryMember, async (req, res, next) => {
   try {
     const { influencerIds, groupId } = req.body;
-    const { factoryId } = req.user!;
+    const { brandId } = req.user!;
 
     if (!influencerIds || !Array.isArray(influencerIds) || influencerIds.length === 0) {
       return res.status(400).json({
@@ -185,7 +185,7 @@ router.post('/batch-move', authenticate, requireFactoryMember, async (req, res, 
       });
     }
 
-    await groupService.batchMoveInfluencersToGroup(influencerIds, groupId, factoryId);
+    await groupService.batchMoveInfluencersToGroup(influencerIds, groupId, brandId);
 
     res.json({
       success: true,

@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Alert, Space, Tag, Tooltip, Spin } from 'antd';
-import { 
-  ExclamationCircleOutlined, 
-  WarningOutlined, 
+import { Alert, Space, Tag, Spin } from 'antd';
+import {
+  ExclamationCircleOutlined,
+  WarningOutlined,
   CheckCircleOutlined,
-  InfoCircleOutlined 
+  InfoCircleOutlined
 } from '@ant-design/icons';
 import type { FormInstance } from 'antd';
-import { debounce } from 'lodash';
 import api from '../../services/api';
 
 // 类型定义
@@ -106,7 +105,7 @@ const FormValidator: React.FC<FormValidatorProps> = ({
       }
     } catch (error: any) {
       console.error('Validation failed:', error);
-      
+
       // 如果验证API失败，至少执行基本的前端验证
       const basicResult = performBasicValidation(values);
       setValidationResult(basicResult);
@@ -115,14 +114,6 @@ const FormValidator: React.FC<FormValidatorProps> = ({
       setIsValidating(false);
     }
   }, [type, onValidationChange]);
-
-  // 防抖的验证函数
-  const debouncedValidation = useCallback(
-    debounce((values: any) => {
-      performValidation(values);
-    }, 500),
-    [performValidation]
-  );
 
   // 基本前端验证（作为后备）
   const performBasicValidation = (values: any): ValidationResult => {
@@ -153,7 +144,7 @@ const FormValidator: React.FC<FormValidatorProps> = ({
       if (values.deadline) {
         const deadline = new Date(values.deadline);
         const now = new Date();
-        
+
         if (deadline < now) {
           warnings.push({
             field: 'deadline',
@@ -259,20 +250,20 @@ const FormValidator: React.FC<FormValidatorProps> = ({
     };
   };
 
-  // 监听表单值变化
+  // 监听表单值变化 - 只在组件挂载时执行一次验证
   useEffect(() => {
     if (!realTimeValidation) {
       return;
     }
 
+    // 只执行一次初始验证
     const values = form.getFieldsValue();
-    debouncedValidation(values);
-
-    // 清理函数
-    return () => {
-      debouncedValidation.cancel();
-    };
-  }, [form, realTimeValidation, debouncedValidation]);
+    if (values && Object.keys(values).length > 0) {
+      performValidation(values);
+    }
+    // 注意：不在依赖中加入 debouncedValidation 以避免无限循环
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realTimeValidation]);
 
   // 手动触发验证
   const validate = useCallback(async () => {
@@ -293,9 +284,9 @@ const FormValidator: React.FC<FormValidatorProps> = ({
     }
 
     const { errors, warnings, infos, duplicates, anomalies } = validationResult;
-    const hasIssues = errors.length > 0 || warnings.length > 0 || 
-                      (duplicates && duplicates.length > 0) || 
-                      (anomalies && anomalies.length > 0);
+    const hasIssues = errors.length > 0 || warnings.length > 0 ||
+      (duplicates && duplicates.length > 0) ||
+      (anomalies && anomalies.length > 0);
 
     if (!hasIssues && infos.length === 0) {
       return null;
@@ -356,10 +347,10 @@ const FormValidator: React.FC<FormValidatorProps> = ({
                     <Space>
                       <Tag color={
                         anomaly.severity === 'high' ? 'red' :
-                        anomaly.severity === 'medium' ? 'orange' : 'default'
+                          anomaly.severity === 'medium' ? 'orange' : 'default'
                       }>
                         {anomaly.severity === 'high' ? '严重' :
-                         anomaly.severity === 'medium' ? '中等' : '轻微'}
+                          anomaly.severity === 'medium' ? '中等' : '轻微'}
                       </Tag>
                       {anomaly.message}
                     </Space>

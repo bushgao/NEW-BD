@@ -237,8 +237,8 @@ const InfluencerSamplesPage = () => {
                 placeholder="选择工厂"
                 allowClear
                 style={{ width: 200 }}
-                value={filter.factoryId}
-                onChange={(value) => handleFilterChange('factoryId', value)}
+                value={filter.brandId}
+                onChange={(value) => handleFilterChange('brandId', value)}
                 options={factories.map((f) => ({ label: f.name, value: f.id }))}
               />
               <Select
@@ -269,9 +269,9 @@ const InfluencerSamplesPage = () => {
         {/* 按工厂分组显示 */}
         {samples && samples.groupedByFactory.length > 0 ? (
           <Collapse
-            defaultActiveKey={samples.groupedByFactory.map((g) => g.factoryId)}
+            defaultActiveKey={samples.groupedByFactory.map((g) => g.brandId)}
             items={samples.groupedByFactory.map((group) => ({
-              key: group.factoryId,
+              key: group.brandId,
               label: (
                 <Space>
                   <span>{group.factoryName}</span>

@@ -101,8 +101,8 @@ const InfluencersPage = () => {
   // const [quickAddModalVisible, setQuickAddModalVisible] = useState(false);
 
   // 配额检查
-  const influencerCount = user?.factory?._count?.influencers || 0;
-  const influencerLimit = user?.factory?.influencerLimit || 0;
+  const influencerCount = user?.brand?._count?.influencers || 0;
+  const influencerLimit = user?.brand?.influencerLimit || 0;
   const isQuotaReached = influencerCount >= influencerLimit;
 
   const fetchData = useCallback(async () => {
@@ -448,13 +448,19 @@ const InfluencersPage = () => {
     {
       title: '联系方式',
       key: 'contact',
-      width: 140,
+      width: 160,
       render: (_, record) => (
         <div style={{ fontSize: '13px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
             <span style={{ fontSize: '11px', color: '#64748b', minWidth: '28px' }}>手机</span>
             <AntText style={{ fontWeight: 500, color: record.phone ? '#334155' : '#94a3b8' }}>
               {record.phone || '-'}
+            </AntText>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '11px', color: '#64748b', minWidth: '28px' }}>微信</span>
+            <AntText style={{ fontWeight: 500, color: record.wechat ? '#334155' : '#94a3b8' }}>
+              {record.wechat || '-'}
             </AntText>
           </div>
         </div>

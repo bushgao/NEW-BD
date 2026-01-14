@@ -1,20 +1,21 @@
 /**
  * 达人登录页面
  * 
- * 使用邮箱+密码登录
+ * 使用手机号+密码登录
  */
 
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, Form, Input, Button, Typography, message } from 'antd';
-import { MailOutlined, LockOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { PhoneOutlined, LockOutlined, ArrowLeftOutlined, UserAddOutlined } from '@ant-design/icons';
 import { useInfluencerPortalStore } from '../../stores/influencerPortalStore';
+import { useAuthStore } from '../../stores/authStore';
 import * as influencerPortalService from '../../services/influencer-portal.service';
 
 const { Title, Text } = Typography;
 
 interface LoginFormValues {
-  email: string;
+  phone: string;
   password: string;
 }
 
@@ -28,7 +29,8 @@ const InfluencerLoginPage = () => {
   const handleSubmit = async (values: LoginFormValues) => {
     setLoading(true);
     try {
-      const response = await influencerPortalService.login(values.email, values.password);
+      // 手机号转换为邮箱格式（后端兼容）
+      const response = await influencerPortalService.login(`${values.phone}@phone.local`, values.password);
 
       if (response.success && response.data) {
         const { contact, tokens } = response.data;
@@ -69,7 +71,7 @@ const InfluencerLoginPage = () => {
           <Title level={2} style={{ marginBottom: 8, color: '#722ed1' }}>
             达人端口
           </Title>
-          <Text type="secondary">查看您在各工厂的样品和合作信息</Text>
+          <Text type="secondary">查看您在各品牌的样品和合作信息</Text>
         </div>
 
         <Form
@@ -81,15 +83,15 @@ const InfluencerLoginPage = () => {
           layout="vertical"
         >
           <Form.Item
-            name="email"
+            name="phone"
             rules={[
-              { required: true, message: '请输入邮箱' },
-              { type: 'email', message: '邮箱格式不正确' },
+              { required: true, message: '请输入手机号' },
+              { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' },
             ]}
           >
             <Input
-              prefix={<MailOutlined style={{ color: '#bfbfbf' }} />}
-              placeholder="邮箱"
+              prefix={<PhoneOutlined style={{ color: '#bfbfbf' }} />}
+              placeholder="手机号"
             />
           </Form.Item>
 
@@ -124,9 +126,22 @@ const InfluencerLoginPage = () => {
         </Form>
 
         <div style={{ textAlign: 'center', marginTop: 24 }}>
+          <Button
+            type="link"
+            icon={<UserAddOutlined />}
+            onClick={() => {
+              // 清除主账号登录状态后再跳转到注册页
+              useAuthStore.getState().logout();
+              // 同时清除持久化存储
+              localStorage.removeItem('auth-storage');
+              navigate('/register');
+            }}
+          >
+            注册达人账号
+          </Button>
           <Link to="/login">
             <Button type="link" icon={<ArrowLeftOutlined />}>
-              返回商务/老板登录
+              返回品牌/商务登录
             </Button>
           </Link>
         </div>

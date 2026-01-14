@@ -6,7 +6,7 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
-  factoryId?: string;
+  brandId?: string;
   createdAt: string;
   updatedAt: string;
 }

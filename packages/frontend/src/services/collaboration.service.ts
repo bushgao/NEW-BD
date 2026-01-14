@@ -56,9 +56,11 @@ export interface SampleDispatch {
 export interface Collaboration {
   id: string;
   influencerId: string;
-  factoryId: string;
+  brandId: string;
   businessStaffId: string;
   stage: PipelineStage;
+  sampleId: string | null;
+  quotedPrice: number | null;
   deadline: string | null;
   isOverdue: boolean;
   blockReason: BlockReason | null;
@@ -66,6 +68,11 @@ export interface Collaboration {
   updatedAt: string;
   influencer: Influencer;
   businessStaff: BusinessStaff;
+  sample?: {
+    id: string;
+    name: string;
+    sku: string;
+  } | null;
   followUps?: FollowUpRecord[];
   dispatches?: SampleDispatch[];
   stageHistory?: StageHistory[];
@@ -126,6 +133,8 @@ export interface CollaborationFilter {
 export interface CreateCollaborationInput {
   influencerId: string;
   stage?: PipelineStage;
+  sampleId?: string;
+  quotedPrice?: number;
   deadline?: string;
   notes?: string;
 }

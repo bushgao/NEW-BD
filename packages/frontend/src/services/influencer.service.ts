@@ -4,11 +4,12 @@ import type { Platform, PipelineStage, PaginatedResult } from '@ics/shared';
 // Types
 export interface Influencer {
   id: string;
-  factoryId: string;
+  brandId: string;
   nickname: string;
   platform: Platform;
   platformId: string;
   phone: string | null;
+  wechat: string | null;
   followers: string | null;
   categories: string[];
   tags: string[];
@@ -22,6 +23,7 @@ export interface CreateInfluencerInput {
   platform: Platform;
   platformId: string;
   phone?: string;
+  wechat?: string;
   followers?: string;
   categories?: string[];
   tags?: string[];
@@ -33,6 +35,7 @@ export interface UpdateInfluencerInput {
   platform?: Platform;
   platformId?: string;
   phone?: string;
+  wechat?: string;
   followers?: string;
   categories?: string[];
   tags?: string[];
@@ -248,7 +251,7 @@ export async function batchAddTags(influencerIds: string[], tags: string[]): Pro
  * Export selected influencers
  */
 export async function exportInfluencers(influencerIds: string[]): Promise<Blob> {
-  const response = await api.post('/influencers/export', 
+  const response = await api.post('/influencers/export',
     { influencerIds },
     { responseType: 'blob' }
   );

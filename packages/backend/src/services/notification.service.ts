@@ -200,7 +200,7 @@ export async function checkDeadlineApproaching() {
     include: {
       influencer: true,
       businessStaff: true,
-      factory: {
+      brand: {
         include: {
           owner: true,
         },
@@ -261,7 +261,7 @@ export async function checkOverdueCollaborations() {
     include: {
       influencer: true,
       businessStaff: true,
-      factory: {
+      brand: {
         include: {
           owner: true,
         },
@@ -288,9 +288,9 @@ export async function checkOverdueCollaborations() {
     });
 
     // 向工厂老板发送通知
-    if (collab.factory.owner) {
+    if (collab.brand.owner) {
       notifications.push({
-        userId: collab.factory.ownerId,
+        userId: collab.brand.ownerId,
         type: NotificationType.DEADLINE_OVERDUE,
         title: NOTIFICATION_TITLES[NotificationType.DEADLINE_OVERDUE],
         content: `商务「${collab.businessStaff.name}」负责的与达人「${collab.influencer.nickname}」的合作已超期`,

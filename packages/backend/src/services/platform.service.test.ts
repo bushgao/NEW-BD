@@ -19,7 +19,7 @@ describe('平台服务测试', () => {
     });
     testOwnerId = testOwner.id;
 
-    const testFactory = await prisma.factory.create({
+    const testFactory = await prisma.brand.create({
       data: {
         name: 'Test Platform Factory',
         ownerId: testOwner.id,
@@ -34,23 +34,23 @@ describe('平台服务测试', () => {
     // 更新老板关联工厂ID
     await prisma.user.update({
       where: { id: testOwner.id },
-      data: { factoryId: testFactory.id },
+      data: { brandId: testFactory.id },
     });
   });
 
   afterAll(async () => {
     // 清理测试数据
-    await prisma.influencer.deleteMany({ where: { factoryId: testFactoryId } });
-    await prisma.user.deleteMany({ where: { factoryId: testFactoryId, id: { not: testOwnerId } } });
-    await prisma.factory.delete({ where: { id: testFactoryId } });
+    await prisma.influencer.deleteMany({ where: { brandId: testFactoryId } });
+    await prisma.user.deleteMany({ where: { brandId: testFactoryId, id: { not: testOwnerId } } });
+    await prisma.brand.delete({ where: { id: testFactoryId } });
     await prisma.user.delete({ where: { id: testOwnerId } });
     await prisma.$disconnect();
   });
 
   beforeEach(async () => {
     // 每个测试前清理达人和商务数据
-    await prisma.influencer.deleteMany({ where: { factoryId: testFactoryId } });
-    await prisma.user.deleteMany({ where: { factoryId: testFactoryId, id: { not: testOwnerId } } });
+    await prisma.influencer.deleteMany({ where: { brandId: testFactoryId } });
+    await prisma.user.deleteMany({ where: { brandId: testFactoryId, id: { not: testOwnerId } } });
   });
 
   // ==================== Property 13: 套餐配额限制属性测试 ====================
@@ -77,7 +77,7 @@ describe('平台服务测试', () => {
             for (let i = 0; i < influencerCount; i++) {
               await prisma.influencer.create({
                 data: {
-                  factoryId: testFactoryId,
+                  brandId: testFactoryId,
                   nickname: `配额测试达人_${i}_${Date.now()}`,
                   platform: 'DOUYIN',
                   platformId: `quota-inf-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`,
@@ -101,7 +101,7 @@ describe('平台服务测试', () => {
               ).resolves.not.toThrow();
             } finally {
               // 清理
-              await prisma.influencer.deleteMany({ where: { factoryId: testFactoryId } });
+              await prisma.influencer.deleteMany({ where: { brandId: testFactoryId } });
             }
           }
         ),
@@ -117,7 +117,7 @@ describe('平台服务测试', () => {
       for (let i = 0; i < 5; i++) {
         await prisma.influencer.create({
           data: {
-            factoryId: testFactoryId,
+            brandId: testFactoryId,
             nickname: `上限测试达人_${i}_${Date.now()}`,
             platform: 'DOUYIN',
             platformId: `limit-inf-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`,
@@ -141,7 +141,7 @@ describe('平台服务测试', () => {
         ).rejects.toThrow('已达到达人数量上限');
       } finally {
         // 清理
-        await prisma.influencer.deleteMany({ where: { factoryId: testFactoryId } });
+        await prisma.influencer.deleteMany({ where: { brandId: testFactoryId } });
       }
     });
 
@@ -162,7 +162,7 @@ describe('平台服务测试', () => {
                   passwordHash: 'test-hash',
                   name: `配额测试商务_${i}`,
                   role: 'BUSINESS_STAFF',
-                  factoryId: testFactoryId,
+                  brandId: testFactoryId,
                 },
               });
               createdStaffIds.push(staff.id);
@@ -206,7 +206,7 @@ describe('平台服务测试', () => {
             passwordHash: 'test-hash',
             name: `上限测试商务_${i}`,
             role: 'BUSINESS_STAFF',
-            factoryId: testFactoryId,
+            brandId: testFactoryId,
           },
         });
         createdStaffIds.push(staff.id);
@@ -245,7 +245,7 @@ describe('平台服务测试', () => {
             for (let i = 0; i < influencerCount; i++) {
               await prisma.influencer.create({
                 data: {
-                  factoryId: testFactoryId,
+                  brandId: testFactoryId,
                   nickname: `检查测试达人_${i}_${Date.now()}`,
                   platform: 'DOUYIN',
                   platformId: `check-inf-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`,
@@ -264,7 +264,7 @@ describe('平台服务测试', () => {
                   passwordHash: 'test-hash',
                   name: `检查测试商务_${i}`,
                   role: 'BUSINESS_STAFF',
-                  factoryId: testFactoryId,
+                  brandId: testFactoryId,
                 },
               });
               createdStaffIds.push(staff.id);
@@ -284,7 +284,7 @@ describe('平台服务测试', () => {
               expect(staffQuota.allowed).toBe(staffCount + 1 < 3);
             } finally {
               // 清理
-              await prisma.influencer.deleteMany({ where: { factoryId: testFactoryId } });
+              await prisma.influencer.deleteMany({ where: { brandId: testFactoryId } });
               for (const staffId of createdStaffIds) {
                 await prisma.user.delete({ where: { id: staffId } });
               }
@@ -308,7 +308,7 @@ describe('平台服务测试', () => {
             for (let i = 0; i < 5; i++) {
               await prisma.influencer.create({
                 data: {
-                  factoryId: testFactoryId,
+                  brandId: testFactoryId,
                   nickname: `升级测试达人_${i}_${Date.now()}`,
                   platform: 'DOUYIN',
                   platformId: `upgrade-inf-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`,
@@ -340,7 +340,7 @@ describe('平台服务测试', () => {
                 staffLimit: 3,
               });
               // 清理
-              await prisma.influencer.deleteMany({ where: { factoryId: testFactoryId } });
+              await prisma.influencer.deleteMany({ where: { brandId: testFactoryId } });
             }
           }
         ),

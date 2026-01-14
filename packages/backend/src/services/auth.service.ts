@@ -14,7 +14,7 @@ export interface RegisterInput {
   password: string;
   name: string;
   role: UserRole;
-  factoryId?: string;
+  brandId?: string;
   factoryName?: string; // For FACTORY_OWNER creating a new factory
 }
 
@@ -28,12 +28,12 @@ export interface UserWithoutPassword {
   email: string;
   name: string;
   role: UserRole;
-  factoryId: string | null;
+  brandId: string | null;
   createdAt: Date;
   updatedAt: Date;
   lastLoginAt?: Date;
   isActive?: boolean;
-  factory?: {
+  brand?: {
     id: string;
     name: string;
     status: string;
@@ -55,7 +55,7 @@ function generateTokens(user: UserWithoutPassword): AuthToken {
     userId: user.id,
     email: user.email,
     role: user.role as UserRole,
-    factoryId: user.factoryId || undefined,
+    brandId: user.brandId || undefined,
   };
 
   const accessToken = jwt.sign(payload, JWT_SECRET, {
@@ -99,7 +99,7 @@ function parseExpiresIn(expiresIn: string): number {
  * Register a new user
  */
 export async function register(data: RegisterInput): Promise<{ user: UserWithoutPassword; tokens: AuthToken }> {
-  const { email, password, name, role, factoryId, factoryName } = data;
+  const { email, password, name, role, brandId, factoryName } = data;
 
   // Check if email already exists
   const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -108,7 +108,7 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
   }
 
   // Validate role-specific requirements
-  if (role === 'BUSINESS' && !factoryId) {
+  if (role === 'BUSINESS' && !brandId) {
     throw createBadRequestError('商务人员必须关联工厂');
   }
 
@@ -121,9 +121,9 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
 
   // Create user (and factory if BRAND)
   let user;
-  
+
   if (role === 'BRAND') {
-    // Create user and factory in a transaction
+    // Create user and brand in a transaction
     const result = await prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
@@ -134,7 +134,7 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
         },
       });
 
-      await tx.factory.create({
+      const newBrand = await tx.brand.create({
         data: {
           name: factoryName!,
           ownerId: newUser.id,
@@ -143,10 +143,16 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
         },
       });
 
-      // Fetch user with factory relation
+      // 关键：更新用户的 brandId 字段
+      await tx.user.update({
+        where: { id: newUser.id },
+        data: { brandId: newBrand.id },
+      });
+
+      // Fetch user with brand relation
       return tx.user.findUnique({
         where: { id: newUser.id },
-        include: { ownedFactory: true },
+        include: { ownedBrand: true },
       });
     });
 
@@ -158,7 +164,7 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
         passwordHash,
         name,
         role,
-        factoryId: role === 'BUSINESS' ? factoryId : undefined,
+        brandId: role === 'BUSINESS' ? brandId : undefined,
       },
     });
   }
@@ -172,7 +178,7 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
     email: user.email,
     name: user.name,
     role: user.role as UserRole,
-    factoryId: user.factoryId,
+    brandId: user.brandId,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
@@ -191,8 +197,8 @@ export async function login(data: LoginInput): Promise<{ user: UserWithoutPasswo
   // Find user by email
   const user = await prisma.user.findUnique({
     where: { email },
-    include: { 
-      ownedFactory: {
+    include: {
+      ownedBrand: {
         include: {
           _count: {
             select: {
@@ -201,8 +207,8 @@ export async function login(data: LoginInput): Promise<{ user: UserWithoutPasswo
             },
           },
         },
-      }, 
-      factory: {
+      },
+      brand: {
         include: {
           _count: {
             select: {
@@ -236,33 +242,33 @@ export async function login(data: LoginInput): Promise<{ user: UserWithoutPasswo
     data: { lastLoginAt: new Date() },
   });
 
-  // Determine factoryId and factory info based on role
-  let factoryId = user.factoryId;
+  // Determine brandId and factory info based on role
+  let brandId = user.brandId;
   let factoryInfo = undefined;
-  
-  // BRAND (formerly FACTORY_OWNER) - use ownedFactory
-  if (user.role === 'BRAND' && user.ownedFactory) {
-    factoryId = user.ownedFactory.id;
+
+  // BRAND (formerly FACTORY_OWNER) - use ownedBrand
+  if (user.role === 'BRAND' && user.ownedBrand) {
+    brandId = user.ownedBrand.id;
     factoryInfo = {
-      id: user.ownedFactory.id,
-      name: user.ownedFactory.name,
-      status: user.ownedFactory.status,
-      planType: user.ownedFactory.planType,
-      staffLimit: user.ownedFactory.staffLimit,
-      influencerLimit: user.ownedFactory.influencerLimit,
-      _count: user.ownedFactory._count,
+      id: user.ownedBrand.id,
+      name: user.ownedBrand.name,
+      status: user.ownedBrand.status,
+      planType: user.ownedBrand.planType,
+      staffLimit: user.ownedBrand.staffLimit,
+      influencerLimit: user.ownedBrand.influencerLimit,
+      _count: user.ownedBrand._count,
     };
-  } 
+  }
   // BUSINESS (formerly BUSINESS_STAFF) - use factory relation
-  else if (user.role === 'BUSINESS' && user.factory) {
+  else if (user.role === 'BUSINESS' && user.brand) {
     factoryInfo = {
-      id: user.factory.id,
-      name: user.factory.name,
-      status: user.factory.status,
-      planType: user.factory.planType,
-      staffLimit: user.factory.staffLimit,
-      influencerLimit: user.factory.influencerLimit,
-      _count: user.factory._count,
+      id: user.brand.id,
+      name: user.brand.name,
+      status: user.brand.status,
+      planType: user.brand.planType,
+      staffLimit: user.brand.staffLimit,
+      influencerLimit: user.brand.influencerLimit,
+      _count: user.brand._count,
     };
   }
 
@@ -271,10 +277,10 @@ export async function login(data: LoginInput): Promise<{ user: UserWithoutPasswo
     email: user.email,
     name: user.name,
     role: user.role as UserRole,
-    factoryId,
+    brandId,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
-    factory: factoryInfo,
+    brand: factoryInfo,
   };
 
   const tokens = generateTokens(userWithoutPassword);
@@ -290,14 +296,14 @@ export function verifyToken(token: string): TokenPayload {
     console.log('[verifyToken] Verifying token...');
     console.log('[verifyToken] JWT_SECRET:', JWT_SECRET.substring(0, 20) + '...');
     console.log('[verifyToken] Token preview:', token.substring(0, 30) + '...');
-    
+
     const payload = jwt.verify(token, JWT_SECRET) as TokenPayload;
     console.log('[verifyToken] ✅ Token valid, payload:', payload);
     return payload;
   } catch (error) {
     console.log('[verifyToken] ❌ Verification failed:', error.message);
     console.log('[verifyToken] Error type:', error.constructor.name);
-    
+
     if (error instanceof jwt.TokenExpiredError) {
       throw createUnauthorizedError('登录已过期，请重新登录');
     }
@@ -311,21 +317,21 @@ export function verifyToken(token: string): TokenPayload {
 export async function refreshToken(refreshTokenStr: string): Promise<AuthToken> {
   try {
     const payload = jwt.verify(refreshTokenStr, JWT_REFRESH_SECRET) as { userId: string };
-    
+
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      include: { ownedFactory: true },
+      include: { ownedBrand: true },
     });
 
     if (!user) {
       throw createUnauthorizedError('用户不存在');
     }
 
-    // Determine factoryId based on role
-    let factoryId = user.factoryId;
-    // BRAND (formerly FACTORY_OWNER) - use ownedFactory
-    if (user.role === 'BRAND' && user.ownedFactory) {
-      factoryId = user.ownedFactory.id;
+    // Determine brandId based on role
+    let brandId = user.brandId;
+    // BRAND (formerly FACTORY_OWNER) - use ownedBrand
+    if (user.role === 'BRAND' && user.ownedBrand) {
+      brandId = user.ownedBrand.id;
     }
 
     const userWithoutPassword: UserWithoutPassword = {
@@ -333,7 +339,7 @@ export async function refreshToken(refreshTokenStr: string): Promise<AuthToken> 
       email: user.email,
       name: user.name,
       role: user.role as UserRole,
-      factoryId,
+      brandId,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -353,8 +359,8 @@ export async function refreshToken(refreshTokenStr: string): Promise<AuthToken> 
 export async function getCurrentUser(userId: string): Promise<UserWithoutPassword> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { 
-      ownedFactory: {
+    include: {
+      ownedBrand: {
         include: {
           _count: {
             select: {
@@ -364,7 +370,7 @@ export async function getCurrentUser(userId: string): Promise<UserWithoutPasswor
           },
         },
       },
-      factory: {
+      brand: {
         include: {
           _count: {
             select: {
@@ -381,33 +387,33 @@ export async function getCurrentUser(userId: string): Promise<UserWithoutPasswor
     throw createUnauthorizedError('用户不存在');
   }
 
-  // Determine factoryId and factory info based on role
-  let factoryId = user.factoryId;
+  // Determine brandId and factory info based on role
+  let brandId = user.brandId;
   let factoryInfo = undefined;
-  
-  // BRAND (formerly FACTORY_OWNER) - use ownedFactory
-  if (user.role === 'BRAND' && user.ownedFactory) {
-    factoryId = user.ownedFactory.id;
+
+  // BRAND (formerly FACTORY_OWNER) - use ownedBrand
+  if (user.role === 'BRAND' && user.ownedBrand) {
+    brandId = user.ownedBrand.id;
     factoryInfo = {
-      id: user.ownedFactory.id,
-      name: user.ownedFactory.name,
-      status: user.ownedFactory.status,
-      planType: user.ownedFactory.planType,
-      staffLimit: user.ownedFactory.staffLimit,
-      influencerLimit: user.ownedFactory.influencerLimit,
-      _count: user.ownedFactory._count,
+      id: user.ownedBrand.id,
+      name: user.ownedBrand.name,
+      status: user.ownedBrand.status,
+      planType: user.ownedBrand.planType,
+      staffLimit: user.ownedBrand.staffLimit,
+      influencerLimit: user.ownedBrand.influencerLimit,
+      _count: user.ownedBrand._count,
     };
-  } 
+  }
   // BUSINESS (formerly BUSINESS_STAFF) - use factory relation
-  else if (user.role === 'BUSINESS' && user.factory) {
+  else if (user.role === 'BUSINESS' && user.brand) {
     factoryInfo = {
-      id: user.factory.id,
-      name: user.factory.name,
-      status: user.factory.status,
-      planType: user.factory.planType,
-      staffLimit: user.factory.staffLimit,
-      influencerLimit: user.factory.influencerLimit,
-      _count: user.factory._count,
+      id: user.brand.id,
+      name: user.brand.name,
+      status: user.brand.status,
+      planType: user.brand.planType,
+      staffLimit: user.brand.staffLimit,
+      influencerLimit: user.brand.influencerLimit,
+      _count: user.brand._count,
     };
   }
 
@@ -416,12 +422,12 @@ export async function getCurrentUser(userId: string): Promise<UserWithoutPasswor
     email: user.email,
     name: user.name,
     role: user.role as UserRole,
-    factoryId,
+    brandId,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
     lastLoginAt: user.lastLoginAt || undefined,
     isActive: user.isActive,
-    factory: factoryInfo,
+    brand: factoryInfo,
     preferences: user.preferences,
   };
 }

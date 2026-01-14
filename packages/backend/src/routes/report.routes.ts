@@ -25,7 +25,7 @@ const validateRequest = (req: Request, res: Response, next: NextFunction): void 
   next();
 };
 
-// 所有报表路由需要认证，并自动补充factoryId
+// 所有报表路由需要认证，并自动补充brandId
 router.use(authenticate);
 router.use(enrichUserData);
 
@@ -46,8 +46,8 @@ router.get(
   validateRequest,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
@@ -62,7 +62,7 @@ router.get(
         }
         : undefined;
 
-      const report = await reportService.getStaffPerformance(factoryId, dateRange);
+      const report = await reportService.getStaffPerformance(brandId, dateRange);
 
       res.json({
         success: true,
@@ -91,8 +91,8 @@ router.get(
   validateRequest,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
@@ -124,7 +124,7 @@ router.get(
         }
       }
 
-      const trendData = await trendService.getTrendData(factoryId, period, dataType);
+      const trendData = await trendService.getTrendData(brandId, period, dataType);
 
       res.json({
         success: true,
@@ -152,8 +152,8 @@ router.get(
   validateRequest,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
@@ -162,7 +162,7 @@ router.get(
       }
 
       const period = (req.query.period as 'week' | 'month') || 'month';
-      const dashboard = await reportService.getFactoryDashboard(factoryId, period);
+      const dashboard = await reportService.getFactoryDashboard(brandId, period);
 
       res.json({
         success: true,
@@ -187,10 +187,10 @@ router.get(
   validateRequest,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factoryId = req.user!.factoryId;
+      const brandId = req.user!.brandId;
       const staffId = req.user!.userId;
 
-      if (!factoryId) {
+      if (!brandId) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
@@ -199,7 +199,7 @@ router.get(
       }
 
       const period = (req.query.period as 'week' | 'month') || 'month';
-      const dashboard = await reportService.getBusinessStaffDashboard(factoryId, staffId, period);
+      const dashboard = await reportService.getBusinessStaffDashboard(brandId, staffId, period);
 
       res.json({
         success: true,
@@ -228,8 +228,8 @@ router.get(
   validateRequest,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
@@ -244,7 +244,7 @@ router.get(
         }
         : undefined;
 
-      const buffer = await reportService.exportStaffPerformanceReport(factoryId, dateRange);
+      const buffer = await reportService.exportStaffPerformanceReport(brandId, dateRange);
 
       const filename = `商务绩效报表_${new Date().toISOString().split('T')[0]}.xlsx`;
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -271,8 +271,8 @@ router.get(
   validateRequest,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
@@ -288,7 +288,7 @@ router.get(
         }
         : undefined;
 
-      const buffer = await reportService.exportRoiReport(factoryId, groupBy, dateRange);
+      const buffer = await reportService.exportRoiReport(brandId, groupBy, dateRange);
 
       const groupByNames: Record<string, string> = {
         influencer: '按达人',
@@ -320,8 +320,8 @@ router.get(
   validateRequest,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
@@ -336,7 +336,7 @@ router.get(
         }
         : undefined;
 
-      const buffer = await reportService.exportCollaborationReport(factoryId, dateRange);
+      const buffer = await reportService.exportCollaborationReport(brandId, dateRange);
 
       const filename = `合作记录_${new Date().toISOString().split('T')[0]}.xlsx`;
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -359,8 +359,8 @@ router.get(
   requireRoles('BRAND', 'PLATFORM_ADMIN'),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
@@ -368,7 +368,7 @@ router.get(
         return;
       }
 
-      const roiAnalysis = await reportService.getRoiAnalysis(factoryId);
+      const roiAnalysis = await reportService.getRoiAnalysis(brandId);
 
       res.json({
         success: true,
@@ -391,8 +391,8 @@ router.get(
   requireRoles('BRAND', 'PLATFORM_ADMIN'),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
@@ -400,7 +400,7 @@ router.get(
         return;
       }
 
-      const pipelineFunnel = await reportService.getPipelineFunnel(factoryId);
+      const pipelineFunnel = await reportService.getPipelineFunnel(brandId);
 
       res.json({
         success: true,
@@ -427,8 +427,8 @@ router.get(
   validateRequest,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
@@ -448,7 +448,7 @@ router.get(
         return;
       }
 
-      const comparison = await reportService.getStaffComparison(factoryId, staffIds);
+      const comparison = await reportService.getStaffComparison(brandId, staffIds);
 
       res.json({
         success: true,
@@ -472,8 +472,8 @@ router.get(
   requireRoles('BRAND', 'PLATFORM_ADMIN'),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
@@ -481,7 +481,7 @@ router.get(
         return;
       }
 
-      const dailySummary = await reportService.getDailySummary(factoryId);
+      const dailySummary = await reportService.getDailySummary(brandId);
 
       res.json({
         success: true,
@@ -509,9 +509,9 @@ router.get(
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { staffId } = req.params;
-      const factoryId = req.user!.factoryId;
+      const brandId = req.user!.brandId;
 
-      if (!factoryId) {
+      if (!brandId) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
@@ -523,7 +523,7 @@ router.get(
       const staff = await prisma.user.findFirst({
         where: {
           id: staffId,
-          factoryId,
+          brandId,
           role: 'BUSINESS'
         }
       });
@@ -536,7 +536,7 @@ router.get(
         return;
       }
 
-      const qualityScore = await reportService.getStaffQualityScore(staffId, factoryId);
+      const qualityScore = await reportService.getStaffQualityScore(staffId, brandId);
 
       res.json({
         success: true,
@@ -565,9 +565,9 @@ router.get(
     try {
       const { staffId } = req.params;
       const { month } = req.query;
-      const factoryId = req.user!.factoryId;
+      const brandId = req.user!.brandId;
 
-      if (!factoryId) {
+      if (!brandId) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
@@ -597,7 +597,7 @@ router.get(
       const staff = await prisma.user.findFirst({
         where: {
           id: staffId,
-          factoryId,
+          brandId,
           role: 'BUSINESS'
         }
       });
@@ -610,7 +610,7 @@ router.get(
         return;
       }
 
-      const calendarData = await reportService.getStaffCalendar(staffId, factoryId, month);
+      const calendarData = await reportService.getStaffCalendar(staffId, brandId, month);
 
       res.json({
         success: true,
@@ -635,10 +635,10 @@ router.get(
   requireRoles('BRAND', 'BUSINESS', 'PLATFORM_ADMIN'),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factoryId = req.user!.factoryId;
+      const brandId = req.user!.brandId;
       const userId = req.user!.userId;
 
-      if (!factoryId) {
+      if (!brandId) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
@@ -646,7 +646,7 @@ router.get(
         return;
       }
 
-      const alerts = await reportService.getSmartAlerts(factoryId, userId);
+      const alerts = await reportService.getSmartAlerts(brandId, userId);
 
       res.json({
         success: true,
@@ -693,10 +693,10 @@ router.put(
   requireRoles('BRAND', 'BUSINESS', 'PLATFORM_ADMIN'),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factoryId = req.user!.factoryId;
+      const brandId = req.user!.brandId;
       const userId = req.user!.userId;
 
-      if (!factoryId) {
+      if (!brandId) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
@@ -704,7 +704,7 @@ router.put(
         return;
       }
 
-      await reportService.markAllAlertsAsRead(userId, factoryId);
+      await reportService.markAllAlertsAsRead(userId, brandId);
 
       res.json({
         success: true,
@@ -728,10 +728,10 @@ router.get(
   requireRoles('BUSINESS', 'BRAND'),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factoryId = req.user!.factoryId;
+      const brandId = req.user!.brandId;
       const staffId = req.user!.userId;
 
-      if (!factoryId) {
+      if (!brandId) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
@@ -739,7 +739,7 @@ router.get(
         return;
       }
 
-      const todosData = await reportService.getTodayTodos(factoryId, staffId);
+      const todosData = await reportService.getTodayTodos(brandId, staffId);
 
       res.json({
         success: true,
@@ -761,11 +761,11 @@ router.get(
   requireRoles('BUSINESS', 'BRAND'),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factoryId = req.user!.factoryId;
+      const brandId = req.user!.brandId;
       const staffId = req.user!.userId;
       const period = (req.query.period as 'today' | 'week' | 'month') || 'week';
 
-      if (!factoryId) {
+      if (!brandId) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
@@ -773,7 +773,7 @@ router.get(
         return;
       }
 
-      const workStatsData = await reportService.getWorkStats(factoryId, staffId, period);
+      const workStatsData = await reportService.getWorkStats(brandId, staffId, period);
 
       res.json({
         success: true,

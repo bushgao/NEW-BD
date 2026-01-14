@@ -1,8 +1,12 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { authenticate, requireRoles } from '../middleware/auth.middleware';
+import { authenticate, requireRoles, enrichUserData } from '../middleware/auth.middleware';
 import * as staffManagementService from '../services/staff-management.service';
 
 const router = Router();
+
+// Apply enrichUserData to all routes to ensure brandId is available
+router.use(authenticate);
+router.use(enrichUserData);
 
 // Helper function to wrap async route handlers
 const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) => {
@@ -18,14 +22,13 @@ const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => P
  */
 router.get(
   '/',
-  authenticate,
   requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
-    const factoryId = req.user!.factoryId!;
+    const brandId = req.user!.brandId!;
     const page = parseInt(req.query.page as string) || 1;
     const pageSize = parseInt(req.query.pageSize as string) || 10;
 
-    const result = await staffManagementService.listStaff(factoryId, { page, pageSize });
+    const result = await staffManagementService.listStaff(brandId, { page, pageSize });
 
     res.json(result);
   })
@@ -38,12 +41,11 @@ router.get(
  */
 router.get(
   '/quota',
-  authenticate,
   requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
-    const factoryId = req.user!.factoryId!;
+    const brandId = req.user!.brandId!;
 
-    const quotaUsage = await staffManagementService.getQuotaUsage(factoryId);
+    const quotaUsage = await staffManagementService.getQuotaUsage(brandId);
 
     res.json(quotaUsage);
   })
@@ -56,7 +58,6 @@ router.get(
  */
 router.get(
   '/permission-templates',
-  authenticate,
   requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
     const templates = staffManagementService.getPermissionTemplates();
@@ -72,13 +73,12 @@ router.get(
  */
 router.get(
   '/:id',
-  authenticate,
   requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const factoryId = req.user!.factoryId!;
+    const brandId = req.user!.brandId!;
 
-    const staffDetail = await staffManagementService.getStaffDetail(id, factoryId);
+    const staffDetail = await staffManagementService.getStaffDetail(id, brandId);
 
     res.json(staffDetail);
   })
@@ -91,10 +91,9 @@ router.get(
  */
 router.post(
   '/',
-  authenticate,
   requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
-    const factoryId = req.user!.factoryId!;
+    const brandId = req.user!.brandId!;
     const { name, email, password } = req.body;
 
     // 验证必填字段
@@ -106,7 +105,7 @@ router.post(
       return;
     }
 
-    const staffMember = await staffManagementService.createStaff(factoryId, {
+    const staffMember = await staffManagementService.createStaff(brandId, {
       name,
       email,
       password,
@@ -123,11 +122,10 @@ router.post(
  */
 router.put(
   '/:id/status',
-  authenticate,
   requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const factoryId = req.user!.factoryId!;
+    const brandId = req.user!.brandId!;
     const { status } = req.body;
 
     // 验证 status 字段
@@ -139,7 +137,7 @@ router.put(
       return;
     }
 
-    const staffMember = await staffManagementService.updateStaffStatus(id, factoryId, status);
+    const staffMember = await staffManagementService.updateStaffStatus(id, brandId, status);
 
     res.json(staffMember);
   })
@@ -152,13 +150,12 @@ router.put(
  */
 router.delete(
   '/:id',
-  authenticate,
   requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const factoryId = req.user!.factoryId!;
+    const brandId = req.user!.brandId!;
 
-    await staffManagementService.deleteStaff(id, factoryId);
+    await staffManagementService.deleteStaff(id, brandId);
 
     res.status(204).send();
   })
@@ -171,13 +168,12 @@ router.delete(
  */
 router.get(
   '/:staffId/permissions',
-  authenticate,
   requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
     const { staffId } = req.params;
-    const factoryId = req.user!.factoryId!;
+    const brandId = req.user!.brandId!;
 
-    const result = await staffManagementService.getStaffPermissions(staffId, factoryId);
+    const result = await staffManagementService.getStaffPermissions(staffId, brandId);
 
     res.json(result);
   })
@@ -190,11 +186,10 @@ router.get(
  */
 router.put(
   '/:staffId/permissions',
-  authenticate,
   requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
     const { staffId } = req.params;
-    const factoryId = req.user!.factoryId!;
+    const brandId = req.user!.brandId!;
     const { permissions } = req.body;
 
     // 验证必填字段
@@ -208,7 +203,7 @@ router.put(
 
     const result = await staffManagementService.updateStaffPermissions(
       staffId,
-      factoryId,
+      brandId,
       permissions
     );
 

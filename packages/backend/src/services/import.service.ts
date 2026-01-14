@@ -232,7 +232,7 @@ function validateInfluencerRow(
 export async function previewInfluencerImport(
   buffer: Buffer,
   mapping: InfluencerFieldMapping,
-  factoryId: string
+  brandId: string
 ): Promise<ImportPreviewResult<InfluencerPreviewData>> {
   const { headers, rows } = parseFile(buffer);
 
@@ -270,7 +270,7 @@ export async function previewInfluencerImport(
 
     // Check for duplicates
     const duplicateCheck = await influencerService.checkDuplicate(
-      factoryId,
+      brandId,
       data.phone,
       data.platform,
       data.platformId
@@ -316,14 +316,14 @@ export async function previewInfluencerImport(
 export async function executeInfluencerImport(
   buffer: Buffer,
   mapping: InfluencerFieldMapping,
-  factoryId: string,
+  brandId: string,
   skipDuplicates: boolean = true
 ): Promise<ImportResult> {
   const { headers, rows } = parseFile(buffer);
 
   // Check quota
-  const factory = await prisma.factory.findUnique({
-    where: { id: factoryId },
+  const factory = await prisma.brand.findUnique({
+    where: { id: brandId },
     select: { influencerLimit: true },
   });
 
@@ -331,7 +331,7 @@ export async function executeInfluencerImport(
     throw createBadRequestError('工厂不存在');
   }
 
-  const currentCount = await prisma.influencer.count({ where: { factoryId } });
+  const currentCount = await prisma.influencer.count({ where: { brandId } });
   const availableSlots = factory.influencerLimit - currentCount;
 
   if (availableSlots <= 0) {
@@ -371,7 +371,7 @@ export async function executeInfluencerImport(
 
     // Check for duplicates
     const duplicateCheck = await influencerService.checkDuplicate(
-      factoryId,
+      brandId,
       data.phone,
       data.platform,
       data.platformId
@@ -394,7 +394,7 @@ export async function executeInfluencerImport(
     try {
       await prisma.influencer.create({
         data: {
-          factoryId,
+          brandId,
           nickname: data.nickname,
           platform: data.platform,
           platformId: data.platformId,
@@ -494,7 +494,7 @@ function validateSampleRow(
 export async function previewSampleImport(
   buffer: Buffer,
   mapping: SampleFieldMapping,
-  factoryId: string
+  brandId: string
 ): Promise<ImportPreviewResult<SamplePreviewData>> {
   const { headers, rows } = parseFile(buffer);
 
@@ -519,7 +519,7 @@ export async function previewSampleImport(
 
   // Get existing SKUs
   const existingSamples = await prisma.sample.findMany({
-    where: { factoryId },
+    where: { brandId },
     select: { id: true, sku: true, name: true },
   });
   const existingSkuMap = new Map(existingSamples.map(s => [s.sku, s]));
@@ -582,14 +582,14 @@ export async function previewSampleImport(
 export async function executeSampleImport(
   buffer: Buffer,
   mapping: SampleFieldMapping,
-  factoryId: string,
+  brandId: string,
   skipDuplicates: boolean = true
 ): Promise<ImportResult> {
   const { headers, rows } = parseFile(buffer);
 
   // Get existing SKUs
   const existingSamples = await prisma.sample.findMany({
-    where: { factoryId },
+    where: { brandId },
     select: { sku: true },
   });
   const existingSkus = new Set(existingSamples.map(s => s.sku));
@@ -632,7 +632,7 @@ export async function executeSampleImport(
     try {
       await prisma.sample.create({
         data: {
-          factoryId,
+          brandId,
           sku: data.sku,
           name: data.name,
           unitCost: data.unitCost,
@@ -744,18 +744,18 @@ export type FieldMapping = InfluencerFieldMapping;
 export async function previewImport(
   buffer: Buffer,
   mapping: InfluencerFieldMapping,
-  factoryId: string
+  brandId: string
 ) {
-  return previewInfluencerImport(buffer, mapping, factoryId);
+  return previewInfluencerImport(buffer, mapping, brandId);
 }
 
 export async function executeImport(
   buffer: Buffer,
   mapping: InfluencerFieldMapping,
-  factoryId: string,
+  brandId: string,
   skipDuplicates: boolean = true
 ) {
-  return executeInfluencerImport(buffer, mapping, factoryId, skipDuplicates);
+  return executeInfluencerImport(buffer, mapping, brandId, skipDuplicates);
 }
 
 export function suggestMapping(headers: string[]) {

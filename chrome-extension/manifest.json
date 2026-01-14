@@ -6,7 +6,8 @@
   "permissions": [
     "activeTab",
     "storage",
-    "clipboardRead"
+    "clipboardRead",
+    "nativeMessaging"
   ],
   "host_permissions": [
     "https://buyin.jinritemai.com/*",
@@ -26,9 +27,24 @@
         "https://*.jinritemai.com/*",
         "file:///*"
       ],
-      "js": ["content.js"],
-      "css": ["content.css"],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://localhost:5173/*",
+        "http://localhost:3000/*",
+        "http://127.0.0.1:5173/*"
+      ],
+      "js": [
+        "wechat-content.js"
+      ],
+      "run_at": "document_start"
     }
   ],
   "background": {

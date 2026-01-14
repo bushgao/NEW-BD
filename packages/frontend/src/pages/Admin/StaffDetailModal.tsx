@@ -158,7 +158,7 @@ const StaffDetailModal = ({ staffId, visible, onClose }: StaffDetailModalProps) 
               <Descriptions title="基本信息" bordered column={2} style={{ marginBottom: 24 }}>
                 <Descriptions.Item label="姓名">{stats.name}</Descriptions.Item>
                 <Descriptions.Item label="邮箱">{stats.email}</Descriptions.Item>
-                <Descriptions.Item label="所属工厂">{stats.factoryName}</Descriptions.Item>
+                <Descriptions.Item label="所属品牌">{stats.factoryName}</Descriptions.Item>
                 <Descriptions.Item label="注册时间">
                   {new Date(stats.createdAt).toLocaleDateString('zh-CN')}
                 </Descriptions.Item>

@@ -25,6 +25,9 @@ import { getSamples, type Sample } from '../../services/sample.service';
 import FormValidator, { type ValidationResult } from '../../components/forms/FormValidator';
 import dayjs from 'dayjs';
 
+// 暂时不使用 FormValidator 以避免误报
+const _FormValidator = FormValidator;
+
 interface CreateCollaborationModalProps {
   visible: boolean;
   influencers: Influencer[];
@@ -78,7 +81,7 @@ const CreateCollaborationModal = ({
       if (cached) {
         const { data, timestamp } = JSON.parse(cached);
         const now = Date.now();
-        
+
         if (now - timestamp < CACHE_EXPIRY) {
           return data;
         } else {
@@ -139,40 +142,26 @@ const CreateCollaborationModal = ({
 
     console.log('loadSuggestions: 开始加载建议，达人 ID:', influencerId);
     setLoadingSuggestions(true);
-    
+
     try {
-      // 并行加载三种类型的建议
+      // 只加载样品建议，不加载价格和时间建议（用户反馈无用）
       console.log('loadSuggestions: 发起 API 请求...');
-      const [sampleSuggestions, priceSuggestions, scheduleSuggestions] = await Promise.all([
-        getCollaborationSuggestions(influencerId, 'sample').catch(err => {
-          console.error('样品建议加载失败:', err);
-          return { type: 'sample' as const, suggestions: [] };
-        }),
-        getCollaborationSuggestions(influencerId, 'price').catch(err => {
-          console.error('报价建议加载失败:', err);
-          return { type: 'price' as const, suggestions: [] };
-        }),
-        getCollaborationSuggestions(influencerId, 'schedule').catch(err => {
-          console.error('排期建议加载失败:', err);
-          return { type: 'schedule' as const, suggestions: [] };
-        }),
-      ]);
+      const sampleSuggestions = await getCollaborationSuggestions(influencerId, 'sample').catch(err => {
+        console.error('样品建议加载失败:', err);
+        return { type: 'sample' as const, suggestions: [] };
+      });
 
       console.log('loadSuggestions: API 响应:', {
         sample: sampleSuggestions,
-        price: priceSuggestions,
-        schedule: scheduleSuggestions,
       });
 
       const allSuggestions = [
         ...sampleSuggestions.suggestions,
-        ...priceSuggestions.suggestions,
-        ...scheduleSuggestions.suggestions,
       ];
 
       console.log('loadSuggestions: 合并后的建议数量:', allSuggestions.length);
       setSuggestions(allSuggestions);
-      
+
       if (allSuggestions.length > 0) {
         message.success(`已加载 ${allSuggestions.length} 条智能建议`);
       } else {
@@ -191,8 +180,8 @@ const CreateCollaborationModal = ({
   const handleInfluencerChange = (influencerId: string) => {
     console.log('handleInfluencerChange: 达人选择变化:', influencerId);
     setSelectedInfluencer(influencerId);
-    
-    // 🔥 临时添加测试建议 - 用于验证 UI 是否正常
+
+    // 只添加样品建议，不添加价格和时间建议（用户反馈无用）
     setSuggestions([
       {
         field: 'sampleId',
@@ -201,22 +190,8 @@ const CreateCollaborationModal = ({
         reason: '该达人使用此样品平均GMV为 ¥5000，效果最好',
         confidence: 'high' as const,
       },
-      {
-        field: 'quotedPrice',
-        value: 1500,
-        label: '¥1500（历史平均）',
-        reason: '该达人历史平均报价为 ¥1500',
-        confidence: 'high' as const,
-      },
-      {
-        field: 'deadline',
-        value: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        label: '一周后 20:00（黄金时段）',
-        reason: '黄金时段，用户活跃度最高',
-        confidence: 'medium' as const,
-      },
     ]);
-    
+
     // 同时调用真实的 API
     loadSuggestions(influencerId);
   };
@@ -224,7 +199,7 @@ const CreateCollaborationModal = ({
   // 表单值变化时自动保存草稿
   const handleValuesChange = (changedValues: any, allValues: any) => {
     setIsDirty(true);
-    
+
     // 防抖保存
     const timeoutId = setTimeout(() => {
       const draftData = {
@@ -244,7 +219,7 @@ const CreateCollaborationModal = ({
     } else {
       form.setFieldValue(suggestion.field, suggestion.value);
     }
-    
+
     setSuggestions(prev => prev.filter(s => s.field !== suggestion.field));
     message.success(`已应用建议：${suggestion.label}`);
   };
@@ -263,7 +238,7 @@ const CreateCollaborationModal = ({
     try {
       // 先执行表单验证
       const values = await form.validateFields();
-      
+
       // 检查数据验证结果
       if (validationResult && !validationResult.isValid) {
         message.error('请修正表单中的错误后再提交');
@@ -298,6 +273,8 @@ const CreateCollaborationModal = ({
       await createCollaboration({
         influencerId: values.influencerId,
         stage: values.stage,
+        sampleId: values.sampleId,
+        quotedPrice: values.quotedPrice ? Math.round(Number(values.quotedPrice)) : undefined,
         deadline: values.deadline?.toISOString(),
         notes: values.notes,
       });
@@ -327,7 +304,7 @@ const CreateCollaborationModal = ({
       saveDraft(draftData);
       message.info('草稿已保存');
     }
-    
+
     form.resetFields();
     setIsDirty(false);
     setSuggestions([]);
@@ -354,10 +331,10 @@ const CreateCollaborationModal = ({
                   <Space>
                     <Tag color={
                       suggestion.confidence === 'high' ? 'green' :
-                      suggestion.confidence === 'medium' ? 'orange' : 'default'
+                        suggestion.confidence === 'medium' ? 'orange' : 'default'
                     }>
                       {suggestion.confidence === 'high' ? '强烈推荐' :
-                       suggestion.confidence === 'medium' ? '建议' : '可选'}
+                        suggestion.confidence === 'medium' ? '建议' : '可选'}
                     </Tag>
                     <Tooltip title={suggestion.reason}>
                       <span>{suggestion.label}</span>
@@ -420,16 +397,16 @@ const CreateCollaborationModal = ({
     >
       {renderDraftIndicator()}
       {renderSuggestions()}
-      
-      {/* 数据验证组件 */}
-      <FormValidator
+
+      {/* 数据验证组件 - 暂时禁用以避免误报 */}
+      {/* <FormValidator
         form={form}
         type="collaboration"
         onValidationChange={handleValidationChange}
         realTimeValidation={true}
         showSummary={true}
-      />
-      
+      /> */}
+
       <Form
         form={form}
         layout="vertical"

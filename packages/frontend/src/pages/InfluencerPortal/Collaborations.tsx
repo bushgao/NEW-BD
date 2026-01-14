@@ -227,8 +227,8 @@ const InfluencerCollaborationsPage = () => {
                 placeholder="选择工厂"
                 allowClear
                 style={{ width: 200 }}
-                value={filter.factoryId}
-                onChange={(value) => handleFilterChange('factoryId', value)}
+                value={filter.brandId}
+                onChange={(value) => handleFilterChange('brandId', value)}
                 options={factories.map((f) => ({ label: f.name, value: f.id }))}
               />
               <Select

@@ -19,7 +19,7 @@ export interface TrendData {
  * 获取趋势数据
  */
 export async function getTrendData(
-  factoryId: string,
+  brandId: string,
   period: 'week' | 'month' | 'quarter',
   dataType: 'gmv' | 'cost' | 'roi'
 ): Promise<TrendData> {
@@ -29,10 +29,10 @@ export async function getTrendData(
   const { currentStart, currentEnd, previousStart, previousEnd, days } = calculateDateRanges(now, period);
   
   // 获取当前周期数据
-  const currentData = await fetchPeriodData(factoryId, currentStart, currentEnd, days, dataType);
+  const currentData = await fetchPeriodData(brandId, currentStart, currentEnd, days, dataType);
   
   // 获取上一周期数据
-  const previousData = await fetchPeriodData(factoryId, previousStart, previousEnd, days, dataType);
+  const previousData = await fetchPeriodData(brandId, previousStart, previousEnd, days, dataType);
   
   // 计算环比变化
   const currentTotal = currentData.reduce((sum, d) => sum + d.value, 0);
@@ -107,7 +107,7 @@ function calculateDateRanges(now: Date, period: 'week' | 'month' | 'quarter') {
  * 获取指定周期的数据
  */
 async function fetchPeriodData(
-  factoryId: string,
+  brandId: string,
   startDate: Date,
   endDate: Date,
   days: number,
@@ -116,7 +116,7 @@ async function fetchPeriodData(
   // 获取该周期内的所有合作结果
   const results = await prisma.collaborationResult.findMany({
     where: {
-      collaboration: { factoryId },
+      collaboration: { brandId },
       publishedAt: { gte: startDate, lte: endDate },
     },
     select: {

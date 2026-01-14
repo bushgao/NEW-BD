@@ -128,35 +128,35 @@ const Dashboard = () => {
   const [allCategories, setAllCategories] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
 
-  const isFactoryOwner = user?.role === 'BRAND';
+  const isBrandOwner = user?.role === 'BRAND';
   const isBusinessStaff = user?.role === 'BUSINESS';
 
   // 工厂状态横幅配置 (共享)
-  const factoryStatus = user?.factory?.status;
+  const factoryStatus = user?.brand?.status;
   const factoryStatusConfig: Record<string, any> = {
     PENDING: {
       color: '#faad14',
       bgColor: '#fffbe6',
       borderColor: '#ffe58f',
       icon: <ClockCircleOutlined />,
-      title: '工厂审核中',
-      message: '您的工厂正在审核中，审核通过后即可使用全部功能',
+      title: '平台审核中',
+      message: '您的品牌正在平台审核中，审核通过后即可使用全部功能',
     },
     REJECTED: {
       color: '#ff4d4f',
       bgColor: '#fff2f0',
       borderColor: '#ffccc7',
       icon: <WarningOutlined />,
-      title: '工厂审核未通过',
-      message: '您的工厂审核未通过，请联系平台管理员了解详情',
+      title: '审核未通过',
+      message: '您的品牌审核未通过，请联系平台管理员了解详情',
     },
     SUSPENDED: {
       color: '#ff4d4f',
       bgColor: '#fff2f0',
       borderColor: '#ffccc7',
       icon: <WarningOutlined />,
-      title: '工厂已暂停',
-      message: '您的工厂已被暂停使用，请联系平台管理员',
+      title: '品牌已暂停',
+      message: '您的品牌已被暂停使用，请联系平台管理员',
     },
   };
 
@@ -173,7 +173,7 @@ const Dashboard = () => {
   const loadDashboard = async () => {
     setLoading(true);
     try {
-      if (isFactoryOwner) {
+      if (isBrandOwner) {
         const data = await getFactoryDashboard(period);
         setFactoryDashboard(data);
       } else if (isBusinessStaff) {
@@ -190,7 +190,7 @@ const Dashboard = () => {
 
   // 加载趋势数据（仅工厂老板）
   const loadTrendData = async () => {
-    if (!isFactoryOwner) return;
+    if (!isBrandOwner) return;
 
     setTrendLoading(true);
     try {
@@ -213,7 +213,7 @@ const Dashboard = () => {
 
   // 加载 ROI 分析数据（仅工厂老板）
   const loadRoiAnalysis = async () => {
-    if (!isFactoryOwner) return;
+    if (!isBrandOwner) return;
 
     setRoiAnalysisLoading(true);
     try {
@@ -229,7 +229,7 @@ const Dashboard = () => {
 
   // 加载管道漏斗数据（仅工厂老板）
   const loadPipelineFunnel = async () => {
-    if (!isFactoryOwner) return;
+    if (!isBrandOwner) return;
 
     setPipelineFunnelLoading(true);
     try {
@@ -245,7 +245,7 @@ const Dashboard = () => {
 
   // 加载每日摘要数据（仅工厂老板）
   const loadDailySummary = async () => {
-    if (!isFactoryOwner) return;
+    if (!isBrandOwner) return;
 
     try {
       const data = await getDailySummary();
@@ -274,7 +274,7 @@ const Dashboard = () => {
 
   // 加载商务列表（仅工厂老板）
   const loadStaffList = async () => {
-    if (!isFactoryOwner) return;
+    if (!isBrandOwner) return;
 
     try {
       // 从 factoryDashboard 的 staffRanking 中获取商务列表
@@ -292,7 +292,7 @@ const Dashboard = () => {
 
   // 加载商务对比数据（仅工厂老板）
   const loadStaffComparison = async (staffIds: string[]) => {
-    if (!isFactoryOwner || staffIds.length < 2) {
+    if (!isBrandOwner || staffIds.length < 2) {
       setStaffComparison(null);
       return;
     }
@@ -445,33 +445,33 @@ const Dashboard = () => {
 
   useEffect(() => {
     // 只有工厂老板和商务人员需要加载看板数据和刷新用户信息
-    if (isFactoryOwner || isBusinessStaff) {
+    if (isBrandOwner || isBusinessStaff) {
       loadDashboard();
       refreshUserInfo(); // 刷新用户信息以获取最新的工厂状态
     }
-  }, [period, isFactoryOwner, isBusinessStaff]);
+  }, [period, isBrandOwner, isBusinessStaff]);
 
   // 加载趋势数据
   useEffect(() => {
-    if (isFactoryOwner) {
+    if (isBrandOwner) {
       loadTrendData();
     }
-  }, [trendPeriod, isFactoryOwner]);
+  }, [trendPeriod, isBrandOwner]);
 
   // 加载 ROI 分析数据
   useEffect(() => {
-    if (isFactoryOwner) {
+    if (isBrandOwner) {
       loadRoiAnalysis();
     }
-  }, [isFactoryOwner]);
+  }, [isBrandOwner]);
 
   // 加载管道漏斗数据
   useEffect(() => {
-    if (isFactoryOwner) {
+    if (isBrandOwner) {
       loadPipelineFunnel();
       loadDailySummary();
     }
-  }, [isFactoryOwner]);
+  }, [isBrandOwner]);
 
   // 加载今日待办数据（商务人员）
   useEffect(() => {
@@ -482,10 +482,10 @@ const Dashboard = () => {
 
   // 加载商务列表（当 factoryDashboard 加载完成后）
   useEffect(() => {
-    if (isFactoryOwner && factoryDashboard) {
+    if (isBrandOwner && factoryDashboard) {
       loadStaffList();
     }
-  }, [isFactoryOwner, factoryDashboard]);
+  }, [isBrandOwner, factoryDashboard]);
 
   // 渲染变化指标
   const renderChange = (change: number) => {
@@ -500,7 +500,7 @@ const Dashboard = () => {
   };
 
   // 非工厂老板和商务人员显示简单欢迎页面（平台管理员）
-  if (!isFactoryOwner && !isBusinessStaff) {
+  if (!isBrandOwner && !isBusinessStaff) {
     return (
       <div
         style={{
@@ -508,6 +508,7 @@ const Dashboard = () => {
           background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
           position: 'relative',
           padding: '24px',
+          margin: '-24px',
         }}
       >
         {/* 背景装饰元素 */}
@@ -576,6 +577,9 @@ const Dashboard = () => {
         style={{
           minHeight: '100vh',
           background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
+          position: 'relative',
+          padding: '24px',
+          margin: '-24px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -1111,7 +1115,7 @@ const Dashboard = () => {
 
   // 工厂老板仪表盘
   // 如果正在加载或数据为空，显示加载状态
-  if (isFactoryOwner && loading) {
+  if (isBrandOwner && loading) {
     return (
       <div
         style={{
@@ -1133,7 +1137,7 @@ const Dashboard = () => {
   }
 
   // 如果不是加载状态但数据为空，显示错误提示
-  if (isFactoryOwner && !factoryDashboard) {
+  if (isBrandOwner && !factoryDashboard) {
     return (
       <div
         style={{
@@ -1163,16 +1167,16 @@ const Dashboard = () => {
 
 
   // 配额信息
-  const staffCount = user?.factory?._count?.staff || 0;
-  const staffLimit = user?.factory?.staffLimit || 0;
-  const influencerCount = user?.factory?._count?.influencers || 0;
-  const influencerLimit = user?.factory?.influencerLimit || 0;
+  const staffCount = user?.brand?._count?.staff || 0;
+  const staffLimit = user?.brand?.staffLimit || 0;
+  const influencerCount = user?.brand?._count?.influencers || 0;
+  const influencerLimit = user?.brand?.influencerLimit || 0;
   const planTypeLabels = {
     FREE: '免费版',
     PROFESSIONAL: '专业版',
     ENTERPRISE: '企业版',
   };
-  const planType = user?.factory?.planType || 'FREE';
+  const planType = user?.brand?.planType || 'FREE';
 
 
 
@@ -1424,7 +1428,7 @@ const Dashboard = () => {
 
           {/* Smart Assistant */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SmartNotifications factoryId={user?.factoryId} isBento={true} />
+            <SmartNotifications brandId={user?.brandId} isBento={true} />
             <FollowUpReminder
               onRemind={(collaborationId) => {
                 navigate(`/app/pipeline?highlight=${collaborationId}`);
@@ -1453,7 +1457,7 @@ const Dashboard = () => {
     <div
       className="min-h-screen bg-slate-50/50"
       style={{
-        padding: '40px',
+        padding: '24px',
         margin: '-24px',
         backgroundImage:
           mode === 'dark'
@@ -1503,7 +1507,7 @@ const Dashboard = () => {
             <Spin size="large" tip="正在加载指挥舱数据..." />
           </div>
         ) : (
-          isFactoryOwner ? renderFactoryDashboard() : (
+          isBrandOwner ? renderFactoryDashboard() : (
             <div className="max-w-[1200px] mx-auto py-12">
               <Empty description="商务端概览升级中，请稍候..." />
             </div>

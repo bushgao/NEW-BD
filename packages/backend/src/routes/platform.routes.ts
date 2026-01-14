@@ -3,7 +3,7 @@ import { body, param, query, validationResult } from 'express-validator';
 import * as platformService from '../services/platform.service';
 import { authenticate, requirePlatformAdmin } from '../middleware/auth.middleware';
 import { createBadRequestError } from '../middleware/errorHandler';
-import type { ApiResponse, FactoryStatus, PlanType } from '@ics/shared';
+import type { ApiResponse, BrandStatus, PlanType } from '@ics/shared';
 
 const router = Router();
 
@@ -40,7 +40,7 @@ router.get(
     try {
       const page = parseInt(req.query.page as string) || 1;
       const pageSize = parseInt(req.query.pageSize as string) || 10;
-      const status = req.query.status as FactoryStatus | undefined;
+      const status = req.query.status as BrandStatus | undefined;
       const planType = req.query.planType as PlanType | undefined;
       const keyword = req.query.keyword as string | undefined;
 
@@ -60,21 +60,21 @@ router.get(
 );
 
 /**
- * @route GET /api/platform/factories/:factoryId
+ * @route GET /api/platform/factories/:brandId
  * @desc 获取工厂详情
  * @access Platform Admin
  */
 router.get(
-  '/factories/:factoryId',
+  '/factories/:brandId',
   authenticate,
   requirePlatformAdmin,
   [
-    param('factoryId').isUUID().withMessage('无效的工厂ID'),
+    param('brandId').isUUID().withMessage('无效的工厂ID'),
   ],
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factory = await platformService.getFactoryById(req.params.factoryId);
+      const factory = await platformService.getFactoryById(req.params.brandId);
 
       res.json({
         success: true,
@@ -87,16 +87,16 @@ router.get(
 );
 
 /**
- * @route POST /api/platform/factories/:factoryId/review
+ * @route POST /api/platform/factories/:brandId/review
  * @desc 审核工厂入驻申请
  * @access Platform Admin
  */
 router.post(
-  '/factories/:factoryId/review',
+  '/factories/:brandId/review',
   authenticate,
   requirePlatformAdmin,
   [
-    param('factoryId').isUUID().withMessage('无效的工厂ID'),
+    param('brandId').isUUID().withMessage('无效的工厂ID'),
     body('status').isIn(['APPROVED', 'REJECTED']).withMessage('状态必须为 APPROVED 或 REJECTED'),
     body('reason').optional().isString().withMessage('原因必须为字符串'),
   ],
@@ -105,7 +105,7 @@ router.post(
     try {
       const { status, reason } = req.body;
       const factory = await platformService.reviewFactory(
-        req.params.factoryId,
+        req.params.brandId,
         status,
         reason
       );
@@ -121,16 +121,16 @@ router.post(
 );
 
 /**
- * @route PUT /api/platform/factories/:factoryId
+ * @route PUT /api/platform/factories/:brandId
  * @desc 更新工厂信息
  * @access Platform Admin
  */
 router.put(
-  '/factories/:factoryId',
+  '/factories/:brandId',
   authenticate,
   requirePlatformAdmin,
   [
-    param('factoryId').isUUID().withMessage('无效的工厂ID'),
+    param('brandId').isUUID().withMessage('无效的工厂ID'),
     body('status').optional().isIn(['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED']).withMessage('无效的状态'),
     body('planType').optional().isIn(['FREE', 'PROFESSIONAL', 'ENTERPRISE']).withMessage('无效的套餐类型'),
     body('staffLimit').optional().isInt({ min: 1 }).withMessage('商务账号上限必须为正整数'),
@@ -140,7 +140,7 @@ router.put(
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
       const { status, planType, staffLimit, influencerLimit } = req.body;
-      const factory = await platformService.updateFactory(req.params.factoryId, {
+      const factory = await platformService.updateFactory(req.params.brandId, {
         status,
         planType,
         staffLimit,
@@ -158,30 +158,57 @@ router.put(
 );
 
 /**
- * @route POST /api/platform/factories/:factoryId/toggle-status
+ * @route POST /api/platform/factories/:brandId/toggle-status
  * @desc 暂停/恢复工厂
  * @access Platform Admin
  */
 router.post(
-  '/factories/:factoryId/toggle-status',
+  '/factories/:brandId/toggle-status',
   authenticate,
   requirePlatformAdmin,
   [
-    param('factoryId').isUUID().withMessage('无效的工厂ID'),
+    param('brandId').isUUID().withMessage('无效的工厂ID'),
     body('suspend').isBoolean().withMessage('suspend 必须为布尔值'),
   ],
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
       const { suspend } = req.body;
-      const factory = await platformService.toggleFactoryStatus(
-        req.params.factoryId,
+      const factory = await platformService.toggleBrandStatus(
+        req.params.brandId,
         suspend
       );
 
       res.json({
         success: true,
         data: factory,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @route DELETE /api/platform/factories/:brandId
+ * @desc 删除品牌
+ * @access Platform Admin
+ */
+router.delete(
+  '/factories/:brandId',
+  authenticate,
+  requirePlatformAdmin,
+  [
+    param('brandId').isUUID().withMessage('无效的品牌ID'),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      await platformService.deleteBrand(req.params.brandId);
+
+      res.json({
+        success: true,
+        data: { message: '品牌已删除' },
       });
     } catch (error) {
       next(error);
@@ -340,23 +367,23 @@ router.delete(
 // ============ Quota Check Routes ============
 
 /**
- * @route GET /api/platform/factories/:factoryId/quota
+ * @route GET /api/platform/factories/:brandId/quota
  * @desc 检查工厂配额
  * @access Platform Admin
  */
 router.get(
-  '/factories/:factoryId/quota',
+  '/factories/:brandId/quota',
   authenticate,
   requirePlatformAdmin,
   [
-    param('factoryId').isUUID().withMessage('无效的工厂ID'),
+    param('brandId').isUUID().withMessage('无效的工厂ID'),
     query('type').isIn(['staff', 'influencer']).withMessage('类型必须为 staff 或 influencer'),
   ],
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
       const quota = await platformService.checkFactoryQuota(
-        req.params.factoryId,
+        req.params.brandId,
         req.query.type as 'staff' | 'influencer'
       );
 
@@ -373,21 +400,21 @@ router.get(
 // ============ Factory Staff Management Routes ============
 
 /**
- * @route GET /api/platform/factories/:factoryId/staff
+ * @route GET /api/platform/factories/:brandId/staff
  * @desc 获取工厂的商务列表
  * @access Platform Admin
  */
 router.get(
-  '/factories/:factoryId/staff',
+  '/factories/:brandId/staff',
   authenticate,
   requirePlatformAdmin,
   [
-    param('factoryId').isUUID().withMessage('无效的工厂ID'),
+    param('brandId').isUUID().withMessage('无效的工厂ID'),
   ],
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const staff = await platformService.getFactoryStaff(req.params.factoryId);
+      const staff = await platformService.getBrandStaff(req.params.brandId);
 
       res.json({
         success: true,
@@ -568,7 +595,7 @@ router.get(
     query('pageSize').optional().isInt({ min: 1, max: 100 }).withMessage('每页数量必须在1-100之间'),
     query('keyword').optional().isString(),
     query('platform').optional().isIn(['DOUYIN', 'KUAISHOU', 'XIAOHONGSHU', 'WEIBO', 'OTHER']).withMessage('无效的平台'),
-    query('factoryId').optional().isUUID().withMessage('无效的工厂ID'),
+    query('brandId').optional().isUUID().withMessage('无效的工厂ID'),
     query('sourceType').optional().isIn(['PLATFORM', 'FACTORY', 'STAFF']).withMessage('无效的来源类型'),
     query('verificationStatus').optional().isIn(['UNVERIFIED', 'VERIFIED', 'REJECTED']).withMessage('无效的认证状态'),
     query('createdBy').optional().isUUID().withMessage('无效的用户ID'),
@@ -580,13 +607,13 @@ router.get(
       const pageSize = parseInt(req.query.pageSize as string) || 20;
       const keyword = req.query.keyword as string | undefined;
       const platform = req.query.platform as string | undefined;
-      const factoryId = req.query.factoryId as string | undefined;
+      const brandId = req.query.brandId as string | undefined;
       const sourceType = req.query.sourceType as any;
       const verificationStatus = req.query.verificationStatus as any;
       const createdBy = req.query.createdBy as string | undefined;
 
       const result = await platformService.listAllInfluencers(
-        { keyword, platform, factoryId, sourceType, verificationStatus, createdBy },
+        { keyword, platform, brandId, sourceType, verificationStatus, createdBy },
         { page, pageSize }
       );
 
@@ -737,6 +764,45 @@ router.get(
   }
 );
 
+// ============ 独立商务管理 Routes ============
+// 注意：此路由必须在 /users/:userId 之前定义，否则 independent 会被当作 userId
+
+/**
+ * @route GET /api/platform/users/independent
+ * @desc 获取独立商务列表（不隶属任何品牌）
+ * @access Platform Admin
+ */
+router.get(
+  '/users/independent',
+  authenticate,
+  requirePlatformAdmin,
+  [
+    query('page').optional().isInt({ min: 1 }).withMessage('页码必须为正整数'),
+    query('pageSize').optional().isInt({ min: 1, max: 100 }).withMessage('每页数量必须在1-100之间'),
+    query('keyword').optional().isString(),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 20;
+      const keyword = req.query.keyword as string | undefined;
+
+      const result = await platformService.getIndependentBusinessUsers(
+        { page, pageSize },
+        keyword
+      );
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 /**
  * @route GET /api/platform/users/:userId
  * @desc 获取用户详情
@@ -799,4 +865,120 @@ router.post(
   }
 );
 
+/**
+ * @route DELETE /api/platform/users/:userId
+ * @desc 删除用户
+ * @access Platform Admin
+ */
+router.delete(
+  '/users/:userId',
+  authenticate,
+  requirePlatformAdmin,
+  [
+    param('userId').isUUID().withMessage('无效的用户ID'),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      await platformService.deleteUser(req.params.userId);
+
+      res.json({
+        success: true,
+        data: { message: '用户已删除' },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @route GET /api/platform/brands/:brandId/members
+ * @desc 获取品牌成员列表（主账号+商务）
+ * @access Platform Admin
+ */
+router.get(
+  '/brands/:brandId/members',
+  authenticate,
+  requirePlatformAdmin,
+  [
+    param('brandId').isUUID().withMessage('无效的品牌ID'),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const members = await platformService.getBrandMembers(req.params.brandId);
+
+      res.json({
+        success: true,
+        data: members,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @route POST /api/platform/users/:userId/assign-brand
+ * @desc 将独立商务划归到品牌
+ * @access Platform Admin
+ */
+router.post(
+  '/users/:userId/assign-brand',
+  authenticate,
+  requirePlatformAdmin,
+  [
+    param('userId').isUUID().withMessage('无效的用户ID'),
+    body('brandId').isUUID().withMessage('无效的品牌ID'),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const { brandId } = req.body;
+
+      await platformService.assignUserToBrand(
+        req.params.userId,
+        brandId
+      );
+
+      res.json({
+        success: true,
+        data: { message: '商务已成功划归到品牌' },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @route DELETE /api/platform/influencers/:influencerId
+ * @desc 删除达人（平台管理员）
+ * @access Platform Admin
+ */
+router.delete(
+  '/influencers/:influencerId',
+  authenticate,
+  requirePlatformAdmin,
+  [
+    param('influencerId').isUUID().withMessage('无效的达人ID'),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      await platformService.deleteInfluencer(req.params.influencerId);
+
+      res.json({
+        success: true,
+        data: { message: '达人已删除' },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 export default router;
+
+

@@ -1,0 +1,221 @@
+<div class="api-endpoints" id="moments-apis">
+                <h3><i class="bi bi-heart"></i> 朋友圈</h3>
+
+                <!-- 打开朋友圈 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/moments/open</code>
+                        <span class="version-badge version-plus">Plus版</span>
+                        - 打开朋友圈
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>打开微信朋友圈界面。</p>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "success": true,
+    "message": "朋友圈已打开",
+    "data": {
+        "status": "opened",
+        "timestamp": "2024-01-01 12:00:00"
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="moments-open-tester" data-api-config="moments-open"></div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <!-- 获取朋友圈内容 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-get">GET</span>
+                        <code>/api/moments/get-moments</code>
+                        <span class="version-badge version-plus">Plus版</span>
+                        - 获取朋友圈内容
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>获取朋友圈的动态内容。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>n</td>
+                                        <td>number</td>
+                                        <td>否</td>
+                                        <td>获取数量，默认10</td>
+                                    </tr>
+                                    <tr>
+                                        <td>timeout</td>
+                                        <td>number</td>
+                                        <td>否</td>
+                                        <td>超时时间（秒），默认10</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "code": 0,
+    "message": "获取朋友圈内容成功",
+    "data": {
+        "moments": [
+            {
+                "author": "好友名称",
+                "content": "朋友圈文字内容",
+                "time": "2小时前",
+                "images": [],
+                "likes": [],
+                "comments": []
+            }
+        ]
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="moments-get-moments-tester" data-api-config="moments-get-moments"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 点赞朋友圈 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/moments/like</code>
+                        <span class="version-badge version-plus">Plus版</span>
+                        - 点赞朋友圈
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>对指定的朋友圈动态进行点赞操作。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>moment_index</td>
+                                        <td>number</td>
+                                        <td>是</td>
+                                        <td>朋友圈索引（从0开始）</td>
+                                    </tr>
+                                    <tr>
+                                        <td>like</td>
+                                        <td>boolean</td>
+                                        <td>否</td>
+                                        <td>是否点赞，true为点赞，false为取消点赞，默认true</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "code": 0,
+    "message": "点赞成功",
+    "data": {
+        "moment_index": 0,
+        "result": "点赞结果"
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="moments-like-tester" data-api-config="moments-like"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 评论朋友圈 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/moments/comment</code>
+                        <span class="version-badge version-plus">Plus版</span>
+                        - 评论朋友圈
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>对指定的朋友圈动态发表评论。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>moment_index</td>
+                                        <td>number</td>
+                                        <td>是</td>
+                                        <td>朋友圈索引（从0开始）</td>
+                                    </tr>
+                                    <tr>
+                                        <td>text</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>评论内容</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "code": 0,
+    "message": "评论成功",
+    "data": {
+        "moment_index": 0,
+        "text": "评论内容",
+        "result": "评论结果"
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="moments-comment-tester" data-api-config="moments-comment"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>

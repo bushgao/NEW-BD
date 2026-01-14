@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Input, Select, Tag, Space, message } from 'antd';
+import { Table, Button, Input, Select, Tag, Space, message, Modal } from 'antd';
 import { EyeOutlined, SafetyCertificateOutlined, DownloadOutlined } from '@ant-design/icons';
 import type {
   InfluencerWithDetails,
@@ -21,7 +21,7 @@ const platformLabels: Record<Platform, string> = {
 
 const sourceTypeLabels: Record<InfluencerSourceType, string> = {
   PLATFORM: '平台添加',
-  FACTORY: '工厂添加',
+  FACTORY: '品牌添加',
   STAFF: '商务添加',
 };
 
@@ -127,6 +127,25 @@ export default function InfluencerManagement() {
     }
   };
 
+  const handleDeleteInfluencer = (influencer: InfluencerWithDetails) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除达人「${influencer.nickname}」吗？此操作不可恢复。`,
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await platformInfluencerService.deleteInfluencer(influencer.id);
+          message.success('删除成功');
+          loadInfluencers();
+        } catch (error: any) {
+          message.error(error.message || '删除失败');
+        }
+      },
+    });
+  };
+
   const columns = [
     {
       title: '昵称',
@@ -155,7 +174,7 @@ export default function InfluencerManagement() {
       render: (followers: string) => followers || '-',
     },
     {
-      title: '所属工厂',
+      title: '所属品牌',
       dataIndex: ['factory', 'name'],
       key: 'factoryName',
       width: 150,
@@ -190,7 +209,7 @@ export default function InfluencerManagement() {
     {
       title: '操作',
       key: 'actions',
-      width: 150,
+      width: 200,
       fixed: 'right' as const,
       render: (_: any, record: InfluencerWithDetails) => (
         <Space>
@@ -212,6 +231,14 @@ export default function InfluencerManagement() {
               认证
             </Button>
           )}
+          <Button
+            type="link"
+            size="small"
+            danger
+            onClick={() => handleDeleteInfluencer(record)}
+          >
+            删除
+          </Button>
         </Space>
       ),
     },
@@ -249,7 +276,7 @@ export default function InfluencerManagement() {
             allowClear
           >
             <Select.Option value="PLATFORM">平台添加</Select.Option>
-            <Select.Option value="FACTORY">工厂添加</Select.Option>
+            <Select.Option value="FACTORY">品牌添加</Select.Option>
             <Select.Option value="STAFF">商务添加</Select.Option>
           </Select>
           <Select

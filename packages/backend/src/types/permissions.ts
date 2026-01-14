@@ -161,7 +161,7 @@ export function hasPermission(
   }
 
   const [category, key] = permission.split('.');
-  
+
   if (!category || !key) {
     return false;
   }
@@ -217,14 +217,19 @@ function deepEqualPermissions(a: StaffPermissions, b: StaffPermissions): boolean
  * 识别权限模板
  */
 export function identifyTemplate(permissions: StaffPermissions): PermissionTemplateId {
+  // 如果 permissions 为空或结构不完整，返回 custom
+  if (!permissions || !permissions.dataVisibility || !permissions.operations || !permissions.advanced) {
+    return 'custom';
+  }
+
   // 检查是否匹配预设模板
   for (const [templateId, template] of Object.entries(PERMISSION_TEMPLATES)) {
     if (templateId === 'custom') continue;
-    
+
     if (deepEqualPermissions(permissions, template.permissions)) {
       return templateId as PermissionTemplateId;
     }
   }
-  
+
   return 'custom';
 }

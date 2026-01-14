@@ -1,0 +1,5 @@
+Control Identifiers:
+
+Dialog - '微信'    (L921, T172, R1661, B1044)
+['微信', 'Dialog', '微信Dialog']
+child_window(title="微信", control_type="Window")

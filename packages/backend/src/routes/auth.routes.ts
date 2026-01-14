@@ -29,19 +29,19 @@ const registerValidation = [
   body('name')
     .trim()
     .notEmpty()
-    .withMessage('请输入姓名'),
+    .withMessage('请输入昵称'),
   body('role')
-    .isIn(['PLATFORM_ADMIN', 'BRAND', 'BUSINESS'])
+    .isIn(['PLATFORM_ADMIN', 'BRAND', 'BUSINESS', 'INFLUENCER'])
     .withMessage('无效的用户角色'),
-  body('factoryId')
+  body('brandId')
     .optional()
     .isUUID()
-    .withMessage('无效的工厂ID'),
-  body('factoryName')
+    .withMessage('无效的品牌ID'),
+  body('brandName')
     .optional()
     .trim()
     .notEmpty()
-    .withMessage('工厂名称不能为空'),
+    .withMessage('品牌名称不能为空'),
 ];
 
 const loginValidation = [
@@ -71,12 +71,12 @@ router.post(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const { email, password, name, role, factoryId, factoryName } = req.body;
+      const { email, password, name, role, brandId, brandName } = req.body;
 
       // 如果是商务人员加入工厂，检查工厂的商务账号配额
-      if (role === 'BUSINESS' && factoryId) {
+      if (role === 'BUSINESS' && brandId) {
         const { validateQuota } = await import('../services/platform.service');
-        await validateQuota(factoryId, 'staff');
+        await validateQuota(brandId, 'staff');
       }
 
       const result = await authService.register({
@@ -84,8 +84,8 @@ router.post(
         password,
         name,
         role: role as UserRole,
-        factoryId,
-        factoryName,
+        brandId,
+        factoryName: brandName, // 前端传 brandName，服务层还是用 factoryName
       });
 
       res.status(201).json({

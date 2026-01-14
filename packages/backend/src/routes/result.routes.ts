@@ -82,8 +82,8 @@ router.get(
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -98,7 +98,7 @@ router.get(
         endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined,
       };
 
-      const result = await resultService.listResults(factoryId, filter, { page, pageSize });
+      const result = await resultService.listResults(brandId, filter, { page, pageSize });
 
       res.json({
         success: true,
@@ -122,8 +122,8 @@ router.get(
   requireRoles('BRAND'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -135,7 +135,7 @@ router.get(
         };
       }
 
-      const stats = await resultService.getResultStats(factoryId, dateRange);
+      const stats = await resultService.getResultStats(brandId, dateRange);
 
       res.json({
         success: true,
@@ -159,8 +159,8 @@ router.get(
   requireRoles('BRAND'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -175,7 +175,7 @@ router.get(
         endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined,
       };
 
-      const report = await resultService.getRoiReport(factoryId, filter);
+      const report = await resultService.getRoiReport(brandId, filter);
 
       res.json({
         success: true,
@@ -201,14 +201,14 @@ router.get(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
       const result = await resultService.getResultByCollaborationId(
         req.params.collaborationId,
-        factoryId
+        brandId
       );
 
       res.json({
@@ -234,12 +234,12 @@ router.get(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
-      const result = await resultService.getResultById(req.params.id, factoryId);
+      const result = await resultService.getResultById(req.params.id, brandId);
 
       res.json({
         success: true,
@@ -264,8 +264,8 @@ router.post(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -295,7 +295,7 @@ router.post(
           willRepeat,
           notes,
         },
-        factoryId
+        brandId
       );
 
       res.status(201).json({
@@ -322,8 +322,8 @@ router.put(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -339,7 +339,7 @@ router.put(
         notes,
       } = req.body;
 
-      const result = await resultService.updateResult(req.params.id, factoryId, {
+      const result = await resultService.updateResult(req.params.id, brandId, {
         contentType,
         publishedAt: publishedAt ? new Date(publishedAt) : undefined,
         salesQuantity,

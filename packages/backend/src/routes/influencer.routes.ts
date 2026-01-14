@@ -117,7 +117,7 @@ const idParamValidation = [
  * @permission dataVisibility.viewOthersInfluencers - 如果没有此权限，只能看到自己创建的达人
  */
 
-// Apply enrichUserData middleware to all routes to ensure factoryId is available
+// Apply enrichUserData middleware to all routes to ensure brandId is available
 router.use(authenticate);
 router.use(enrichUserData);
 
@@ -129,8 +129,8 @@ router.get(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -155,7 +155,7 @@ router.get(
       };
 
       const result = await influencerService.list(
-        factoryId, 
+        brandId, 
         filter, 
         { page, pageSize },
         req.user!.userId,
@@ -184,15 +184,15 @@ router.get(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
       const { phone, platform, platformId } = req.query;
 
       const result = await influencerService.checkDuplicate(
-        factoryId,
+        brandId,
         phone as string | undefined,
         platform as Platform | undefined,
         platformId as string | undefined
@@ -218,12 +218,12 @@ router.get(
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
-      const tags = await influencerService.getAllTags(factoryId);
+      const tags = await influencerService.getAllTags(brandId);
 
       res.json({
         success: true,
@@ -245,12 +245,12 @@ router.get(
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
-      const categories = await influencerService.getAllCategories(factoryId);
+      const categories = await influencerService.getAllCategories(brandId);
 
       res.json({
         success: true,
@@ -274,12 +274,12 @@ router.get(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
-      const influencer = await influencerService.getById(req.params.id, factoryId);
+      const influencer = await influencerService.getById(req.params.id, brandId);
 
       res.json({
         success: true,
@@ -305,15 +305,15 @@ router.post(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
       const { nickname, platform, platformId, phone, wechat, followers, categories, tags, notes } = req.body;
 
       const influencer = await influencerService.create({
-        factoryId,
+        brandId,
         nickname,
         platform,
         platformId,
@@ -351,14 +351,14 @@ router.put(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
       const { nickname, platform, platformId, phone, wechat, followers, categories, tags, notes } = req.body;
 
-      const influencer = await influencerService.update(req.params.id, factoryId, {
+      const influencer = await influencerService.update(req.params.id, brandId, {
         nickname,
         platform,
         platformId,
@@ -394,12 +394,12 @@ router.delete(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
-      await influencerService.remove(req.params.id, factoryId);
+      await influencerService.remove(req.params.id, brandId);
 
       res.json({
         success: true,
@@ -424,14 +424,14 @@ router.post(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
       const { tags } = req.body;
 
-      const influencer = await influencerService.addTags(req.params.id, factoryId, tags);
+      const influencer = await influencerService.addTags(req.params.id, brandId, tags);
 
       res.json({
         success: true,
@@ -456,14 +456,14 @@ router.delete(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
       const { tags } = req.body;
 
-      const influencer = await influencerService.removeTags(req.params.id, factoryId, tags);
+      const influencer = await influencerService.removeTags(req.params.id, brandId, tags);
 
       res.json({
         success: true,
@@ -519,8 +519,8 @@ router.post(
   upload.single('file'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -537,7 +537,7 @@ router.post(
       const result = await importService.previewImport(
         req.file.buffer,
         mapping,
-        factoryId
+        brandId
       );
 
       res.json({
@@ -561,8 +561,8 @@ router.post(
   upload.single('file'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -581,7 +581,7 @@ router.post(
       const result = await importService.executeImport(
         req.file.buffer,
         mapping,
-        factoryId,
+        brandId,
         skipDuplicates
       );
 
@@ -605,10 +605,10 @@ router.get(
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
+      const brandId = req.user!.brandId;
       const userId = req.user!.userId;
 
-      if (!factoryId) {
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -617,7 +617,7 @@ router.get(
       // 2. High ROI influencers
       // 3. Recently contacted influencers
 
-      const recommendations = await influencerService.getSmartRecommendations(factoryId, userId);
+      const recommendations = await influencerService.getSmartRecommendations(brandId, userId);
 
       res.json({
         success: true,
@@ -647,15 +647,15 @@ router.post(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
+      const brandId = req.user!.brandId;
       const { influencerIds, tags } = req.body;
 
-      if (!factoryId) {
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
       // Verify all influencers belong to the factory
-      const influencers = await influencerService.getInfluencersByIds(influencerIds, factoryId);
+      const influencers = await influencerService.getInfluencersByIds(influencerIds, brandId);
       
       if (influencers.length !== influencerIds.length) {
         throw createBadRequestError('部分达人不存在或不属于当前工厂');
@@ -689,14 +689,14 @@ router.get(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
       const history = await influencerService.getCollaborationHistory(
         req.params.id,
-        factoryId
+        brandId
       );
 
       res.json({
@@ -721,14 +721,14 @@ router.get(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
       const stats = await influencerService.getROIStats(
         req.params.id,
-        factoryId
+        brandId
       );
 
       res.json({
@@ -754,8 +754,8 @@ router.put(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -763,7 +763,7 @@ router.put(
       
       // Import group service
       const groupService = await import('../services/influencer-group.service');
-      await groupService.moveInfluencerToGroup(req.params.id, groupId || null, factoryId);
+      await groupService.moveInfluencerToGroup(req.params.id, groupId || null, brandId);
 
       res.json({
         success: true,

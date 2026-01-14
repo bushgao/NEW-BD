@@ -8,9 +8,11 @@ import type { PipelineStage, BlockReason } from '@prisma/client';
 // 类型定义
 export interface CreateCollaborationInput {
   influencerId: string;
-  factoryId: string;
+  brandId: string;
   businessStaffId: string;
   stage?: PipelineStage;
+  sampleId?: string;
+  quotedPrice?: number;
   deadline?: Date;
   notes?: string;
 }
@@ -90,11 +92,11 @@ export const STAGE_ORDER: PipelineStage[] = [
  * 创建合作记录
  */
 export async function createCollaboration(data: CreateCollaborationInput) {
-  const { influencerId, factoryId, businessStaffId, stage, deadline, notes } = data;
+  const { influencerId, brandId, businessStaffId, stage, sampleId, quotedPrice, deadline, notes } = data;
 
   // 验证达人存在且属于该工厂
   const influencer = await prisma.influencer.findFirst({
-    where: { id: influencerId, factoryId },
+    where: { id: influencerId, brandId },
   });
 
   if (!influencer) {
@@ -103,11 +105,11 @@ export async function createCollaboration(data: CreateCollaborationInput) {
 
   // 验证商务人员存在且属于该工厂
   const staff = await prisma.user.findFirst({
-    where: { 
+    where: {
       id: businessStaffId,
       OR: [
-        { factoryId },
-        { ownedFactory: { id: factoryId } }
+        { brandId },
+        { ownedBrand: { id: brandId } }
       ]
     },
   });
@@ -122,9 +124,11 @@ export async function createCollaboration(data: CreateCollaborationInput) {
   const collaboration = await prisma.collaboration.create({
     data: {
       influencerId,
-      factoryId,
+      brandId,
       businessStaffId,
       stage: initialStage,
+      sampleId,
+      quotedPrice,
       deadline,
       isOverdue: false,
       stageHistory: {
@@ -157,13 +161,16 @@ export async function createCollaboration(data: CreateCollaborationInput) {
 /**
  * 根据 ID 获取合作记录详情
  */
-export async function getCollaborationById(id: string, factoryId: string) {
+export async function getCollaborationById(id: string, brandId: string) {
   const collaboration = await prisma.collaboration.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
     include: {
       influencer: true,
       businessStaff: {
         select: { id: true, name: true, email: true },
+      },
+      sample: {
+        select: { id: true, name: true, sku: true },
       },
       followUps: {
         orderBy: { createdAt: 'desc' },
@@ -198,11 +205,11 @@ export async function getCollaborationById(id: string, factoryId: string) {
  */
 export async function updateCollaboration(
   id: string,
-  factoryId: string,
+  brandId: string,
   data: UpdateCollaborationInput
 ) {
   const existing = await prisma.collaboration.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
   });
 
   if (!existing) {
@@ -242,9 +249,9 @@ export async function updateCollaboration(
 /**
  * 删除合作记录
  */
-export async function deleteCollaboration(id: string, factoryId: string) {
+export async function deleteCollaboration(id: string, brandId: string) {
   const existing = await prisma.collaboration.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
     include: {
       result: true,
     },
@@ -273,7 +280,7 @@ export async function deleteCollaboration(id: string, factoryId: string) {
  * 获取合作记录列表
  */
 export async function listCollaborations(
-  factoryId: string,
+  brandId: string,
   filter: CollaborationFilter,
   pagination: { page: number; pageSize: number },
   userId?: string,
@@ -282,7 +289,7 @@ export async function listCollaborations(
   const { stage, businessStaffId, influencerId, isOverdue, keyword } = filter;
   const { page, pageSize } = pagination;
 
-  const where: any = { factoryId };
+  const where: any = { brandId };
 
   // 权限过滤：基础商务只能看到自己的合作
   if (userId && userRole === 'BUSINESS') {
@@ -293,7 +300,7 @@ export async function listCollaborations(
     });
 
     const permissions = user?.permissions as any;
-    
+
     // 如果没有查看其他商务合作的权限，只显示自己的
     if (!permissions?.dataVisibility?.viewOthersCollaborations) {
       where.businessStaffId = userId;
@@ -350,12 +357,12 @@ export async function listCollaborations(
  */
 export async function updateStage(
   id: string,
-  factoryId: string,
+  brandId: string,
   newStage: PipelineStage,
   notes?: string
 ) {
   const existing = await prisma.collaboration.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
   });
 
   if (!existing) {
@@ -423,9 +430,9 @@ export async function updateStage(
 /**
  * 获取阶段变更历史
  */
-export async function getStageHistory(id: string, factoryId: string) {
+export async function getStageHistory(id: string, brandId: string) {
   const collaboration = await prisma.collaboration.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
   });
 
   if (!collaboration) {
@@ -450,9 +457,9 @@ export async function getStageHistory(id: string, factoryId: string) {
 /**
  * 设置截止时间
  */
-export async function setDeadline(id: string, factoryId: string, deadline: Date | null) {
+export async function setDeadline(id: string, brandId: string, deadline: Date | null) {
   const existing = await prisma.collaboration.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
   });
 
   if (!existing) {
@@ -483,7 +490,7 @@ export async function setDeadline(id: string, factoryId: string, deadline: Date 
  * 检查并更新所有超期状态
  * 用于定时任务
  */
-export async function checkAndUpdateOverdueStatus(factoryId?: string) {
+export async function checkAndUpdateOverdueStatus(brandId?: string) {
   const now = new Date();
 
   const where: any = {
@@ -493,8 +500,8 @@ export async function checkAndUpdateOverdueStatus(factoryId?: string) {
     stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
   };
 
-  if (factoryId) {
-    where.factoryId = factoryId;
+  if (brandId) {
+    where.brandId = brandId;
   }
 
   const result = await prisma.collaboration.updateMany({
@@ -509,13 +516,13 @@ export async function checkAndUpdateOverdueStatus(factoryId?: string) {
  * 获取超期合作列表
  */
 export async function getOverdueCollaborations(
-  factoryId: string,
+  brandId: string,
   pagination: { page: number; pageSize: number }
 ) {
   const { page, pageSize } = pagination;
 
   const where = {
-    factoryId,
+    brandId,
     isOverdue: true,
   };
 
@@ -608,13 +615,13 @@ export async function getFollowUpTemplates() {
  */
 export async function addFollowUp(
   collaborationId: string,
-  factoryId: string,
+  brandId: string,
   userId: string,
   content: string
 ) {
   // 验证合作记录存在
   const collaboration = await prisma.collaboration.findFirst({
-    where: { id: collaborationId, factoryId },
+    where: { id: collaborationId, brandId },
   });
 
   if (!collaboration) {
@@ -652,12 +659,12 @@ export async function addFollowUp(
  */
 export async function getFollowUps(
   collaborationId: string,
-  factoryId: string,
+  brandId: string,
   pagination: { page: number; pageSize: number }
 ) {
   // 验证合作记录存在
   const collaboration = await prisma.collaboration.findFirst({
-    where: { id: collaborationId, factoryId },
+    where: { id: collaborationId, brandId },
   });
 
   if (!collaboration) {
@@ -699,12 +706,12 @@ export async function getFollowUps(
  */
 export async function setBlockReason(
   id: string,
-  factoryId: string,
+  brandId: string,
   reason: BlockReason | null,
   notes?: string
 ) {
   const existing = await prisma.collaboration.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
   });
 
   if (!existing) {
@@ -756,12 +763,12 @@ export const BLOCK_REASON_NAMES: Record<BlockReason, string> = {
  * 获取管道视图数据
  */
 export async function getPipelineView(
-  factoryId: string,
+  brandId: string,
   filter?: { businessStaffId?: string; keyword?: string },
   userId?: string,
   userRole?: string
 ): Promise<PipelineView> {
-  const where: any = { factoryId };
+  const where: any = { brandId };
 
   // 权限过滤：基础商务只能看到自己的合作
   if (userId && userRole === 'BUSINESS') {
@@ -772,7 +779,7 @@ export async function getPipelineView(
     });
 
     const permissions = user?.permissions as any;
-    
+
     // 如果没有查看其他商务合作的权限，只显示自己的
     if (!permissions?.dataVisibility?.viewOthersCollaborations) {
       where.businessStaffId = userId;
@@ -862,10 +869,10 @@ export async function getPipelineView(
 /**
  * 获取管道统计数据
  */
-export async function getPipelineStats(factoryId: string) {
+export async function getPipelineStats(brandId: string) {
   const stats = await prisma.collaboration.groupBy({
     by: ['stage'],
-    where: { factoryId },
+    where: { brandId },
     _count: { id: true },
   });
 
@@ -884,7 +891,7 @@ export async function getPipelineStats(factoryId: string) {
   }
 
   const overdueCount = await prisma.collaboration.count({
-    where: { factoryId, isOverdue: true },
+    where: { brandId, isOverdue: true },
   });
 
   return {
@@ -1037,12 +1044,12 @@ function calculatePriority(
  * 获取跟进提醒列表
  */
 export async function getFollowUpReminders(
-  factoryId: string,
+  brandId: string,
   userId?: string,
   userRole?: string
 ) {
   const where: any = {
-    factoryId,
+    brandId,
     // 排除已完成的阶段
     stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
   };
@@ -1055,7 +1062,7 @@ export async function getFollowUpReminders(
     });
 
     const permissions = user?.permissions as any;
-    
+
     if (!permissions?.dataVisibility?.viewOthersCollaborations) {
       where.businessStaffId = userId;
     }
@@ -1184,14 +1191,14 @@ interface FollowUpAnalytics {
  * 获取跟进分析数据
  */
 export async function getFollowUpAnalytics(
-  factoryId: string,
+  brandId: string,
   staffId?: string,
   period: 'week' | 'month' | 'quarter' = 'month'
 ): Promise<FollowUpAnalytics> {
   // 计算时间范围
   const now = new Date();
   const startDate = new Date();
-  
+
   switch (period) {
     case 'week':
       startDate.setDate(now.getDate() - 7);
@@ -1206,7 +1213,7 @@ export async function getFollowUpAnalytics(
 
   // 构建查询条件
   const where: any = {
-    factoryId,
+    brandId,
     createdAt: { gte: startDate },
   };
 
@@ -1242,8 +1249,8 @@ export async function getFollowUpAnalytics(
   ).length;
 
   // 计算转化率
-  const conversionRate = totalFollowUps > 0 
-    ? (successfulConversions / collaborations.length) * 100 
+  const conversionRate = totalFollowUps > 0
+    ? (successfulConversions / collaborations.length) * 100
     : 0;
 
   // 按时间段分析
@@ -1327,8 +1334,8 @@ function analyzeByTimeRange(
       (c) => c.stage === 'PUBLISHED' || c.stage === 'REVIEWED'
     ).length;
 
-    const conversionRate = timeCollabs.length > 0 
-      ? (conversions / timeCollabs.length) * 100 
+    const conversionRate = timeCollabs.length > 0
+      ? (conversions / timeCollabs.length) * 100
       : 0;
 
     return {
@@ -1371,8 +1378,8 @@ function analyzeByFrequency(collaborations: any[]): FrequencyConversionData[] {
       (c) => c.stage === 'PUBLISHED' || c.stage === 'REVIEWED'
     ).length;
 
-    const conversionRate = freqCollabs.length > 0 
-      ? (conversions / freqCollabs.length) * 100 
+    const conversionRate = freqCollabs.length > 0
+      ? (conversions / freqCollabs.length) * 100
       : 0;
 
     return {
@@ -1550,7 +1557,7 @@ function generateSuggestions(
   }
 
   // 根据数据给出具体建议
-  const worstTime = conversionByTime.reduce((worst, time) => 
+  const worstTime = conversionByTime.reduce((worst, time) =>
     time.conversionRate < worst.conversionRate ? time : worst
   );
   if (worstTime.conversionRate < 15 && worstTime.followUps > 10) {
@@ -1579,13 +1586,13 @@ export interface CollaborationSuggestion {
  * 基于历史数据推荐样品、报价、排期等
  */
 export async function getCollaborationSuggestions(
-  factoryId: string,
+  brandId: string,
   influencerId: string,
   type: 'sample' | 'price' | 'schedule'
 ): Promise<CollaborationSuggestion> {
   // 获取达人信息
   const influencer = await prisma.influencer.findFirst({
-    where: { id: influencerId, factoryId },
+    where: { id: influencerId, brandId },
   });
 
   if (!influencer) {
@@ -1596,7 +1603,7 @@ export async function getCollaborationSuggestions(
   const historicalCollabs = await prisma.collaboration.findMany({
     where: {
       influencerId,
-      factoryId,
+      brandId,
       stage: { in: ['PUBLISHED', 'REVIEWED'] }, // 只看成功的合作
     },
     include: {
@@ -1618,13 +1625,13 @@ export async function getCollaborationSuggestions(
 
   switch (type) {
     case 'sample':
-      suggestions.suggestions = await getSampleSuggestions(factoryId, influencer, historicalCollabs);
+      suggestions.suggestions = await getSampleSuggestions(brandId, influencer, historicalCollabs);
       break;
     case 'price':
-      suggestions.suggestions = await getPriceSuggestions(factoryId, influencer, historicalCollabs);
+      suggestions.suggestions = await getPriceSuggestions(brandId, influencer, historicalCollabs);
       break;
     case 'schedule':
-      suggestions.suggestions = await getScheduleSuggestions(factoryId, influencer, historicalCollabs);
+      suggestions.suggestions = await getScheduleSuggestions(brandId, influencer, historicalCollabs);
       break;
   }
 
@@ -1635,7 +1642,7 @@ export async function getCollaborationSuggestions(
  * 推荐样品
  */
 async function getSampleSuggestions(
-  factoryId: string,
+  brandId: string,
   influencer: any,
   historicalCollabs: any[]
 ) {
@@ -1684,7 +1691,7 @@ async function getSampleSuggestions(
   // 2. 推荐同平台其他达人效果好的样品
   const platformInfluencers = await prisma.influencer.findMany({
     where: {
-      factoryId,
+      brandId,
       platform: influencer.platform,
       id: { not: influencer.id },
     },
@@ -1693,7 +1700,7 @@ async function getSampleSuggestions(
 
   const platformCollabs = await prisma.collaboration.findMany({
     where: {
-      factoryId,
+      brandId,
       influencerId: { in: platformInfluencers.map(i => i.id) },
       stage: { in: ['PUBLISHED', 'REVIEWED'] },
     },
@@ -1747,7 +1754,7 @@ async function getSampleSuggestions(
 
   // 3. 推荐最新的样品
   const latestSamples = await prisma.sample.findMany({
-    where: { factoryId },
+    where: { brandId },
     orderBy: { createdAt: 'desc' },
     take: 3,
   });
@@ -1769,7 +1776,7 @@ async function getSampleSuggestions(
  * 推荐报价
  */
 async function getPriceSuggestions(
-  factoryId: string,
+  brandId: string,
   influencer: any,
   historicalCollabs: any[]
 ) {
@@ -1796,7 +1803,7 @@ async function getPriceSuggestions(
   // 2. 基于同平台达人的平均报价
   const platformInfluencers = await prisma.influencer.findMany({
     where: {
-      factoryId,
+      brandId,
       platform: influencer.platform,
     },
     take: 100,
@@ -1805,7 +1812,7 @@ async function getPriceSuggestions(
   const platformResults = await prisma.collaborationResult.findMany({
     where: {
       collaboration: {
-        factoryId,
+        brandId,
         influencerId: { in: platformInfluencers.map(i => i.id) },
       },
       cost: { gt: 0 },
@@ -1856,7 +1863,7 @@ async function getPriceSuggestions(
  * 推荐排期
  */
 async function getScheduleSuggestions(
-  factoryId: string,
+  brandId: string,
   influencer: any,
   historicalCollabs: any[]
 ) {
@@ -1936,7 +1943,7 @@ export interface BatchUpdateResult {
  * 批量更新合作记录
  */
 export async function batchUpdateCollaborations(
-  factoryId: string,
+  brandId: string,
   input: BatchUpdateInput
 ): Promise<BatchUpdateResult> {
   const { ids, operation, data } = input;
@@ -1951,7 +1958,7 @@ export async function batchUpdateCollaborations(
   const collaborations = await prisma.collaboration.findMany({
     where: {
       id: { in: ids },
-      factoryId,
+      brandId,
     },
   });
 
@@ -1964,13 +1971,13 @@ export async function batchUpdateCollaborations(
     try {
       switch (operation) {
         case 'dispatch':
-          await batchDispatchSample(id, factoryId, data);
+          await batchDispatchSample(id, brandId, data);
           break;
         case 'updateStage':
-          await updateStage(id, factoryId, data.stage, '批量更新');
+          await updateStage(id, brandId, data.stage, '批量更新');
           break;
         case 'setDeadline':
-          await setDeadline(id, factoryId, data.deadline ? new Date(data.deadline) : null);
+          await setDeadline(id, brandId, data.deadline ? new Date(data.deadline) : null);
           break;
         default:
           throw createBadRequestError('不支持的操作类型');
@@ -1993,12 +2000,12 @@ export async function batchUpdateCollaborations(
  */
 async function batchDispatchSample(
   collaborationId: string,
-  factoryId: string,
+  brandId: string,
   data: { sampleId: string }
 ) {
   // 验证样品存在
   const sample = await prisma.sample.findFirst({
-    where: { id: data.sampleId, factoryId },
+    where: { id: data.sampleId, brandId },
   });
 
   if (!sample) {
@@ -2007,7 +2014,7 @@ async function batchDispatchSample(
 
   // 验证合作记录存在
   const collaboration = await prisma.collaboration.findFirst({
-    where: { id: collaborationId, factoryId },
+    where: { id: collaborationId, brandId },
   });
 
   if (!collaboration) {
@@ -2027,7 +2034,7 @@ async function batchDispatchSample(
 
   // 如果合作还在早期阶段，自动推进到已寄样
   if (['LEAD', 'CONTACTED', 'QUOTED'].includes(collaboration.stage)) {
-    await updateStage(collaborationId, factoryId, 'SAMPLED', '批量寄样');
+    await updateStage(collaborationId, brandId, 'SAMPLED', '批量寄样');
   }
 }
 
@@ -2081,7 +2088,7 @@ export interface ValidationResult {
  * 包括数据完整性验证、重复数据检测、异常数据检测
  */
 export async function validateData(
-  factoryId: string,
+  brandId: string,
   type: 'collaboration' | 'dispatch' | 'result',
   data: any
 ): Promise<ValidationResult> {
@@ -2093,13 +2100,13 @@ export async function validateData(
 
   if (type === 'collaboration') {
     // 验证合作记录
-    await validateCollaborationData(factoryId, data, errors, warnings, infos, duplicates, anomalies);
+    await validateCollaborationData(brandId, data, errors, warnings, infos, duplicates, anomalies);
   } else if (type === 'dispatch') {
     // 验证寄样记录
-    await validateDispatchData(factoryId, data, errors, warnings, infos, duplicates, anomalies);
+    await validateDispatchData(brandId, data, errors, warnings, infos, duplicates, anomalies);
   } else if (type === 'result') {
     // 验证结果记录
-    await validateResultData(factoryId, data, errors, warnings, infos, duplicates, anomalies);
+    await validateResultData(brandId, data, errors, warnings, infos, duplicates, anomalies);
   }
 
   return {
@@ -2116,7 +2123,7 @@ export async function validateData(
  * 验证合作记录数据
  */
 async function validateCollaborationData(
-  factoryId: string,
+  brandId: string,
   data: any,
   errors: ValidationError[],
   warnings: ValidationWarning[],
@@ -2134,7 +2141,7 @@ async function validateCollaborationData(
   } else {
     // 验证达人是否存在
     const influencer = await prisma.influencer.findFirst({
-      where: { id: data.influencerId, factoryId },
+      where: { id: data.influencerId, brandId },
     });
 
     if (!influencer) {
@@ -2147,7 +2154,7 @@ async function validateCollaborationData(
       // 检查重复合作
       const existingCollaboration = await prisma.collaboration.findFirst({
         where: {
-          factoryId,
+          brandId,
           influencerId: data.influencerId,
           stage: {
             notIn: ['REVIEWED'], // 排除已完成的合作
@@ -2258,7 +2265,7 @@ async function validateCollaborationData(
       if (data.influencerId) {
         const historicalCollaborations = await prisma.collaboration.findMany({
           where: {
-            factoryId,
+            brandId,
             influencerId: data.influencerId,
             quotedPrice: { not: null },
           },
@@ -2306,7 +2313,7 @@ async function validateCollaborationData(
  * 验证寄样记录数据
  */
 async function validateDispatchData(
-  factoryId: string,
+  brandId: string,
   data: any,
   errors: ValidationError[],
   warnings: ValidationWarning[],
@@ -2324,7 +2331,7 @@ async function validateDispatchData(
   } else {
     // 验证样品是否存在
     const sample = await prisma.sample.findFirst({
-      where: { id: data.sampleId, factoryId },
+      where: { id: data.sampleId, brandId },
     });
 
     if (!sample) {
@@ -2404,7 +2411,7 @@ async function validateDispatchData(
  * 验证结果记录数据
  */
 async function validateResultData(
-  factoryId: string,
+  brandId: string,
   data: any,
   errors: ValidationError[],
   warnings: ValidationWarning[],
@@ -2422,7 +2429,7 @@ async function validateResultData(
   } else {
     // 验证合作记录是否存在
     const collaboration = await prisma.collaboration.findFirst({
-      where: { id: data.collaborationId, factoryId },
+      where: { id: data.collaborationId, brandId },
       include: { result: true },
     });
 
@@ -2491,7 +2498,7 @@ async function validateResultData(
   // 3. 检查异常数据
   if (data.views && data.likes) {
     const likeRate = data.likes / data.views;
-    
+
     if (likeRate > 0.5) {
       anomalies.push({
         field: 'likes',
@@ -2520,7 +2527,7 @@ async function validateResultData(
 
   if (data.views && data.comments) {
     const commentRate = data.comments / data.views;
-    
+
     if (commentRate > 0.1) {
       anomalies.push({
         field: 'comments',

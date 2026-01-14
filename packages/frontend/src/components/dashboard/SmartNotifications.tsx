@@ -27,13 +27,13 @@ interface Alert {
 }
 
 interface SmartNotificationsProps {
-  factoryId?: string;
+  brandId?: string;
   onRefresh?: () => void;
   isBento?: boolean;
 }
 
 const SmartNotifications: React.FC<SmartNotificationsProps> = ({
-  factoryId,
+  brandId,
   onRefresh,
   isBento,
 }) => {
@@ -52,7 +52,7 @@ const SmartNotifications: React.FC<SmartNotificationsProps> = ({
         return;
       }
 
-      const response = await fetch(`/api/reports/dashboard/alerts${factoryId ? `?factoryId=${factoryId}` : ''}`, {
+      const response = await fetch(`/api/reports/dashboard/alerts${brandId ? `?brandId=${brandId}` : ''}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -146,9 +146,9 @@ const SmartNotifications: React.FC<SmartNotificationsProps> = ({
 
   // 初始加载
   useEffect(() => {
-    // 只在有 factoryId 时才获取提醒
-    if (!factoryId) {
-      console.warn('No factoryId provided, skipping alerts fetch');
+    // 只在有 brandId 时才获取提醒
+    if (!brandId) {
+      console.warn('No brandId provided, skipping alerts fetch');
       return;
     }
 
@@ -156,13 +156,13 @@ const SmartNotifications: React.FC<SmartNotificationsProps> = ({
 
     // 设置定时刷新（每5分钟）
     const interval = setInterval(() => {
-      if (factoryId) {
+      if (brandId) {
         fetchAlerts();
       }
     }, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, [factoryId]);
+  }, [brandId]);
 
   // 获取优先级颜色
   const getPriorityColor = (priority: string) => {

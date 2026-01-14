@@ -66,7 +66,7 @@ const validateDataValidation = [
 
 
 
-// Apply enrichUserData middleware to all routes to ensure factoryId is available
+// Apply enrichUserData middleware to all routes to ensure brandId is available
 router.use(authenticate);
 router.use(enrichUserData);
 
@@ -84,8 +84,8 @@ router.get(
   filterByPermission('dataVisibility.viewOthersCollaborations'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -96,13 +96,13 @@ router.get(
         stage: req.query.stage as PipelineStage | undefined,
         businessStaffId: req.query.businessStaffId as string | undefined,
         influencerId: req.query.influencerId as string | undefined,
-        isOverdue: req.query.isOverdue === 'true' ? true : 
-                   req.query.isOverdue === 'false' ? false : undefined,
+        isOverdue: req.query.isOverdue === 'true' ? true :
+          req.query.isOverdue === 'false' ? false : undefined,
         keyword: req.query.keyword as string | undefined,
       };
 
       const result = await collaborationService.listCollaborations(
-        factoryId,
+        brandId,
         filter,
         { page, pageSize },
         req.user!.userId,
@@ -131,8 +131,8 @@ router.get(
   filterByPermission('dataVisibility.viewOthersCollaborations'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -142,7 +142,7 @@ router.get(
       };
 
       const pipelineView = await collaborationService.getPipelineView(
-        factoryId, 
+        brandId,
         filter,
         req.user!.userId,
         req.user!.role
@@ -168,12 +168,12 @@ router.get(
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
-      const stats = await collaborationService.getPipelineStats(factoryId);
+      const stats = await collaborationService.getPipelineStats(brandId);
 
       res.json({
         success: true,
@@ -195,8 +195,8 @@ router.get(
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -204,7 +204,7 @@ router.get(
       const pageSize = parseInt(req.query.pageSize as string) || 20;
 
       const result = await collaborationService.getOverdueCollaborations(
-        factoryId,
+        brandId,
         { page, pageSize }
       );
 
@@ -251,8 +251,8 @@ router.get(
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -268,7 +268,7 @@ router.get(
       }
 
       const suggestions = await collaborationService.getCollaborationSuggestions(
-        factoryId,
+        brandId,
         influencerId,
         type
       );
@@ -294,13 +294,13 @@ router.get(
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
       const reminders = await collaborationService.getFollowUpReminders(
-        factoryId,
+        brandId,
         req.user!.userId,
         req.user!.role
       );
@@ -325,8 +325,8 @@ router.get(
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -334,7 +334,7 @@ router.get(
       const period = (req.query.period as 'week' | 'month' | 'quarter') || 'month';
 
       const analytics = await collaborationService.getFollowUpAnalytics(
-        factoryId,
+        brandId,
         staffId,
         period
       );
@@ -361,14 +361,14 @@ router.get(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
       const collaboration = await collaborationService.getCollaborationById(
         req.params.id,
-        factoryId
+        brandId
       );
 
       res.json({
@@ -395,20 +395,22 @@ router.post(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
+      const brandId = req.user!.brandId;
       const businessStaffId = req.user!.userId;
 
-      if (!factoryId) {
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
-      const { influencerId, stage, deadline, notes } = req.body;
+      const { influencerId, stage, sampleId, quotedPrice, deadline, notes } = req.body;
 
       const collaboration = await collaborationService.createCollaboration({
         influencerId,
-        factoryId,
+        brandId,
         businessStaffId,
         stage,
+        sampleId,
+        quotedPrice: quotedPrice ? Number(quotedPrice) : undefined,
         deadline: deadline ? new Date(deadline) : undefined,
         notes,
       });
@@ -437,12 +439,12 @@ router.delete(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
-      await collaborationService.deleteCollaboration(req.params.id, factoryId);
+      await collaborationService.deleteCollaboration(req.params.id, brandId);
 
       res.json({
         success: true,
@@ -469,8 +471,8 @@ router.put(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -478,7 +480,7 @@ router.put(
 
       const collaboration = await collaborationService.updateStage(
         req.params.id,
-        factoryId,
+        brandId,
         stage as PipelineStage,
         notes
       );
@@ -505,12 +507,12 @@ router.get(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
-      const history = await collaborationService.getStageHistory(req.params.id, factoryId);
+      const history = await collaborationService.getStageHistory(req.params.id, brandId);
 
       res.json({
         success: true,
@@ -538,8 +540,8 @@ router.put(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -547,7 +549,7 @@ router.put(
 
       const collaboration = await collaborationService.setDeadline(
         req.params.id,
-        factoryId,
+        brandId,
         deadline ? new Date(deadline) : null
       );
 
@@ -576,8 +578,8 @@ router.put(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -585,7 +587,7 @@ router.put(
 
       const collaboration = await collaborationService.setBlockReason(
         req.params.id,
-        factoryId,
+        brandId,
         reason as BlockReason | null,
         notes
       );
@@ -614,8 +616,8 @@ router.get(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -624,7 +626,7 @@ router.get(
 
       const result = await collaborationService.getFollowUps(
         req.params.id,
-        factoryId,
+        brandId,
         { page, pageSize }
       );
 
@@ -651,10 +653,10 @@ router.post(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
+      const brandId = req.user!.brandId;
       const userId = req.user!.userId;
 
-      if (!factoryId) {
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -662,7 +664,7 @@ router.post(
 
       const followUp = await collaborationService.addFollowUp(
         req.params.id,
-        factoryId,
+        brandId,
         userId,
         content
       );
@@ -689,10 +691,10 @@ router.post(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
+      const brandId = req.user!.brandId;
       const userId = req.user!.userId;
 
-      if (!factoryId) {
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -706,7 +708,7 @@ router.post(
 
       const followUp = await collaborationService.addFollowUp(
         req.params.id,
-        factoryId,
+        brandId,
         userId,
         content.trim()
       );
@@ -733,9 +735,9 @@ router.post(
   checkPermission('operations.manageCollaborations'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
+      const brandId = req.user!.brandId;
 
-      if (!factoryId) {
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -753,7 +755,7 @@ router.post(
         throw createBadRequestError('不支持的操作类型');
       }
 
-      const result = await collaborationService.batchUpdateCollaborations(factoryId, {
+      const result = await collaborationService.batchUpdateCollaborations(brandId, {
         ids,
         operation,
         data,
@@ -781,14 +783,14 @@ router.post(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
       const { type, data } = req.body;
 
-      const result = await collaborationService.validateData(factoryId, type, data);
+      const result = await collaborationService.validateData(brandId, type, data);
 
       res.json({
         success: true,

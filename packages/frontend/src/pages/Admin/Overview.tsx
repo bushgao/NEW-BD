@@ -103,7 +103,7 @@ const AdminOverview = () => {
 
           <BentoGrid>
             {/* 顶层关键指标 */}
-            {renderStatCard("工厂总数", stats?.totalFactories || 0, <ShopOutlined />, "text-blue-600", "bg-blue-50")}
+            {renderStatCard("品牌总数", stats?.totalFactories || 0, <ShopOutlined />, "text-blue-600", "bg-blue-50")}
             {renderStatCard("待审核", stats?.pendingFactories || 0, <ClockCircleOutlined />, "text-amber-500", "bg-amber-50")}
             {renderStatCard("已通过", stats?.approvedFactories || 0, <CheckCircleOutlined />, "text-emerald-500", "bg-emerald-50")}
             {renderStatCard("用户总数", stats?.totalUsers || 0, <UserOutlined />, "text-indigo-500", "bg-indigo-50")}
@@ -113,7 +113,7 @@ const AdminOverview = () => {
             {/* 套餐分布 */}
             {stats && (
               <>
-                <BentoCard title="免费版工厂" span={2}>
+                <BentoCard title="免费版品牌" span={2}>
                   <div className="flex items-end gap-2 mt-2">
                     <span className="text-4xl font-bold text-neutral-800">{stats.factoriesByPlan.FREE || 0}</span>
                     <span className="text-neutral-400 mb-1.5">家</span>
@@ -122,7 +122,7 @@ const AdminOverview = () => {
                     <div className="h-full bg-neutral-400 rounded-full" style={{ width: `${(stats.factoriesByPlan.FREE / stats.totalFactories) * 100}%` }} />
                   </div>
                 </BentoCard>
-                <BentoCard title="专业版工厂" span={2}>
+                <BentoCard title="专业版品牌" span={2}>
                   <div className="flex items-end gap-2 mt-2">
                     <span className="text-4xl font-bold text-blue-600">{stats.factoriesByPlan.PROFESSIONAL || 0}</span>
                     <span className="text-neutral-400 mb-1.5">家</span>
@@ -131,7 +131,7 @@ const AdminOverview = () => {
                     <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(stats.factoriesByPlan.PROFESSIONAL / stats.totalFactories) * 100}%` }} />
                   </div>
                 </BentoCard>
-                <BentoCard title="企业版工厂" span={2}>
+                <BentoCard title="企业版品牌" span={2}>
                   <div className="flex items-end gap-2 mt-2">
                     <span className="text-4xl font-bold text-amber-500">{stats.factoriesByPlan.ENTERPRISE || 0}</span>
                     <span className="text-neutral-400 mb-1.5">家</span>

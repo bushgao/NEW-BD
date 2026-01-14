@@ -7,7 +7,7 @@ import {
 
 // Types
 export interface CreateGroupInput {
-  factoryId: string;
+  brandId: string;
   name: string;
   color?: string;
   description?: string;
@@ -22,7 +22,7 @@ export interface UpdateGroupInput {
 
 export interface InfluencerGroup {
   id: string;
-  factoryId: string;
+  brandId: string;
   name: string;
   color: string;
   description: string | null;
@@ -44,12 +44,12 @@ export interface GroupStats {
  * Create a new influencer group
  */
 export async function createGroup(data: CreateGroupInput): Promise<InfluencerGroup> {
-  const { factoryId, name, color, description, createdBy } = data;
+  const { brandId, name, color, description, createdBy } = data;
 
   // Check if group name already exists in this factory
   const existing = await prisma.influencerGroup.findFirst({
     where: {
-      factoryId,
+      brandId,
       name: name.trim(),
     },
   });
@@ -60,7 +60,7 @@ export async function createGroup(data: CreateGroupInput): Promise<InfluencerGro
 
   const group = await prisma.influencerGroup.create({
     data: {
-      factoryId,
+      brandId,
       name: name.trim(),
       color: color || '#1890ff',
       description: description?.trim() || null,
@@ -79,10 +79,10 @@ export async function createGroup(data: CreateGroupInput): Promise<InfluencerGro
  */
 export async function getGroupById(
   id: string,
-  factoryId: string
+  brandId: string
 ): Promise<InfluencerGroup> {
   const group = await prisma.influencerGroup.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
     include: {
       _count: {
         select: {
@@ -107,12 +107,12 @@ export async function getGroupById(
  */
 export async function updateGroup(
   id: string,
-  factoryId: string,
+  brandId: string,
   data: UpdateGroupInput
 ): Promise<InfluencerGroup> {
   // Check if group exists
   const existing = await prisma.influencerGroup.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
   });
 
   if (!existing) {
@@ -123,7 +123,7 @@ export async function updateGroup(
   if (data.name) {
     const nameConflict = await prisma.influencerGroup.findFirst({
       where: {
-        factoryId,
+        brandId,
         name: data.name.trim(),
         id: { not: id },
       },
@@ -160,9 +160,9 @@ export async function updateGroup(
 /**
  * Delete group
  */
-export async function deleteGroup(id: string, factoryId: string): Promise<void> {
+export async function deleteGroup(id: string, brandId: string): Promise<void> {
   const existing = await prisma.influencerGroup.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
     include: {
       _count: {
         select: {
@@ -190,9 +190,9 @@ export async function deleteGroup(id: string, factoryId: string): Promise<void> 
 /**
  * List all groups in a factory
  */
-export async function listGroups(factoryId: string): Promise<InfluencerGroup[]> {
+export async function listGroups(brandId: string): Promise<InfluencerGroup[]> {
   const groups = await prisma.influencerGroup.findMany({
-    where: { factoryId },
+    where: { brandId },
     include: {
       _count: {
         select: {
@@ -214,10 +214,10 @@ export async function listGroups(factoryId: string): Promise<InfluencerGroup[]> 
  */
 export async function getGroupStats(
   id: string,
-  factoryId: string
+  brandId: string
 ): Promise<GroupStats> {
   const group = await prisma.influencerGroup.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
     include: {
       influencers: {
         include: {
@@ -271,11 +271,11 @@ export async function getGroupStats(
 export async function moveInfluencerToGroup(
   influencerId: string,
   groupId: string | null,
-  factoryId: string
+  brandId: string
 ): Promise<void> {
   // Verify influencer exists and belongs to factory
   const influencer = await prisma.influencer.findFirst({
-    where: { id: influencerId, factoryId },
+    where: { id: influencerId, brandId },
   });
 
   if (!influencer) {
@@ -285,7 +285,7 @@ export async function moveInfluencerToGroup(
   // If groupId is provided, verify group exists and belongs to factory
   if (groupId) {
     const group = await prisma.influencerGroup.findFirst({
-      where: { id: groupId, factoryId },
+      where: { id: groupId, brandId },
     });
 
     if (!group) {
@@ -306,13 +306,13 @@ export async function moveInfluencerToGroup(
 export async function batchMoveInfluencersToGroup(
   influencerIds: string[],
   groupId: string | null,
-  factoryId: string
+  brandId: string
 ): Promise<void> {
   // Verify all influencers exist and belong to factory
   const influencers = await prisma.influencer.findMany({
     where: {
       id: { in: influencerIds },
-      factoryId,
+      brandId,
     },
   });
 
@@ -323,7 +323,7 @@ export async function batchMoveInfluencersToGroup(
   // If groupId is provided, verify group exists and belongs to factory
   if (groupId) {
     const group = await prisma.influencerGroup.findFirst({
-      where: { id: groupId, factoryId },
+      where: { id: groupId, brandId },
     });
 
     if (!group) {
@@ -343,10 +343,10 @@ export async function batchMoveInfluencersToGroup(
  */
 export async function getGroupInfluencers(
   groupId: string,
-  factoryId: string
+  brandId: string
 ): Promise<any[]> {
   const group = await prisma.influencerGroup.findFirst({
-    where: { id: groupId, factoryId },
+    where: { id: groupId, brandId },
   });
 
   if (!group) {

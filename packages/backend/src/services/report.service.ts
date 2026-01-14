@@ -174,7 +174,7 @@ export interface BusinessStaffDashboard {
 export type ReportType = 'staff-performance' | 'roi' | 'sample-cost' | 'collaboration';
 
 export interface ExportParams {
-  factoryId: string;
+  brandId: string;
   dateRange?: DateRange;
   groupBy?: string;
 }
@@ -227,13 +227,13 @@ function getPreviousPeriod(dateRange: DateRange): DateRange {
  * Requirements: 6.1, 6.2, 6.3, 6.4
  */
 export async function getStaffPerformance(
-  factoryId: string,
+  brandId: string,
   dateRange?: DateRange
 ): Promise<StaffPerformanceReport> {
   // 获取工厂所有商务人员
   const staffMembers = await prisma.user.findMany({
     where: {
-      factoryId,
+      brandId,
       role: 'BUSINESS',
     },
     select: {
@@ -244,8 +244,8 @@ export async function getStaffPerformance(
   });
 
   // 也包括工厂老板（可能也参与商务工作）
-  const owner = await prisma.factory.findUnique({
-    where: { id: factoryId },
+  const owner = await prisma.brand.findUnique({
+    where: { id: brandId },
     include: {
       owner: {
         select: { id: true, name: true, email: true },
@@ -273,7 +273,7 @@ export async function getStaffPerformance(
     // 建联数量：该商务创建的合作记录数
     const contactedCount = await prisma.collaboration.count({
       where: {
-        factoryId,
+        brandId,
         businessStaffId: staff.id,
         ...dateFilter,
       },
@@ -282,7 +282,7 @@ export async function getStaffPerformance(
     // 推进数量：阶段从线索推进到后续阶段的合作数
     const progressedCount = await prisma.collaboration.count({
       where: {
-        factoryId,
+        brandId,
         businessStaffId: staff.id,
         stage: { notIn: ['LEAD'] },
         ...dateFilter,
@@ -292,7 +292,7 @@ export async function getStaffPerformance(
     // 成交数量：阶段达到已发布或已复盘的合作数
     const closedCount = await prisma.collaboration.count({
       where: {
-        factoryId,
+        brandId,
         businessStaffId: staff.id,
         stage: { in: ['PUBLISHED', 'REVIEWED'] },
         ...dateFilter,
@@ -307,7 +307,7 @@ export async function getStaffPerformance(
     const results = await prisma.collaborationResult.findMany({
       where: {
         collaboration: {
-          factoryId,
+          brandId,
           businessStaffId: staff.id,
         },
         ...resultDateFilter,
@@ -326,7 +326,7 @@ export async function getStaffPerformance(
     const dispatches = await prisma.sampleDispatch.findMany({
       where: {
         businessStaffId: staff.id,
-        collaboration: { factoryId },
+        collaboration: { brandId },
         ...dispatchDateFilter,
       },
     });
@@ -385,7 +385,7 @@ export async function getStaffPerformance(
  * Requirements: 7.1, 7.2, 7.3, 7.4, 7.5
  */
 export async function getFactoryDashboard(
-  factoryId: string,
+  brandId: string,
   period: 'week' | 'month' = 'month'
 ): Promise<FactoryDashboard> {
   const now = new Date();
@@ -416,7 +416,7 @@ export async function getFactoryDashboard(
   // 当前周期寄样成本
   const currentDispatches = await prisma.sampleDispatch.findMany({
     where: {
-      collaboration: { factoryId },
+      collaboration: { brandId },
       dispatchedAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
     },
   });
@@ -425,7 +425,7 @@ export async function getFactoryDashboard(
   // 上一周期寄样成本
   const previousDispatches = await prisma.sampleDispatch.findMany({
     where: {
-      collaboration: { factoryId },
+      collaboration: { brandId },
       dispatchedAt: { gte: previousPeriod.startDate, lte: previousPeriod.endDate },
     },
   });
@@ -434,7 +434,7 @@ export async function getFactoryDashboard(
   // 当前周期合作结果
   const currentResults = await prisma.collaborationResult.findMany({
     where: {
-      collaboration: { factoryId },
+      collaboration: { brandId },
       publishedAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
     },
   });
@@ -445,7 +445,7 @@ export async function getFactoryDashboard(
   // 上一周期合作结果
   const previousResults = await prisma.collaborationResult.findMany({
     where: {
-      collaboration: { factoryId },
+      collaboration: { brandId },
       publishedAt: { gte: previousPeriod.startDate, lte: previousPeriod.endDate },
     },
   });
@@ -457,7 +457,7 @@ export async function getFactoryDashboard(
 
   const pipelineStats = await prisma.collaboration.groupBy({
     by: ['stage'],
-    where: { factoryId },
+    where: { brandId },
     _count: { id: true },
   });
 
@@ -480,7 +480,7 @@ export async function getFactoryDashboard(
   // 超期合作数量
   const overdueCollaborations = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       isOverdue: true,
       stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
     },
@@ -492,7 +492,7 @@ export async function getFactoryDashboard(
 
   const pendingReceipts = await prisma.sampleDispatch.count({
     where: {
-      collaboration: { factoryId },
+      collaboration: { brandId },
       receivedStatus: 'PENDING',
       dispatchedAt: { lt: sevenDaysAgo },
     },
@@ -504,7 +504,7 @@ export async function getFactoryDashboard(
 
   const pendingResults = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       stage: { in: ['SCHEDULED', 'PUBLISHED'] },
       result: null,
       dispatches: {
@@ -521,7 +521,7 @@ export async function getFactoryDashboard(
   // 获取所有商务人员
   const staffMembers = await prisma.user.findMany({
     where: {
-      factoryId,
+      brandId,
       role: 'BUSINESS',
     },
     select: { id: true, name: true },
@@ -533,7 +533,7 @@ export async function getFactoryDashboard(
     // 成交数量
     const closedDeals = await prisma.collaboration.count({
       where: {
-        factoryId,
+        brandId,
         businessStaffId: staff.id,
         stage: { in: ['PUBLISHED', 'REVIEWED'] },
         createdAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
@@ -544,7 +544,7 @@ export async function getFactoryDashboard(
     const staffResults = await prisma.collaborationResult.findMany({
       where: {
         collaboration: {
-          factoryId,
+          brandId,
           businessStaffId: staff.id,
         },
         publishedAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
@@ -578,7 +578,7 @@ export async function getFactoryDashboard(
     const todayFollowUps = await prisma.followUpRecord.count({
       where: {
         collaboration: {
-          factoryId,
+          brandId,
           businessStaffId: staff.id,
         },
         createdAt: { gte: today },
@@ -589,7 +589,7 @@ export async function getFactoryDashboard(
     const weekFollowUps = await prisma.followUpRecord.count({
       where: {
         collaboration: {
-          factoryId,
+          brandId,
           businessStaffId: staff.id,
         },
         createdAt: { gte: weekAgo },
@@ -599,7 +599,7 @@ export async function getFactoryDashboard(
     // 活跃合作数(非已发布/已复盘)
     const activeCollaborations = await prisma.collaboration.count({
       where: {
-        factoryId,
+        brandId,
         businessStaffId: staff.id,
         stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
       },
@@ -610,7 +610,7 @@ export async function getFactoryDashboard(
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const stuckCollaborations = await prisma.collaboration.count({
       where: {
-        factoryId,
+        brandId,
         businessStaffId: staff.id,
         stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
         updatedAt: { lt: sevenDaysAgo },
@@ -620,7 +620,7 @@ export async function getFactoryDashboard(
     // 平均成交天数
     const closedCollaborations = await prisma.collaboration.findMany({
       where: {
-        factoryId,
+        brandId,
         businessStaffId: staff.id,
         stage: { in: ['PUBLISHED', 'REVIEWED'] },
       },
@@ -655,7 +655,7 @@ export async function getFactoryDashboard(
   // 获取所有阶段变更记录来计算平均时间
   const stageHistories = await prisma.stageHistory.findMany({
     where: {
-      collaboration: { factoryId },
+      collaboration: { brandId },
       changedAt: { gte: currentPeriod.startDate },
     },
     orderBy: { changedAt: 'asc' },
@@ -725,7 +725,7 @@ export async function getFactoryDashboard(
 
   // 最近新建的合作
   const recentNewCollaborations = await prisma.collaboration.findMany({
-    where: { factoryId },
+    where: { brandId },
     include: {
       influencer: true,
       businessStaff: { select: { name: true } },
@@ -748,7 +748,7 @@ export async function getFactoryDashboard(
   // 最近的阶段推进
   const recentStageChanges = await prisma.stageHistory.findMany({
     where: {
-      collaboration: { factoryId },
+      collaboration: { brandId },
       toStage: { in: ['SAMPLED', 'SCHEDULED', 'PUBLISHED'] }, // 只显示重要阶段
     },
     include: {
@@ -777,7 +777,7 @@ export async function getFactoryDashboard(
   // 最近成交
   const recentClosedDeals = await prisma.collaboration.findMany({
     where: {
-      factoryId,
+      brandId,
       stage: { in: ['PUBLISHED', 'REVIEWED'] },
       updatedAt: { gte: weekAgo },
     },
@@ -809,7 +809,7 @@ export async function getFactoryDashboard(
   // 长期卡住的合作
   const longStuckCollaborations = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
       updatedAt: { lt: fourteenDaysAgoForProgress },
     },
@@ -863,7 +863,7 @@ export async function getFactoryDashboard(
  * 获取商务人员个人看板数据
  */
 export async function getBusinessStaffDashboard(
-  factoryId: string,
+  brandId: string,
   staffId: string,
   period: 'week' | 'month' = 'month'
 ): Promise<BusinessStaffDashboard> {
@@ -893,7 +893,7 @@ export async function getBusinessStaffDashboard(
   // 当前周期数据
   const currentCollaborations = await prisma.collaboration.findMany({
     where: {
-      factoryId,
+      brandId,
       businessStaffId: staffId,
       createdAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
     },
@@ -907,7 +907,7 @@ export async function getBusinessStaffDashboard(
   const currentResults = await prisma.collaborationResult.findMany({
     where: {
       collaboration: {
-        factoryId,
+        brandId,
         businessStaffId: staffId,
       },
       publishedAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
@@ -922,7 +922,7 @@ export async function getBusinessStaffDashboard(
   const currentDispatches = await prisma.sampleDispatch.findMany({
     where: {
       businessStaffId: staffId,
-      collaboration: { factoryId },
+      collaboration: { brandId },
       dispatchedAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
     },
   });
@@ -933,7 +933,7 @@ export async function getBusinessStaffDashboard(
   // 上一周期数据（用于环比）
   const previousCollaborations = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       businessStaffId: staffId,
       createdAt: { gte: previousPeriod.startDate, lte: previousPeriod.endDate },
     },
@@ -941,7 +941,7 @@ export async function getBusinessStaffDashboard(
 
   const previousClosedCount = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       businessStaffId: staffId,
       stage: { in: ['PUBLISHED', 'REVIEWED'] },
       createdAt: { gte: previousPeriod.startDate, lte: previousPeriod.endDate },
@@ -951,7 +951,7 @@ export async function getBusinessStaffDashboard(
   const previousResults = await prisma.collaborationResult.findMany({
     where: {
       collaboration: {
-        factoryId,
+        brandId,
         businessStaffId: staffId,
       },
       publishedAt: { gte: previousPeriod.startDate, lte: previousPeriod.endDate },
@@ -967,7 +967,7 @@ export async function getBusinessStaffDashboard(
   const myPipelineStats = await prisma.collaboration.groupBy({
     by: ['stage'],
     where: {
-      factoryId,
+      brandId,
       businessStaffId: staffId,
     },
     _count: { id: true },
@@ -992,7 +992,7 @@ export async function getBusinessStaffDashboard(
   // 我的超期合作
   const overdueCollaborations = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       businessStaffId: staffId,
       isOverdue: true,
       stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
@@ -1005,7 +1005,7 @@ export async function getBusinessStaffDashboard(
 
   const allMyCollaborations = await prisma.collaboration.findMany({
     where: {
-      factoryId,
+      brandId,
       businessStaffId: staffId,
       stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
     },
@@ -1029,7 +1029,7 @@ export async function getBusinessStaffDashboard(
   const pendingReceipts = await prisma.sampleDispatch.count({
     where: {
       businessStaffId: staffId,
-      collaboration: { factoryId },
+      collaboration: { brandId },
       receivedStatus: 'PENDING',
       dispatchedAt: { lt: sevenDaysAgo },
     },
@@ -1041,7 +1041,7 @@ export async function getBusinessStaffDashboard(
 
   const pendingResults = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       businessStaffId: staffId,
       stage: { in: ['SCHEDULED', 'PUBLISHED'] },
       result: null,
@@ -1059,7 +1059,7 @@ export async function getBusinessStaffDashboard(
   const myDispatches = await prisma.sampleDispatch.findMany({
     where: {
       businessStaffId: staffId,
-      collaboration: { factoryId },
+      collaboration: { brandId },
     },
     include: {
       sample: true,
@@ -1115,7 +1115,7 @@ export async function getBusinessStaffDashboard(
   const recentStageChanges = await prisma.stageHistory.findMany({
     where: {
       collaboration: {
-        factoryId,
+        brandId,
         businessStaffId: staffId,
       },
     },
@@ -1145,7 +1145,7 @@ export async function getBusinessStaffDashboard(
   const recentFollowUps = await prisma.followUpRecord.findMany({
     where: {
       collaboration: {
-        factoryId,
+        brandId,
         businessStaffId: staffId,
       },
     },
@@ -1175,7 +1175,7 @@ export async function getBusinessStaffDashboard(
   const recentDispatchRecords = await prisma.sampleDispatch.findMany({
     where: {
       businessStaffId: staffId,
-      collaboration: { factoryId },
+      collaboration: { brandId },
     },
     include: {
       sample: true,
@@ -1209,7 +1209,7 @@ export async function getBusinessStaffDashboard(
   // 获取所有商务人员的成交数据
   const allStaff = await prisma.user.findMany({
     where: {
-      factoryId,
+      brandId,
       role: 'BUSINESS',
     },
     select: { id: true, name: true },
@@ -1220,7 +1220,7 @@ export async function getBusinessStaffDashboard(
   for (const staff of allStaff) {
     const staffClosedCount = await prisma.collaboration.count({
       where: {
-        factoryId,
+        brandId,
         businessStaffId: staff.id,
         stage: { in: ['PUBLISHED', 'REVIEWED'] },
         createdAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
@@ -1230,7 +1230,7 @@ export async function getBusinessStaffDashboard(
     const staffResults = await prisma.collaborationResult.findMany({
       where: {
         collaboration: {
-          factoryId,
+          brandId,
           businessStaffId: staff.id,
         },
         publishedAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
@@ -1303,10 +1303,10 @@ export async function getBusinessStaffDashboard(
  * 导出商务绩效报表为Excel
  */
 export async function exportStaffPerformanceReport(
-  factoryId: string,
+  brandId: string,
   dateRange?: DateRange
 ): Promise<Buffer> {
-  const report = await getStaffPerformance(factoryId, dateRange);
+  const report = await getStaffPerformance(brandId, dateRange);
 
   // 准备Excel数据
   const data = report.items.map((item) => ({
@@ -1365,14 +1365,14 @@ export async function exportStaffPerformanceReport(
  * 导出ROI报表为Excel
  */
 export async function exportRoiReport(
-  factoryId: string,
+  brandId: string,
   groupBy: 'influencer' | 'sample' | 'staff' | 'month',
   dateRange?: DateRange
 ): Promise<Buffer> {
   // 获取ROI报表数据（复用result.service中的逻辑）
   const results = await prisma.collaborationResult.findMany({
     where: {
-      collaboration: { factoryId },
+      collaboration: { brandId },
       ...(dateRange ? {
         publishedAt: { gte: dateRange.startDate, lte: dateRange.endDate },
       } : {}),
@@ -1485,12 +1485,12 @@ export async function exportRoiReport(
  * 导出合作记录为Excel
  */
 export async function exportCollaborationReport(
-  factoryId: string,
+  brandId: string,
   dateRange?: DateRange
 ): Promise<Buffer> {
   const collaborations = await prisma.collaboration.findMany({
     where: {
-      factoryId,
+      brandId,
       ...(dateRange ? {
         createdAt: { gte: dateRange.startDate, lte: dateRange.endDate },
       } : {}),
@@ -1570,12 +1570,12 @@ export interface ROIAnalysisData {
  * 获取 ROI 分析数据
  * 用于工厂老板 Dashboard 的 ROI 分析图表
  */
-export async function getRoiAnalysis(factoryId: string): Promise<ROIAnalysisData> {
+export async function getRoiAnalysis(brandId: string): Promise<ROIAnalysisData> {
   // ==================== 按商务统计 ROI ====================
   
   const staffMembers = await prisma.user.findMany({
     where: {
-      factoryId,
+      brandId,
       role: 'BUSINESS',
     },
     select: { id: true, name: true },
@@ -1588,7 +1588,7 @@ export async function getRoiAnalysis(factoryId: string): Promise<ROIAnalysisData
     const results = await prisma.collaborationResult.findMany({
       where: {
         collaboration: {
-          factoryId,
+          brandId,
           businessStaffId: staff.id,
         },
       },
@@ -1618,7 +1618,7 @@ export async function getRoiAnalysis(factoryId: string): Promise<ROIAnalysisData
   // 样品成本
   const sampleDispatches = await prisma.sampleDispatch.findMany({
     where: {
-      collaboration: { factoryId },
+      collaboration: { brandId },
     },
   });
   const sampleCost = sampleDispatches.reduce((sum, d) => sum + d.totalCost, 0);
@@ -1626,7 +1626,7 @@ export async function getRoiAnalysis(factoryId: string): Promise<ROIAnalysisData
   // 合作成本（从结果中获取）
   const allResults = await prisma.collaborationResult.findMany({
     where: {
-      collaboration: { factoryId },
+      collaboration: { brandId },
     },
   });
   const collaborationCost = allResults.reduce((sum, r) => sum + r.totalCollaborationCost, 0);
@@ -1677,7 +1677,7 @@ export interface PipelineFunnelData {
  * 获取管道漏斗数据
  * 用于工厂老板 Dashboard 的管道漏斗图
  */
-export async function getPipelineFunnel(factoryId: string): Promise<PipelineFunnelData> {
+export async function getPipelineFunnel(brandId: string): Promise<PipelineFunnelData> {
   // 定义管道阶段顺序 - 使用实际的 PipelineStage 枚举值
   const stages: Array<{ stage: PipelineStage; name: string }> = [
     { stage: 'LEAD', name: '线索达人' },
@@ -1697,7 +1697,7 @@ export async function getPipelineFunnel(factoryId: string): Promise<PipelineFunn
     // 查询该阶段的合作数量
     const count = await prisma.collaboration.count({
       where: {
-        factoryId,
+        brandId,
         stage: stage,
       },
     });
@@ -1724,7 +1724,7 @@ export async function getPipelineFunnel(factoryId: string): Promise<PipelineFunn
 
   // 计算总合作数（所有阶段的合作总和）
   const totalCount = await prisma.collaboration.count({
-    where: { factoryId },
+    where: { brandId },
   });
 
   // 计算总转化率（从第一阶段到最后阶段）
@@ -1771,7 +1771,7 @@ export interface StaffComparisonAnalysis {
  * 用于工厂老板 Dashboard 的商务对比分析
  */
 export async function getStaffComparison(
-  factoryId: string,
+  brandId: string,
   staffIds: string[]
 ): Promise<StaffComparisonAnalysis> {
   if (staffIds.length < 2 || staffIds.length > 3) {
@@ -1793,7 +1793,7 @@ export async function getStaffComparison(
     // 建联数（创建的合作数）
     const leads = await prisma.collaboration.count({
       where: {
-        factoryId,
+        brandId,
         businessStaffId: staffId,
       },
     });
@@ -1801,7 +1801,7 @@ export async function getStaffComparison(
     // 成交数
     const deals = await prisma.collaboration.count({
       where: {
-        factoryId,
+        brandId,
         businessStaffId: staffId,
         stage: { in: ['PUBLISHED', 'REVIEWED'] },
       },
@@ -1811,7 +1811,7 @@ export async function getStaffComparison(
     const results = await prisma.collaborationResult.findMany({
       where: {
         collaboration: {
-          factoryId,
+          brandId,
           businessStaffId: staffId,
         },
       },
@@ -1824,7 +1824,7 @@ export async function getStaffComparison(
     // 效率（平均成交天数的倒数，归一化为0-100）
     const closedCollaborations = await prisma.collaboration.findMany({
       where: {
-        factoryId,
+        brandId,
         businessStaffId: staffId,
         stage: { in: ['PUBLISHED', 'REVIEWED'] },
       },
@@ -1960,23 +1960,23 @@ export interface ScoreTrend {
  */
 export async function getStaffQualityScore(
   staffId: string,
-  factoryId: string
+  brandId: string
 ): Promise<QualityScore> {
   // 获取最近30天的数据
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   // 1. 计算跟进频率评分 (0-100)
-  const followUpScore = await calculateFollowUpScore(staffId, factoryId, thirtyDaysAgo);
+  const followUpScore = await calculateFollowUpScore(staffId, brandId, thirtyDaysAgo);
 
   // 2. 计算转化率评分 (0-100)
-  const conversionScore = await calculateConversionScore(staffId, factoryId);
+  const conversionScore = await calculateConversionScore(staffId, brandId);
 
   // 3. 计算 ROI 评分 (0-100)
-  const roiScore = await calculateROIScore(staffId, factoryId);
+  const roiScore = await calculateROIScore(staffId, brandId);
 
   // 4. 计算效率评分 (0-100)
-  const efficiencyScore = await calculateEfficiencyScore(staffId, factoryId);
+  const efficiencyScore = await calculateEfficiencyScore(staffId, brandId);
 
   // 5. 计算综合评分（加权平均）
   const overall = Math.round(
@@ -1987,7 +1987,7 @@ export async function getStaffQualityScore(
   );
 
   // 6. 获取评分趋势（最近7天）
-  const trend = await getScoreTrend(staffId, factoryId, {
+  const trend = await getScoreTrend(staffId, brandId, {
     overall,
     followUpFrequency: followUpScore,
     conversionRate: conversionScore,
@@ -2023,15 +2023,15 @@ export async function getStaffQualityScore(
  */
 async function calculateFollowUpScore(
   staffId: string,
-  factoryId: string,
+  brandId: string,
   since: Date
 ): Promise<number> {
   // 获取该商务的所有活跃合作（非已复盘）
   const activeCollaborations = await prisma.collaboration.findMany({
     where: {
       businessStaffId: staffId,
-      factory: {
-        id: factoryId
+      brand: {
+        id: brandId
       },
       stage: {
         not: 'REVIEWED'
@@ -2108,14 +2108,14 @@ async function calculateFollowUpScore(
  */
 async function calculateConversionScore(
   staffId: string,
-  factoryId: string
+  brandId: string
 ): Promise<number> {
   // 获取该商务的所有合作
   const allCollaborations = await prisma.collaboration.findMany({
     where: {
       businessStaffId: staffId,
-      factory: {
-        id: factoryId
+      brand: {
+        id: brandId
       }
     },
     select: {
@@ -2169,14 +2169,14 @@ async function calculateConversionScore(
  */
 async function calculateROIScore(
   staffId: string,
-  factoryId: string
+  brandId: string
 ): Promise<number> {
   // 获取该商务已完成的合作及其结果
   const completedCollaborations = await prisma.collaboration.findMany({
     where: {
       businessStaffId: staffId,
-      factory: {
-        id: factoryId
+      brand: {
+        id: brandId
       },
       stage: {
         in: ['PUBLISHED', 'REVIEWED']
@@ -2255,14 +2255,14 @@ async function calculateROIScore(
  */
 async function calculateEfficiencyScore(
   staffId: string,
-  factoryId: string
+  brandId: string
 ): Promise<number> {
   // 获取该商务的所有合作
   const collaborations = await prisma.collaboration.findMany({
     where: {
       businessStaffId: staffId,
-      factory: {
-        id: factoryId
+      brand: {
+        id: brandId
       }
     },
     select: {
@@ -2332,7 +2332,7 @@ async function calculateEfficiencyScore(
  */
 async function getScoreTrend(
   staffId: string,
-  factoryId: string,
+  brandId: string,
   currentScores: {
     overall: number;
     followUpFrequency: number;
@@ -2457,7 +2457,7 @@ interface CalendarData {
  */
 export async function getStaffCalendar(
   staffId: string,
-  factoryId: string,
+  brandId: string,
   month: string // 格式: YYYY-MM
 ): Promise<CalendarData> {
   // 解析月份
@@ -2469,8 +2469,8 @@ export async function getStaffCalendar(
   const collaborations = await prisma.collaboration.findMany({
     where: {
       businessStaffId: staffId,
-      factory: {
-        id: factoryId
+      brand: {
+        id: brandId
       },
       OR: [
         // 截止日期在本月
@@ -2649,7 +2649,7 @@ export interface Alert {
  * 用于快捷操作面板
  * Requirements: FR-1.3
  */
-export async function getDailySummary(factoryId: string): Promise<DailySummaryData> {
+export async function getDailySummary(brandId: string): Promise<DailySummaryData> {
   const now = new Date();
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -2659,7 +2659,7 @@ export async function getDailySummary(factoryId: string): Promise<DailySummaryDa
   // ==================== 统计超期合作数量 ====================
   const overdueCollaborations = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       isOverdue: true,
       stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
     },
@@ -2669,7 +2669,7 @@ export async function getDailySummary(factoryId: string): Promise<DailySummaryDa
   // 寄出超过7天未签收的样品
   const pendingSamples = await prisma.sampleDispatch.count({
     where: {
-      collaboration: { factoryId },
+      collaboration: { brandId },
       receivedStatus: 'PENDING',
       dispatchedAt: { lt: sevenDaysAgo },
     },
@@ -2679,7 +2679,7 @@ export async function getDailySummary(factoryId: string): Promise<DailySummaryDa
   // 已上车但超过14天未录入结果的合作
   const pendingResults = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       stage: { in: ['SCHEDULED', 'PUBLISHED'] },
       result: null,
       dispatches: {
@@ -2734,14 +2734,14 @@ export async function getDailySummary(factoryId: string): Promise<DailySummaryDa
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const thisMonthCollaborations = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       createdAt: { gte: thisMonthStart },
     },
   });
 
   const thisMonthClosed = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       createdAt: { gte: thisMonthStart },
       stage: { in: ['PUBLISHED', 'REVIEWED'] },
     },
@@ -2766,7 +2766,7 @@ export async function getDailySummary(factoryId: string): Promise<DailySummaryDa
 
   const thisMonthDispatches = await prisma.sampleDispatch.findMany({
     where: {
-      collaboration: { factoryId },
+      collaboration: { brandId },
       dispatchedAt: { gte: thisMonthStart },
     },
   });
@@ -2774,7 +2774,7 @@ export async function getDailySummary(factoryId: string): Promise<DailySummaryDa
 
   const lastMonthDispatches = await prisma.sampleDispatch.findMany({
     where: {
-      collaboration: { factoryId },
+      collaboration: { brandId },
       dispatchedAt: { gte: lastMonthStart, lte: lastMonthEnd },
     },
   });
@@ -2808,7 +2808,7 @@ export async function getDailySummary(factoryId: string): Promise<DailySummaryDa
 
   const thisWeekClosed = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       stage: { in: ['PUBLISHED', 'REVIEWED'] },
       updatedAt: { gte: thisWeekStart },
     },
@@ -2821,7 +2821,7 @@ export async function getDailySummary(factoryId: string): Promise<DailySummaryDa
   // 2. 本周高ROI合作
   const thisWeekResults = await prisma.collaborationResult.findMany({
     where: {
-      collaboration: { factoryId },
+      collaboration: { brandId },
       publishedAt: { gte: thisWeekStart },
       roi: { gte: 2 },
     },
@@ -2851,7 +2851,7 @@ export async function getDailySummary(factoryId: string): Promise<DailySummaryDa
 
   const lastWeekClosed = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       stage: { in: ['PUBLISHED', 'REVIEWED'] },
       updatedAt: { gte: lastWeekStart, lte: lastWeekEnd },
     },
@@ -2896,7 +2896,7 @@ export interface SmartAlertsResponse {
  * 生成每日工作摘要、异常预警和重要节点提醒
  * Requirements: FR-1.3
  */
-export async function getSmartAlerts(factoryId: string, userId?: string): Promise<SmartAlertsResponse> {
+export async function getSmartAlerts(brandId: string, userId?: string): Promise<SmartAlertsResponse> {
   const now = new Date();
   const alerts: SmartAlert[] = [];
 
@@ -2908,7 +2908,7 @@ export async function getSmartAlerts(factoryId: string, userId?: string): Promis
   // 今日新增合作
   const todayNewCollaborations = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       createdAt: { gte: todayStart, lt: todayEnd },
     },
   });
@@ -2916,7 +2916,7 @@ export async function getSmartAlerts(factoryId: string, userId?: string): Promis
   // 今日推进合作
   const todayProgressedCollaborations = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       updatedAt: { gte: todayStart, lt: todayEnd },
       createdAt: { lt: todayStart },
     },
@@ -2925,7 +2925,7 @@ export async function getSmartAlerts(factoryId: string, userId?: string): Promis
   // 今日成交
   const todayClosedDeals = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       stage: { in: ['PUBLISHED', 'REVIEWED'] },
       updatedAt: { gte: todayStart, lt: todayEnd },
     },
@@ -2950,7 +2950,7 @@ export async function getSmartAlerts(factoryId: string, userId?: string): Promis
   // 2.1 超期合作预警
   const overdueCollaborations = await prisma.collaboration.findMany({
     where: {
-      factoryId,
+      brandId,
       isOverdue: true,
       stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
     },
@@ -2964,7 +2964,7 @@ export async function getSmartAlerts(factoryId: string, userId?: string): Promis
   if (overdueCollaborations.length > 0) {
     const totalOverdue = await prisma.collaboration.count({
       where: {
-        factoryId,
+        brandId,
         isOverdue: true,
         stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
       },
@@ -2998,7 +2998,7 @@ export async function getSmartAlerts(factoryId: string, userId?: string): Promis
 
   const stuckCollaborations = await prisma.collaboration.findMany({
     where: {
-      factoryId,
+      brandId,
       stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
       updatedAt: { lt: sevenDaysAgo },
     },
@@ -3012,7 +3012,7 @@ export async function getSmartAlerts(factoryId: string, userId?: string): Promis
   if (stuckCollaborations.length > 0) {
     const totalStuck = await prisma.collaboration.count({
       where: {
-        factoryId,
+        brandId,
         stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
         updatedAt: { lt: sevenDaysAgo },
       },
@@ -3043,7 +3043,7 @@ export async function getSmartAlerts(factoryId: string, userId?: string): Promis
   // 2.3 待签收样品预警
   const pendingSamples = await prisma.sampleDispatch.findMany({
     where: {
-      collaboration: { factoryId },
+      collaboration: { brandId },
       receivedStatus: 'PENDING',
       dispatchedAt: { lt: sevenDaysAgo },
     },
@@ -3060,7 +3060,7 @@ export async function getSmartAlerts(factoryId: string, userId?: string): Promis
   if (pendingSamples.length > 0) {
     const totalPending = await prisma.sampleDispatch.count({
       where: {
-        collaboration: { factoryId },
+        collaboration: { brandId },
         receivedStatus: 'PENDING',
         dispatchedAt: { lt: sevenDaysAgo },
       },
@@ -3091,14 +3091,14 @@ export async function getSmartAlerts(factoryId: string, userId?: string): Promis
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const thisMonthCollaborations = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       createdAt: { gte: thisMonthStart },
     },
   });
 
   const thisMonthClosed = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       createdAt: { gte: thisMonthStart },
       stage: { in: ['PUBLISHED', 'REVIEWED'] },
     },
@@ -3133,7 +3133,7 @@ export async function getSmartAlerts(factoryId: string, userId?: string): Promis
 
   const upcomingDeadlines = await prisma.collaboration.findMany({
     where: {
-      factoryId,
+      brandId,
       deadline: { gte: now, lte: threeDaysLater },
       stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
     },
@@ -3148,7 +3148,7 @@ export async function getSmartAlerts(factoryId: string, userId?: string): Promis
   if (upcomingDeadlines.length > 0) {
     const totalUpcoming = await prisma.collaboration.count({
       where: {
-        factoryId,
+        brandId,
         deadline: { gte: now, lte: threeDaysLater },
         stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
       },
@@ -3185,7 +3185,7 @@ export async function getSmartAlerts(factoryId: string, userId?: string): Promis
 
   const upcomingSchedules = await prisma.collaboration.findMany({
     where: {
-      factoryId,
+      brandId,
       scheduledDate: { gte: now, lte: sevenDaysLater },
       stage: 'SCHEDULED',
     },
@@ -3200,7 +3200,7 @@ export async function getSmartAlerts(factoryId: string, userId?: string): Promis
   if (upcomingSchedules.length > 0) {
     const totalSchedules = await prisma.collaboration.count({
       where: {
-        factoryId,
+        brandId,
         scheduledDate: { gte: now, lte: sevenDaysLater },
         stage: 'SCHEDULED',
       },
@@ -3235,7 +3235,7 @@ export async function getSmartAlerts(factoryId: string, userId?: string): Promis
 
   const pendingResults = await prisma.collaboration.findMany({
     where: {
-      factoryId,
+      brandId,
       stage: { in: ['SCHEDULED', 'PUBLISHED'] },
       result: null,
       dispatches: {
@@ -3255,7 +3255,7 @@ export async function getSmartAlerts(factoryId: string, userId?: string): Promis
   if (pendingResults.length > 0) {
     const totalPendingResults = await prisma.collaboration.count({
       where: {
-        factoryId,
+        brandId,
         stage: { in: ['SCHEDULED', 'PUBLISHED'] },
         result: null,
         dispatches: {
@@ -3323,10 +3323,10 @@ export async function markAlertAsRead(alertId: string, userId: string): Promise<
  * 标记所有提醒为已读
  * Requirements: FR-1.3
  */
-export async function markAllAlertsAsRead(userId: string, factoryId: string): Promise<void> {
+export async function markAllAlertsAsRead(userId: string, brandId: string): Promise<void> {
   // 这里可以将所有提醒标记为已读
   // 为了简化，暂时不实现持久化存储
-  console.log(`All alerts marked as read by user ${userId} for factory ${factoryId}`);
+  console.log(`All alerts marked as read by user ${userId} for factory ${brandId}`);
 }
 
 
@@ -3366,7 +3366,7 @@ export interface TodayTodosResponse {
  * Requirements: FR-2.4
  */
 export async function getTodayTodos(
-  factoryId: string,
+  brandId: string,
   staffId: string
 ): Promise<TodayTodosResponse> {
   const now = new Date();
@@ -3382,7 +3382,7 @@ export async function getTodayTodos(
 
   const collaborationsNeedingFollowUp = await prisma.collaboration.findMany({
     where: {
-      factoryId,
+      brandId,
       businessStaffId: staffId,
       stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
     },
@@ -3422,7 +3422,7 @@ export async function getTodayTodos(
 
   const upcomingDeadlines = await prisma.collaboration.findMany({
     where: {
-      factoryId,
+      brandId,
       businessStaffId: staffId,
       stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
       deadline: {
@@ -3452,7 +3452,7 @@ export async function getTodayTodos(
   // ==================== 3. 超期的合作 ====================
   const overdueCollaborations = await prisma.collaboration.findMany({
     where: {
-      factoryId,
+      brandId,
       businessStaffId: staffId,
       stage: { notIn: ['PUBLISHED', 'REVIEWED'] },
       deadline: {
@@ -3485,7 +3485,7 @@ export async function getTodayTodos(
   const pendingDispatches = await prisma.sampleDispatch.findMany({
     where: {
       businessStaffId: staffId,
-      collaboration: { factoryId },
+      collaboration: { brandId },
       receivedStatus: 'PENDING',
       dispatchedAt: { lt: sevenDaysAgo },
     },
@@ -3519,7 +3519,7 @@ export async function getTodayTodos(
 
   const collaborationsNeedingResults = await prisma.collaboration.findMany({
     where: {
-      factoryId,
+      brandId,
       businessStaffId: staffId,
       stage: { in: ['SCHEDULED', 'PUBLISHED'] },
       result: null,
@@ -3566,7 +3566,7 @@ export async function getTodayTodos(
   const todayFollowUps = await prisma.followUpRecord.count({
     where: {
       collaboration: {
-        factoryId,
+        brandId,
         businessStaffId: staffId,
       },
       createdAt: { gte: todayStart, lt: todayEnd },
@@ -3584,7 +3584,7 @@ export async function getTodayTodos(
   const todayDispatches = await prisma.sampleDispatch.count({
     where: {
       businessStaffId: staffId,
-      collaboration: { factoryId },
+      collaboration: { brandId },
       dispatchedAt: { gte: todayStart, lt: todayEnd },
     },
   });
@@ -3599,7 +3599,7 @@ export async function getTodayTodos(
   // 今日成交目标（假设每天至少成交1单）
   const todayDeals = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       businessStaffId: staffId,
       stage: { in: ['PUBLISHED', 'REVIEWED'] },
       updatedAt: { gte: todayStart, lt: todayEnd },
@@ -3675,7 +3675,7 @@ export interface WorkStatsResponse {
  * Requirements: FR-2.4
  */
 export async function getWorkStats(
-  factoryId: string,
+  brandId: string,
   staffId: string,
   period: 'today' | 'week' | 'month' = 'week'
 ): Promise<WorkStatsResponse> {
@@ -3737,7 +3737,7 @@ export async function getWorkStats(
   // 2. 创建的合作数
   const collaborationsCreated = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       businessStaffId: staffId,
       createdAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
     },
@@ -3747,7 +3747,7 @@ export async function getWorkStats(
   const samplesDispatched = await prisma.sampleDispatch.count({
     where: {
       businessStaffId: staffId,
-      collaboration: { factoryId },
+      collaboration: { brandId },
       dispatchedAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
     },
   });
@@ -3756,7 +3756,7 @@ export async function getWorkStats(
   const followUpsCompleted = await prisma.followUpRecord.count({
     where: {
       collaboration: {
-        factoryId,
+        brandId,
         businessStaffId: staffId,
       },
       createdAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
@@ -3766,7 +3766,7 @@ export async function getWorkStats(
   // 5. 成交数
   const dealsCompleted = await prisma.collaboration.count({
     where: {
-      factoryId,
+      brandId,
       businessStaffId: staffId,
       stage: { in: ['PUBLISHED', 'REVIEWED'] },
       updatedAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
@@ -3777,7 +3777,7 @@ export async function getWorkStats(
   const results = await prisma.collaborationResult.findMany({
     where: {
       collaboration: {
-        factoryId,
+        brandId,
         businessStaffId: staffId,
       },
       publishedAt: { gte: currentPeriod.startDate, lte: currentPeriod.endDate },
@@ -3811,7 +3811,7 @@ export async function getWorkStats(
   // ==================== 计算排名变化 ====================
 
   // 获取当前周期排名
-  const currentRanking = await getStaffRanking(factoryId, currentPeriod);
+  const currentRanking = await getStaffRanking(brandId, currentPeriod);
   const currentRank = currentRanking.findIndex(s => s.staffId === staffId) + 1;
 
   // 获取上一周期排名
@@ -3819,7 +3819,7 @@ export async function getWorkStats(
     startDate: previousPeriodStart,
     endDate: previousPeriodEnd,
   };
-  const previousRanking = await getStaffRanking(factoryId, previousPeriod);
+  const previousRanking = await getStaffRanking(brandId, previousPeriod);
   const previousRank = previousRanking.findIndex(s => s.staffId === staffId) + 1;
 
   // 计算排名变化（正数表示上升，负数表示下降）
@@ -3846,7 +3846,7 @@ export async function getWorkStats(
 
       const hourCollabs = await prisma.collaboration.count({
         where: {
-          factoryId,
+          brandId,
           businessStaffId: staffId,
           createdAt: { gte: hourStart, lt: hourEnd },
         },
@@ -3854,7 +3854,7 @@ export async function getWorkStats(
 
       const hourDeals = await prisma.collaboration.count({
         where: {
-          factoryId,
+          brandId,
           businessStaffId: staffId,
           stage: { in: ['PUBLISHED', 'REVIEWED'] },
           updatedAt: { gte: hourStart, lt: hourEnd },
@@ -3864,7 +3864,7 @@ export async function getWorkStats(
       const hourResults = await prisma.collaborationResult.findMany({
         where: {
           collaboration: {
-            factoryId,
+            brandId,
             businessStaffId: staffId,
           },
           publishedAt: { gte: hourStart, lt: hourEnd },
@@ -3899,7 +3899,7 @@ export async function getWorkStats(
 
       const dayCollabs = await prisma.collaboration.count({
         where: {
-          factoryId,
+          brandId,
           businessStaffId: staffId,
           createdAt: { gte: dayStart, lte: dayEnd },
         },
@@ -3907,7 +3907,7 @@ export async function getWorkStats(
 
       const dayDeals = await prisma.collaboration.count({
         where: {
-          factoryId,
+          brandId,
           businessStaffId: staffId,
           stage: { in: ['PUBLISHED', 'REVIEWED'] },
           updatedAt: { gte: dayStart, lte: dayEnd },
@@ -3917,7 +3917,7 @@ export async function getWorkStats(
       const dayResults = await prisma.collaborationResult.findMany({
         where: {
           collaboration: {
-            factoryId,
+            brandId,
             businessStaffId: staffId,
           },
           publishedAt: { gte: dayStart, lte: dayEnd },
@@ -3959,7 +3959,7 @@ export async function getWorkStats(
 
       const weekCollabs = await prisma.collaboration.count({
         where: {
-          factoryId,
+          brandId,
           businessStaffId: staffId,
           createdAt: { gte: weekStart, lte: weekEnd },
         },
@@ -3967,7 +3967,7 @@ export async function getWorkStats(
 
       const weekDeals = await prisma.collaboration.count({
         where: {
-          factoryId,
+          brandId,
           businessStaffId: staffId,
           stage: { in: ['PUBLISHED', 'REVIEWED'] },
           updatedAt: { gte: weekStart, lte: weekEnd },
@@ -3977,7 +3977,7 @@ export async function getWorkStats(
       const weekResults = await prisma.collaborationResult.findMany({
         where: {
           collaboration: {
-            factoryId,
+            brandId,
             businessStaffId: staffId,
           },
           publishedAt: { gte: weekStart, lte: weekEnd },
@@ -4015,12 +4015,12 @@ export async function getWorkStats(
  * 获取商务人员排名（辅助函数）
  */
 async function getStaffRanking(
-  factoryId: string,
+  brandId: string,
   period: DateRange
 ): Promise<{ staffId: string; gmv: number }[]> {
   const staffMembers = await prisma.user.findMany({
     where: {
-      factoryId,
+      brandId,
       role: 'BUSINESS',
     },
     select: { id: true },
@@ -4032,7 +4032,7 @@ async function getStaffRanking(
     const results = await prisma.collaborationResult.findMany({
       where: {
         collaboration: {
-          factoryId,
+          brandId,
           businessStaffId: staff.id,
         },
         publishedAt: { gte: period.startDate, lte: period.endDate },

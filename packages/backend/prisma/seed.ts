@@ -75,12 +75,12 @@ async function main() {
   console.log('✅ Factory owner created:', owner.email);
 
 
-  // Create demo factory
-  const factory = await prisma.factory.upsert({
+  // Create demo brand
+  const brand = await prisma.brand.upsert({
     where: { ownerId: owner.id },
     update: {},
     create: {
-      name: '示例工厂',
+      name: '示例品牌',
       ownerId: owner.id,
       status: 'APPROVED',
       planType: PlanType.PROFESSIONAL,
@@ -88,12 +88,12 @@ async function main() {
       influencerLimit: 500,
     },
   });
-  console.log('✅ Demo factory created:', factory.name);
+  console.log('✅ Demo brand created:', brand.name);
 
-  // Update owner with factory reference
+  // Update owner with brand reference
   await prisma.user.update({
     where: { id: owner.id },
-    data: { factoryId: factory.id },
+    data: { brandId: brand.id },
   });
 
   // Create demo business staff
@@ -106,7 +106,7 @@ async function main() {
       passwordHash: staffPassword,
       name: '李商务',
       role: UserRole.BUSINESS,
-      factoryId: factory.id,
+      brandId: brand.id,
     },
   });
   console.log('✅ Business staff created:', staff.email);
@@ -120,9 +120,9 @@ async function main() {
 
   for (const sample of samples) {
     await prisma.sample.upsert({
-      where: { factoryId_sku: { factoryId: factory.id, sku: sample.sku } },
+      where: { brandId_sku: { brandId: brand.id, sku: sample.sku } },
       update: sample,
-      create: { ...sample, factoryId: factory.id },
+      create: { ...sample, brandId: brand.id },
     });
   }
   console.log('✅ Demo samples created');
@@ -158,21 +158,21 @@ async function main() {
   for (const inf of influencers) {
     await prisma.influencer.upsert({
       where: {
-        factoryId_platform_platformId: {
-          factoryId: factory.id,
+        brandId_platform_platformId: {
+          brandId: brand.id,
           platform: inf.platform,
           platformId: inf.platformId,
         },
       },
       update: inf,
-      create: { ...inf, factoryId: factory.id },
+      create: { ...inf, brandId: brand.id },
     });
   }
   console.log('✅ Demo influencers created');
 
   // Create demo collaboration
   const influencer = await prisma.influencer.findFirst({
-    where: { factoryId: factory.id },
+    where: { brandId: brand.id },
   });
 
   if (influencer) {
@@ -180,7 +180,7 @@ async function main() {
     const existingCollab = await prisma.collaboration.findFirst({
       where: {
         influencerId: influencer.id,
-        factoryId: factory.id,
+        brandId: brand.id,
         businessStaffId: staff.id,
       },
     });
@@ -189,7 +189,7 @@ async function main() {
       await prisma.collaboration.create({
         data: {
           influencerId: influencer.id,
-          factoryId: factory.id,
+          brandId: brand.id,
           businessStaffId: staff.id,
           stage: PipelineStage.CONTACTED,
         },

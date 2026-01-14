@@ -12,7 +12,7 @@ import type {
 export interface InfluencerListFilter {
   keyword?: string;
   platform?: Platform;
-  factoryId?: string;
+  brandId?: string;
   sourceType?: InfluencerSourceType;
   verificationStatus?: VerificationStatus;
   createdBy?: string;
@@ -89,3 +89,11 @@ export async function exportInfluencers(params: InfluencerListFilter): Promise<B
   );
   return response.data;
 }
+
+/**
+ * 删除达人
+ */
+export async function deleteInfluencer(influencerId: string): Promise<void> {
+  await api.delete<ApiResponse>(`/platform/influencers/${influencerId}`);
+}
+

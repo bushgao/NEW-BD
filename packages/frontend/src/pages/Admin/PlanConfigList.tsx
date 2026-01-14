@@ -78,7 +78,7 @@ const PlanConfigList = () => {
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
-      
+
       // 处理功能列表
       const features = values.features
         ? values.features.split('\n').filter((f: string) => f.trim())
@@ -207,7 +207,7 @@ const PlanConfigList = () => {
           </Button>
           <Popconfirm
             title="确定删除此套餐配置吗？"
-            description="如果有工厂正在使用此套餐，将无法删除"
+            description="如果有品牌正在使用此套餐，将无法删除"
             onConfirm={() => handleDelete(record.planType)}
           >
             <Button size="small" danger icon={<DeleteOutlined />}>

@@ -20,7 +20,7 @@ export type ExportType =
   | 'sample-cost-report';
 
 export interface ExportOptions {
-  factoryId: string;
+  brandId: string;
   dateRange?: DateRange;
   groupBy?: string;
   filters?: Record<string, any>;
@@ -115,9 +115,9 @@ function createExcelBuffer(data: any[], sheetName: string, colWidths?: number[])
  * Requirements: 9.4
  */
 export async function exportInfluencers(options: ExportOptions): Promise<Buffer> {
-  const { factoryId, filters } = options;
+  const { brandId, filters } = options;
 
-  const where: any = { factoryId };
+  const where: any = { brandId };
   if (filters?.platform) where.platform = filters.platform;
   if (filters?.keyword) {
     where.OR = [
@@ -150,10 +150,10 @@ export async function exportInfluencers(options: ExportOptions): Promise<Buffer>
  * Requirements: 9.4
  */
 export async function exportSamples(options: ExportOptions): Promise<Buffer> {
-  const { factoryId } = options;
+  const { brandId } = options;
 
   const samples = await prisma.sample.findMany({
-    where: { factoryId },
+    where: { brandId },
     orderBy: { createdAt: 'desc' },
   });
 
@@ -175,10 +175,10 @@ export async function exportSamples(options: ExportOptions): Promise<Buffer> {
  * Requirements: 9.4
  */
 export async function exportDispatches(options: ExportOptions): Promise<Buffer> {
-  const { factoryId, dateRange } = options;
+  const { brandId, dateRange } = options;
 
   const where: any = {
-    sample: { factoryId },
+    sample: { brandId },
   };
 
   if (dateRange) {
@@ -232,9 +232,9 @@ export async function exportDispatches(options: ExportOptions): Promise<Buffer> 
  * Requirements: 9.4
  */
 export async function exportCollaborations(options: ExportOptions): Promise<Buffer> {
-  const { factoryId, dateRange } = options;
+  const { brandId, dateRange } = options;
 
-  const where: any = { factoryId };
+  const where: any = { brandId };
 
   if (dateRange) {
     where.createdAt = {
@@ -281,10 +281,10 @@ export async function exportCollaborations(options: ExportOptions): Promise<Buff
  * Requirements: 9.4
  */
 export async function exportResults(options: ExportOptions): Promise<Buffer> {
-  const { factoryId, dateRange } = options;
+  const { brandId, dateRange } = options;
 
   const where: any = {
-    collaboration: { factoryId },
+    collaboration: { brandId },
   };
 
   if (dateRange) {

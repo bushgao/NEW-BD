@@ -4,7 +4,7 @@ import {
   createBadRequestError,
   createQuotaExceededError,
 } from '../middleware/errorHandler';
-import type { FactoryStatus, PlanType, Pagination, PaginatedResult } from '@ics/shared';
+import type { BrandStatus, PlanType, Pagination, PaginatedResult } from '@ics/shared';
 
 // ============ Types ============
 
@@ -12,7 +12,7 @@ export interface FactoryWithOwner {
   id: string;
   name: string;
   ownerId: string;
-  status: FactoryStatus;
+  status: BrandStatus;
   planType: PlanType;
   staffLimit: number;
   influencerLimit: number;
@@ -50,17 +50,18 @@ export interface PlatformStats {
   totalUsers: number;
   totalCollaborations: number;
   totalInfluencers: number;
+  independentBusinessUsers: number; // 独立商务数量
   factoriesByPlan: Record<PlanType, number>;
 }
 
 export interface FactoryFilter {
-  status?: FactoryStatus;
+  status?: BrandStatus;
   planType?: PlanType;
   keyword?: string;
 }
 
 export interface UpdateFactoryInput {
-  status?: FactoryStatus;
+  status?: BrandStatus;
   planType?: PlanType;
   staffLimit?: number;
   influencerLimit?: number;
@@ -116,7 +117,7 @@ export async function listFactories(
   }
 
   const [factories, total] = await Promise.all([
-    prisma.factory.findMany({
+    prisma.brand.findMany({
       where,
       include: {
         owner: {
@@ -138,7 +139,7 @@ export async function listFactories(
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
-    prisma.factory.count({ where }),
+    prisma.brand.count({ where }),
   ]);
 
   return {
@@ -153,9 +154,9 @@ export async function listFactories(
 /**
  * 获取工厂详情
  */
-export async function getFactoryById(factoryId: string): Promise<FactoryWithOwner> {
-  const factory = await prisma.factory.findUnique({
-    where: { id: factoryId },
+export async function getFactoryById(brandId: string): Promise<FactoryWithOwner> {
+  const factory = await prisma.brand.findUnique({
+    where: { id: brandId },
     include: {
       owner: {
         select: {
@@ -185,12 +186,12 @@ export async function getFactoryById(factoryId: string): Promise<FactoryWithOwne
  * 审核工厂入驻申请
  */
 export async function reviewFactory(
-  factoryId: string,
+  brandId: string,
   status: 'APPROVED' | 'REJECTED',
   _reason?: string
 ): Promise<FactoryWithOwner> {
-  const factory = await prisma.factory.findUnique({
-    where: { id: factoryId },
+  const factory = await prisma.brand.findUnique({
+    where: { id: brandId },
   });
 
   if (!factory) {
@@ -201,8 +202,8 @@ export async function reviewFactory(
     throw createBadRequestError('只能审核待审核状态的工厂');
   }
 
-  const updatedFactory = await prisma.factory.update({
-    where: { id: factoryId },
+  const updatedFactory = await prisma.brand.update({
+    where: { id: brandId },
     data: {
       status,
       // 可以在这里添加审核原因字段
@@ -232,19 +233,19 @@ export async function reviewFactory(
  * 更新工厂信息（套餐、配额等）
  */
 export async function updateFactory(
-  factoryId: string,
+  brandId: string,
   data: UpdateFactoryInput
 ): Promise<FactoryWithOwner> {
-  const factory = await prisma.factory.findUnique({
-    where: { id: factoryId },
+  const factory = await prisma.brand.findUnique({
+    where: { id: brandId },
   });
 
   if (!factory) {
     throw createNotFoundError('工厂不存在');
   }
 
-  const updatedFactory = await prisma.factory.update({
-    where: { id: factoryId },
+  const updatedFactory = await prisma.brand.update({
+    where: { id: brandId },
     data,
     include: {
       owner: {
@@ -270,12 +271,12 @@ export async function updateFactory(
 /**
  * 暂停/恢复工厂
  */
-export async function toggleFactoryStatus(
-  factoryId: string,
+export async function toggleBrandStatus(
+  brandId: string,
   suspend: boolean
 ): Promise<FactoryWithOwner> {
-  const factory = await prisma.factory.findUnique({
-    where: { id: factoryId },
+  const factory = await prisma.brand.findUnique({
+    where: { id: brandId },
   });
 
   if (!factory) {
@@ -288,8 +289,8 @@ export async function toggleFactoryStatus(
 
   const newStatus = suspend ? 'SUSPENDED' : 'APPROVED';
 
-  const updatedFactory = await prisma.factory.update({
-    where: { id: factoryId },
+  const updatedFactory = await prisma.brand.update({
+    where: { id: brandId },
     data: { status: newStatus },
     include: {
       owner: {
@@ -310,6 +311,76 @@ export async function toggleFactoryStatus(
   });
 
   return updatedFactory as FactoryWithOwner;
+}
+
+/**
+ * 删除品牌（包括关联数据）
+ */
+export async function deleteBrand(brandId: string): Promise<void> {
+  // 先检查品牌是否存在
+  const brand = await prisma.brand.findUnique({
+    where: { id: brandId },
+  });
+
+  if (!brand) {
+    throw createNotFoundError('品牌不存在');
+  }
+
+  // 使用事务删除品牌及关联数据
+  await prisma.$transaction(async (tx) => {
+    // 删除合作记录相关数据
+    await tx.stageHistory.deleteMany({
+      where: { collaboration: { brandId } },
+    });
+    await tx.followUpRecord.deleteMany({
+      where: { collaboration: { brandId } },
+    });
+    await tx.collaborationResult.deleteMany({
+      where: { collaboration: { brandId } },
+    });
+    await tx.sampleDispatch.deleteMany({
+      where: { collaboration: { brandId } },
+    });
+    await tx.collaboration.deleteMany({
+      where: { brandId },
+    });
+
+    // 删除达人记录
+    await tx.influencer.deleteMany({
+      where: { brandId },
+    });
+
+    // 删除达人分组
+    await tx.influencerGroup.deleteMany({
+      where: { brandId },
+    });
+
+    // 删除样品
+    await tx.sample.deleteMany({
+      where: { brandId },
+    });
+
+    // 删除通知
+    await tx.notification.deleteMany({
+      where: { user: { brandId } },
+    });
+
+    // 删除用户（商务人员）
+    await tx.user.deleteMany({
+      where: { brandId, role: 'BUSINESS' },
+    });
+
+    // 清除品牌负责人的 brandId（不删除用户）
+    await tx.user.updateMany({
+      where: { id: brand.ownerId },
+      data: { brandId: null },
+    });
+
+    // 删除品牌
+    await tx.brand.delete({
+      where: { id: brandId },
+    });
+  });
 }
 
 // ============ Plan Configuration ============
@@ -395,7 +466,7 @@ export async function deletePlanConfig(planType: PlanType): Promise<void> {
   }
 
   // 检查是否有工厂正在使用此套餐
-  const factoriesUsingPlan = await prisma.factory.count({
+  const factoriesUsingPlan = await prisma.brand.count({
     where: { planType },
   });
 
@@ -414,11 +485,11 @@ export async function deletePlanConfig(planType: PlanType): Promise<void> {
  * 检查工厂配额
  */
 export async function checkFactoryQuota(
-  factoryId: string,
+  brandId: string,
   type: 'staff' | 'influencer'
 ): Promise<{ allowed: boolean; current: number; limit: number }> {
-  const factory = await prisma.factory.findUnique({
-    where: { id: factoryId },
+  const factory = await prisma.brand.findUnique({
+    where: { id: brandId },
     include: {
       _count: {
         select: {
@@ -452,10 +523,10 @@ export async function checkFactoryQuota(
  * 验证并抛出配额错误
  */
 export async function validateQuota(
-  factoryId: string,
+  brandId: string,
   type: 'staff' | 'influencer'
 ): Promise<void> {
-  const quota = await checkFactoryQuota(factoryId, type);
+  const quota = await checkFactoryQuota(brandId, type);
 
   if (!quota.allowed) {
     const typeLabel = type === 'staff' ? '商务账号' : '达人';
@@ -478,19 +549,21 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     totalUsers,
     totalCollaborations,
     totalInfluencers,
+    independentBusinessUsers,
     freeFactories,
     professionalFactories,
     enterpriseFactories,
   ] = await Promise.all([
-    prisma.factory.count(),
-    prisma.factory.count({ where: { status: 'PENDING' } }),
-    prisma.factory.count({ where: { status: 'APPROVED' } }),
+    prisma.brand.count(),
+    prisma.brand.count({ where: { status: 'PENDING' } }),
+    prisma.brand.count({ where: { status: 'APPROVED' } }),
     prisma.user.count(),
     prisma.collaboration.count(),
     prisma.influencer.count(),
-    prisma.factory.count({ where: { planType: 'FREE' } }),
-    prisma.factory.count({ where: { planType: 'PROFESSIONAL' } }),
-    prisma.factory.count({ where: { planType: 'ENTERPRISE' } }),
+    prisma.user.count({ where: { role: 'BUSINESS', isIndependent: true, brandId: null } }),
+    prisma.brand.count({ where: { planType: 'FREE' } }),
+    prisma.brand.count({ where: { planType: 'PROFESSIONAL' } }),
+    prisma.brand.count({ where: { planType: 'ENTERPRISE' } }),
   ]);
 
   return {
@@ -500,6 +573,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     totalUsers,
     totalCollaborations,
     totalInfluencers,
+    independentBusinessUsers,
     factoriesByPlan: {
       FREE: freeFactories,
       PROFESSIONAL: professionalFactories,
@@ -525,20 +599,20 @@ export async function getPlatformDetailedStats(startDate?: Date, endDate?: Date)
     newCollaborations,
     newInfluencers,
   ] = await Promise.all([
-    prisma.factory.count({ where: dateFilter }),
+    prisma.brand.count({ where: dateFilter }),
     prisma.user.count({ where: dateFilter }),
     prisma.collaboration.count({ where: dateFilter }),
     prisma.influencer.count({ where: dateFilter }),
   ]);
 
   // 获取各状态工厂数量
-  const factoriesByStatus = await prisma.factory.groupBy({
+  const factoriesByStatus = await prisma.brand.groupBy({
     by: ['status'],
     _count: true,
   });
 
   // 获取各套餐工厂数量
-  const factoriesByPlan = await prisma.factory.groupBy({
+  const factoriesByPlan = await prisma.brand.groupBy({
     by: ['planType'],
     _count: true,
   });
@@ -575,7 +649,7 @@ export async function getPlatformDetailedStats(startDate?: Date, endDate?: Date)
 
 // ============ Factory Staff Management ============
 
-export interface FactoryStaffMember {
+export interface BrandStaffMember {
   id: string;
   name: string;
   email: string;
@@ -592,7 +666,7 @@ export interface StaffWorkStats {
   name: string;
   email: string;
   role: string;
-  factoryId: string;
+  brandId: string;
   factoryName: string;
   createdAt: Date;
   influencersAdded: number;
@@ -604,9 +678,9 @@ export interface StaffWorkStats {
 /**
  * 获取工厂的商务列表
  */
-export async function getFactoryStaff(factoryId: string): Promise<FactoryStaffMember[]> {
-  const factory = await prisma.factory.findUnique({
-    where: { id: factoryId },
+export async function getBrandStaff(brandId: string): Promise<BrandStaffMember[]> {
+  const factory = await prisma.brand.findUnique({
+    where: { id: brandId },
   });
 
   if (!factory) {
@@ -615,7 +689,7 @@ export async function getFactoryStaff(factoryId: string): Promise<FactoryStaffMe
 
   const staff = await prisma.user.findMany({
     where: {
-      factoryId,
+      brandId,
       role: 'BUSINESS',
     },
     include: {
@@ -636,7 +710,7 @@ export async function getFactoryStaff(factoryId: string): Promise<FactoryStaffMe
       influencers: s._count.createdInfluencers,
       collaborations: s._count.collaborations,
     },
-  })) as FactoryStaffMember[];
+  })) as BrandStaffMember[];
 }
 
 /**
@@ -646,7 +720,7 @@ export async function getStaffWorkStats(staffId: string): Promise<StaffWorkStats
   const staff = await prisma.user.findUnique({
     where: { id: staffId },
     include: {
-      factory: {
+      brand: {
         select: {
           id: true,
           name: true,
@@ -693,8 +767,8 @@ export async function getStaffWorkStats(staffId: string): Promise<StaffWorkStats
     name: staff.name,
     email: staff.email,
     role: staff.role,
-    factoryId: staff.factoryId!,
-    factoryName: staff.factory!.name,
+    brandId: staff.brandId!,
+    factoryName: staff.brand!.name,
     createdAt: staff.createdAt,
     influencersAdded,
     collaborationsCreated,
@@ -792,7 +866,7 @@ import type {
 export interface InfluencerFilter {
   keyword?: string;
   platform?: string;
-  factoryId?: string;
+  brandId?: string;
   sourceType?: InfluencerSourceType;
   verificationStatus?: VerificationStatus;
   createdBy?: string;
@@ -805,7 +879,7 @@ export async function listAllInfluencers(
   filter: InfluencerFilter,
   pagination: Pagination
 ): Promise<PaginatedResult<InfluencerWithDetails>> {
-  const { keyword, platform, factoryId, sourceType, verificationStatus, createdBy } = filter;
+  const { keyword, platform, brandId, sourceType, verificationStatus, createdBy } = filter;
   const { page, pageSize } = pagination;
 
   const where: Record<string, unknown> = {};
@@ -825,8 +899,8 @@ export async function listAllInfluencers(
   }
 
   // 工厂筛选
-  if (factoryId) {
-    where.factoryId = factoryId;
+  if (brandId) {
+    where.brandId = brandId;
   }
 
   // 来源类型筛选
@@ -848,7 +922,7 @@ export async function listAllInfluencers(
     prisma.influencer.findMany({
       where,
       include: {
-        factory: {
+        brand: {
           select: {
             id: true,
             name: true,
@@ -896,7 +970,7 @@ export async function getInfluencerDetail(influencerId: string) {
   const influencer = await prisma.influencer.findUnique({
     where: { id: influencerId },
     include: {
-      factory: {
+      brand: {
         include: {
           owner: {
             select: {
@@ -976,7 +1050,7 @@ export async function verifyInfluencer(
   const influencer = await prisma.influencer.findUnique({
     where: { id: influencerId },
     include: {
-      factory: {
+      brand: {
         include: {
           owner: true,
         },
@@ -1035,7 +1109,7 @@ export async function verifyInfluencer(
   // 发送通知给工厂老板
   await prisma.notification.create({
     data: {
-      userId: influencer.factory.ownerId,
+      userId: influencer.brand.ownerId,
       type: 'INFLUENCER_VERIFICATION',
       title: status === 'VERIFIED' ? '达人认证通过' : '达人认证失败',
       content: `达人 ${influencer.nickname} 的认证${status === 'VERIFIED' ? '已通过' : '未通过'}${note ? `，原因：${note}` : ''}`,
@@ -1044,7 +1118,7 @@ export async function verifyInfluencer(
   });
 
   // 如果有添加人，也发送通知
-  if (influencer.createdBy && influencer.createdBy !== influencer.factory.ownerId) {
+  if (influencer.createdBy && influencer.createdBy !== influencer.brand.ownerId) {
     await prisma.notification.create({
       data: {
         userId: influencer.createdBy,
@@ -1096,21 +1170,21 @@ export async function getInfluencerStats(startDate?: Date, endDate?: Date): Prom
 
   // 按工厂统计（前10）
   const byFactory = await prisma.influencer.groupBy({
-    by: ['factoryId'],
+    by: ['brandId'],
     where: dateFilter,
     _count: true,
     orderBy: {
       _count: {
-        factoryId: 'desc',
+        brandId: 'desc',
       },
     },
     take: 10,
   });
 
   // 获取工厂名称
-  const factoryIds = byFactory.map((f) => f.factoryId);
-  const factories = await prisma.factory.findMany({
-    where: { id: { in: factoryIds } },
+  const brandIds = byFactory.map((f) => f.brandId);
+  const factories = await prisma.brand.findMany({
+    where: { id: { in: brandIds } },
     select: { id: true, name: true },
   });
 
@@ -1181,8 +1255,8 @@ export async function getInfluencerStats(startDate?: Date, endDate?: Date): Prom
       OTHER: byPlatform.find((p) => p.platform === 'OTHER')?._count || 0,
     },
     topFactories: byFactory.map((f) => ({
-      factoryId: f.factoryId,
-      factoryName: factoryMap.get(f.factoryId) || '未知工厂',
+      brandId: f.brandId,
+      factoryName: factoryMap.get(f.brandId) || '未知工厂',
       count: f._count,
     })),
     sourceQuality,
@@ -1196,7 +1270,7 @@ export interface UserListItem {
   name: string;
   email: string;
   role: string;
-  factoryId?: string;
+  brandId?: string;
   factoryName?: string;
   isActive: boolean;
   createdAt: Date;
@@ -1243,7 +1317,7 @@ export async function listAllUsers(
     prisma.user.findMany({
       where,
       include: {
-        factory: {
+        brand: {
           select: {
             id: true,
             name: true,
@@ -1263,8 +1337,8 @@ export async function listAllUsers(
     name: user.name,
     email: user.email,
     role: user.role,
-    factoryId: user.factoryId || undefined,
-    factoryName: user.factory?.name || undefined,
+    brandId: user.brandId || undefined,
+    factoryName: user.brand?.name || undefined,
     isActive: user.isActive,
     createdAt: user.createdAt,
     lastLoginAt: user.lastLoginAt || undefined,
@@ -1286,7 +1360,7 @@ export async function getUserDetail(userId: string): Promise<UserListItem> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      factory: {
+      brand: {
         select: {
           id: true,
           name: true,
@@ -1304,8 +1378,8 @@ export async function getUserDetail(userId: string): Promise<UserListItem> {
     name: user.name,
     email: user.email,
     role: user.role,
-    factoryId: user.factoryId || undefined,
-    factoryName: user.factory?.name || undefined,
+    brandId: user.brandId || undefined,
+    factoryName: user.brand?.name || undefined,
     isActive: user.isActive,
     createdAt: user.createdAt,
     lastLoginAt: user.lastLoginAt || undefined,
@@ -1354,10 +1428,229 @@ export async function toggleUserStatus(
         userId,
         type: 'SYSTEM',
         title: isActive ? '账号已启用' : '账号已禁用',
-        content: isActive 
+        content: isActive
           ? '您的账号已被管理员启用，现在可以正常使用系统功能。'
           : '您的账号已被管理员禁用，如有疑问请联系管理员。',
       },
     });
   }
 }
+
+/**
+ * 删除用户
+ */
+export async function deleteUser(userId: string): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      ownedBrand: true, // 检查是否拥有品牌
+    },
+  });
+
+  if (!user) {
+    throw createNotFoundError('用户不存在');
+  }
+
+  // 不能删除平台管理员
+  if (user.role === 'PLATFORM_ADMIN') {
+    throw createBadRequestError('不能删除平台管理员账号');
+  }
+
+  // 检查是否为品牌所有者
+  if (user.ownedBrand) {
+    throw createBadRequestError(`该用户是品牌「${user.ownedBrand.name}」的所有者，请先删除品牌再删除用户`);
+  }
+
+  // 删除用户（相关数据会级联删除或保留，取决于 schema 设置）
+  await prisma.user.delete({
+    where: { id: userId },
+  });
+}
+
+/**
+ * 删除达人（平台管理员）
+ */
+export async function deleteInfluencer(influencerId: string): Promise<void> {
+  const influencer = await prisma.influencer.findUnique({
+    where: { id: influencerId },
+  });
+
+  if (!influencer) {
+    throw createNotFoundError('达人不存在');
+  }
+
+  // 删除达人（相关数据会级联删除或保留，取决于 schema 设置）
+  await prisma.influencer.delete({
+    where: { id: influencerId },
+  });
+}
+
+// ============ 独立商务管理 ============
+
+/**
+ * 获取独立商务列表
+ */
+export async function getIndependentBusinessUsers(
+  pagination: Pagination,
+  keyword?: string
+): Promise<PaginatedResult<any>> {
+  const { page = 1, pageSize = 20 } = pagination;
+  const skip = (page - 1) * pageSize;
+
+  const where: any = {
+    role: 'BUSINESS',
+    isIndependent: true,
+    brandId: null,
+  };
+
+  if (keyword) {
+    where.OR = [
+      { name: { contains: keyword, mode: 'insensitive' } },
+      { email: { contains: keyword, mode: 'insensitive' } },
+      { phone: { contains: keyword } },
+    ];
+  }
+
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        isActive: true,
+        createdAt: true,
+        lastLoginAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: pageSize,
+    }),
+    prisma.user.count({ where }),
+  ]);
+
+  return {
+    data: users,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+/**
+ * 获取品牌成员列表
+ */
+export async function getBrandMembers(brandId: string) {
+  // 验证品牌存在
+  const brand = await prisma.brand.findUnique({
+    where: { id: brandId },
+    select: { id: true, name: true, ownerId: true },
+  });
+
+  if (!brand) {
+    throw createNotFoundError('品牌不存在');
+  }
+
+  // 获取所有成员：主账号 + 商务
+  const members = await prisma.user.findMany({
+    where: {
+      OR: [
+        { id: brand.ownerId }, // 主账号
+        { brandId: brandId, role: 'BUSINESS' }, // 商务
+      ],
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      role: true,
+      isActive: true,
+      createdAt: true,
+      joinedAt: true,
+      lastLoginAt: true,
+    },
+    orderBy: [
+      { role: 'asc' }, // BRAND 在前
+      { createdAt: 'asc' },
+    ],
+  });
+
+  return {
+    brandId,
+    brandName: brand.name,
+    members: members.map(m => ({
+      ...m,
+      isOwner: m.id === brand.ownerId,
+      roleLabel: m.id === brand.ownerId ? '主账号' : '商务',
+    })),
+  };
+}
+
+/**
+ * 将独立商务划归到品牌
+ */
+export async function assignUserToBrand(
+  userId: string,
+  brandId: string
+): Promise<void> {
+  // 验证用户存在且是独立商务
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, isIndependent: true, brandId: true },
+  });
+
+  if (!user) {
+    throw createNotFoundError('用户不存在');
+  }
+
+  if (user.role !== 'BUSINESS') {
+    throw createBadRequestError('只能划归商务角色的用户');
+  }
+
+  if (!user.isIndependent || user.brandId) {
+    throw createBadRequestError('该用户已隶属于品牌');
+  }
+
+  // 验证品牌存在
+  const brand = await prisma.brand.findUnique({
+    where: { id: brandId },
+    select: { id: true, name: true, staffLimit: true },
+  });
+
+  if (!brand) {
+    throw createNotFoundError('品牌不存在');
+  }
+
+  // 检查品牌商务人数配额
+  const currentStaffCount = await prisma.user.count({
+    where: { brandId, role: 'BUSINESS' },
+  });
+
+  if (currentStaffCount >= brand.staffLimit) {
+    throw createQuotaExceededError('该品牌商务人数已达上限');
+  }
+
+  // 执行划归
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      brandId,
+      isIndependent: false,
+      joinedAt: new Date(),
+    },
+  });
+
+  // 发送通知给用户
+  await prisma.notification.create({
+    data: {
+      userId,
+      type: 'SYSTEM',
+      title: '您已加入品牌',
+      content: `您已被管理员划归到品牌「${brand.name}」，现在可以在该品牌下开展业务。`,
+    },
+  });
+}
+

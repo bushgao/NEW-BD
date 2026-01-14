@@ -63,7 +63,7 @@ export default function VerificationModal({
           <p><strong>达人昵称：</strong>{influencer.nickname}</p>
           <p><strong>平台：</strong>{influencer.platform}</p>
           <p><strong>账号ID：</strong>{influencer.platformId}</p>
-          <p><strong>所属工厂：</strong>{influencer.factoryName}</p>
+          <p><strong>所属品牌：</strong>{influencer.factoryName}</p>
         </div>
       )}
 

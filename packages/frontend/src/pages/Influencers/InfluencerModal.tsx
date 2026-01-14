@@ -38,6 +38,7 @@ const InfluencerModal = ({
           platform: influencer.platform,
           platformId: influencer.platformId,
           phone: influencer.phone || '',
+          wechat: influencer.wechat || '',
           categories: influencer.categories,
           tags: influencer.tags,
           notes: influencer.notes || '',
@@ -80,6 +81,7 @@ const InfluencerModal = ({
         platform: values.platform,
         platformId: values.platformId,
         phone: values.phone || undefined,
+        wechat: values.wechat || undefined,
         categories: values.categories || [],
         tags: values.tags || [],
         notes: values.notes || undefined,
@@ -122,13 +124,12 @@ const InfluencerModal = ({
           type="warning"
           showIcon
           style={{ marginBottom: 16 }}
-          message={`检测到重复: ${
-            duplicateWarning.duplicateType === 'phone'
-              ? '手机号'
-              : duplicateWarning.duplicateType === 'platformId'
+          message={`检测到重复: ${duplicateWarning.duplicateType === 'phone'
+            ? '手机号'
+            : duplicateWarning.duplicateType === 'platformId'
               ? '平台账号ID'
               : '手机号和平台账号ID'
-          }已存在`}
+            }已存在`}
           description={`已存在达人: ${duplicateWarning.existingInfluencer?.nickname}`}
         />
       )}
@@ -167,6 +168,10 @@ const InfluencerModal = ({
 
         <Form.Item name="phone" label="手机号">
           <Input placeholder="请输入手机号" onBlur={handleDuplicateCheck} />
+        </Form.Item>
+
+        <Form.Item name="wechat" label="微信号">
+          <Input placeholder="请输入微信号" />
         </Form.Item>
 
         <Form.Item name="categories" label="类目">

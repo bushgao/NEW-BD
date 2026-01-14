@@ -1,0 +1,658 @@
+﻿// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  PLATFORM_ADMIN  // 骞冲彴绠＄悊鍛?
+  BRAND           // 鍝佺墝锛堝師 FACTORY_OWNER锛?
+  BUSINESS        // 鍟嗗姟锛堝師 BUSINESS_STAFF锛?
+  INFLUENCER      // 杈句汉
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum BrandStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum PlanType {
+  FREE
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum Platform {
+  DOUYIN       // 鎶栭煶
+  KUAISHOU     // 蹇墜
+  SHIPINHAO    // 瑙嗛鍙?
+  XIAOHONGSHU  // 灏忕孩涔?
+}
+
+enum PipelineStage {
+  LEAD
+  CONTACTED
+  QUOTED
+  SAMPLED
+  SCHEDULED
+  PUBLISHED
+  REVIEWED
+}
+
+enum BlockReason {
+  PRICE_HIGH
+  DELAYED
+  UNCOOPERATIVE
+  OTHER
+}
+
+enum ReceivedStatus {
+  PENDING
+  RECEIVED
+  LOST
+}
+
+enum OnboardStatus {
+  UNKNOWN
+  ONBOARD
+  NOT_ONBOARD
+}
+
+enum ContentType {
+  SHORT_VIDEO
+  LIVE_STREAM
+}
+
+enum ProfitStatus {
+  LOSS
+  BREAK_EVEN
+  PROFIT
+  HIGH_PROFIT
+}
+
+enum InfluencerSourceType {
+  PLATFORM       // 骞冲彴娣诲姞
+  Brand        // 鍝佺墝娣诲姞
+  STAFF          // 鍟嗗姟娣诲姞
+  SELF_REGISTER  // 杈句汉鑷敞鍐?
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  VERIFIED
+  REJECTED
+}
+
+// 寰俊娣诲姞鐘舵€?
+enum WeChatAddStatus {
+  PENDING         // 寰呴€氳繃锛堝凡鍙戦€佽姹傦級
+  ACCEPTED        // 宸查€氳繃锛堣揪浜烘帴鍙椾簡锛?
+  REJECTED        // 宸叉嫆缁濓紙杈句汉鎷掔粷浜嗭級
+  EXPIRED         // 宸茶繃鏈燂紙瓒呮椂鏈鐞嗭級
+  FAILED          // 娣诲姞澶辫触锛堟妧鏈師鍥狅級
+}
+
+
+// Models
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String
+  name         String
+  phone        String?    // 鎵嬫満鍙凤紙蹇呭～锛?
+  wechat       String?    // 寰俊鍙凤紙蹇呭～锛?
+  role         UserRole
+  brandId    String?
+  
+  // 鍟嗗姟鐙珛鎬э細鍟嗗姟鍙嫭绔嬫敞鍐岋紝鍚庣画鍙姞鍏ュ搧鐗?
+  isIndependent Boolean   @default(true)   // 鏄惁鐙珛鍟嗗姟锛堟湭鍔犲叆鍝佺墝锛?
+  joinedAt      DateTime?                   // 鍔犲叆鍝佺墝鏃堕棿
+  
+  // 鏂板锛氭潈闄愰厤缃紙鍟嗗姟浜哄憳鏉冮檺绠＄悊锛?
+  permissions  Json?      @default("{}")
+  
+  // 鏂板锛氫釜浜哄亸濂借缃紙鐪嬫澘甯冨眬銆佺瓫閫夋潯浠剁瓑锛?
+  preferences  Json?      @default("{}")
+  
+  // 鏂板锛氳处鍙风姸鎬侊紙鍚敤/绂佺敤锛?
+  status       UserStatus @default(ACTIVE)
+  
+  isActive     Boolean    @default(true)
+  lastLoginAt  DateTime?
+  disabledAt   DateTime?
+  disabledBy   String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  // Relations
+  Brand         Brand?          @relation("BrandStaff", fields: [brandId], references: [id])
+  ownedBrand    Brand?          @relation("BrandOwner")
+  collaborations  Collaboration[]
+  sampleDispatches SampleDispatch[]
+  followUpRecords FollowUpRecord[]
+  notifications   Notification[]
+  
+  // 鏃х増Influencer鍏宠仈锛堟暟鎹縼绉诲悗鍒犻櫎锛?
+  createdInfluencers  Influencer[]  @relation("InfluencerCreator")
+  verifiedInfluencers Influencer[]  @relation("InfluencerVerifier")
+  
+  // 鏂扮増GlobalInfluencer鍏宠仈
+  createdGlobalInfluencers   GlobalInfluencer[]  @relation("GlobalInfluencerCreator")
+  verifiedGlobalInfluencers  GlobalInfluencer[]  @relation("GlobalInfluencerVerifier")
+  addedBrandInfluencers      BrandInfluencer[]   @relation("BrandInfluencerAdder")
+  
+  // 寰俊璇濇湳鍜屾棩蹇楀叧鑱?
+  createdWeChatScripts       WeChatScript[]      @relation("WeChatScriptCreator")
+  weChatAddLogs              WeChatAddLog[]      @relation("WeChatAddLogStaff")
+
+  @@index([email])
+  @@index([brandId])
+  @@index([phone])
+}
+
+model Brand {
+  id              String        @id @default(uuid())
+  name            String
+  ownerId         String        @unique
+  status          BrandStatus @default(PENDING)
+  planType        PlanType      @default(FREE)
+  staffLimit      Int           @default(3)
+  influencerLimit Int           @default(100)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  owner          User            @relation("BrandOwner", fields: [ownerId], references: [id])
+  staff          User[]          @relation("BrandStaff")
+  influencers    Influencer[]            // 鏃х増杈句汉锛堟暟鎹縼绉诲悗鍒犻櫎锛?
+  brandInfluencers BrandInfluencer[]     // 鏂扮増鍝佺墝-杈句汉鍏宠仈
+  influencerGroups InfluencerGroup[]
+  samples        Sample[]
+  collaborations Collaboration[]
+  weChatScripts  WeChatScript[]        // 寰俊璇濇湳
+  weChatAddLogs  WeChatAddLog[]        // 寰俊娣诲姞鏃ュ織
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+// ============================================
+// 鍏ㄥ眬杈句汉妯″瀷 (Global Influencer)
+// 杈句汉鍦ㄧ郴缁熷唴鍏ㄥ眬鍞竴锛屽彲涓庡涓搧鐗屽悎浣?
+// ============================================
+
+model GlobalInfluencer {
+  id         String   @id @default(uuid())
+  
+  // 鍩烘湰淇℃伅
+  nickname   String                        // 鏄电О
+  phone      String?  @unique              // 鎵嬫満鍙凤紙鐢ㄤ簬璁よ瘉鍖归厤锛?
+  wechat     String?                       // 寰俊鍙?
+  
+  // 骞冲彴璐﹀彿锛圝SON鏁扮粍瀛樺偍澶氬钩鍙拌处鍙凤級
+  // 鏍煎紡: [{ platform: "DOUYIN", platformId: "xxx", followers: "10涓?, profileUrl: "..." }]
+  platformAccounts  Json   @default("[]")
+  
+  // 鏉ユ簮杩借釜
+  sourceType        InfluencerSourceType   @default(STAFF)
+  createdBy         String?                // 棣栨鍒涘缓浜篒D
+  
+  // 骞冲彴璁よ瘉锛堝彧鏈夊钩鍙板彲璁よ瘉锛?
+  verificationStatus   VerificationStatus   @default(UNVERIFIED)
+  verifiedAt           DateTime?
+  verifiedBy           String?              // 骞冲彴绠＄悊鍛業D
+  verificationNote     String?
+  verificationHistory  Json?    @default("{}")  // 璁よ瘉鍘嗗彶璁板綍
+  
+  // 杈句汉璐﹀彿鍏宠仈锛堣揪浜鸿嚜宸辨敞鍐屽悗鍏宠仈锛?
+  accountId            String?              // 鍏宠仈鐨?InfluencerAccount
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  creator            User?             @relation("GlobalInfluencerCreator", fields: [createdBy], references: [id])
+  verifier           User?             @relation("GlobalInfluencerVerifier", fields: [verifiedBy], references: [id])
+  account            InfluencerAccount? @relation(fields: [accountId], references: [id])
+  brandInfluencers   BrandInfluencer[]  // 涓庡搧鐗岀殑鍏宠仈
+
+  @@index([nickname])
+  @@index([phone])
+  @@index([verificationStatus])
+  @@index([accountId])
+}
+
+// ============================================
+// 鍝佺墝-杈句汉鍏宠仈妯″瀷 (Brand Influencer)
+// 璁板綍鍝佺墝涓庡叏灞€杈句汉鐨勫悎浣滃叧绯?
+// ============================================
+
+model BrandInfluencer {
+  id                  String   @id @default(uuid())
+  brandId           String                    // 鍝佺墝ID
+  globalInfluencerId  String                    // 鍏ㄥ眬杈句汉ID
+  
+  // 鍝佺墝鑷畾涔変俊鎭?
+  tags                String[]                  // 鍝佺墝鑷畾涔夋爣绛?
+  notes               String?                   // 鍝佺墝澶囨敞
+  categories          String[]                  // 鍝佺墝鍒嗙被
+  
+  // 鍒嗙粍绠＄悊
+  groupId             String?
+  
+  // 娣诲姞杩借釜
+  addedBy             String                    // 娣诲姞浜篒D
+  addedAt             DateTime @default(now())
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  Brand          Brand          @relation(fields: [brandId], references: [id])
+  globalInfluencer GlobalInfluencer @relation(fields: [globalInfluencerId], references: [id])
+  adder            User             @relation("BrandInfluencerAdder", fields: [addedBy], references: [id])
+  group            InfluencerGroup? @relation(fields: [groupId], references: [id])
+  collaborations   Collaboration[]
+
+  @@unique([brandId, globalInfluencerId])  // 鍚屼竴鍝佺墝涓嶈兘閲嶅鍏宠仈鍚屼竴杈句汉
+  @@index([brandId])
+  @@index([globalInfluencerId])
+  @@index([groupId])
+}
+
+// ============================================
+// 鏃х増杈句汉妯″瀷锛堜繚鐣欑敤浜庢暟鎹縼绉伙紝杩佺Щ鍚庡垹闄わ級
+// ============================================
+
+model Influencer {
+  id         String   @id @default(uuid())
+  brandId  String
+  nickname   String
+  platform   Platform
+  platformId String
+  phone      String?
+  wechat     String?  // 寰俊鍙?
+  followers  String?  // 绮変笣鏁帮紙瀛樺偍涓哄瓧绗︿覆锛屽 "12000"锛?
+  categories String[]
+  tags       String[]
+  notes      String?
+  
+  // Source tracking
+  createdBy            String?              // 娣诲姞浜篒D
+  sourceType           InfluencerSourceType @default(STAFF)  // 鏉ユ簮绫诲瀷
+  
+  // Verification
+  verificationStatus   VerificationStatus   @default(UNVERIFIED)  // 璁よ瘉鐘舵€?
+  verifiedAt           DateTime?            // 璁よ瘉鏃堕棿
+  verifiedBy           String?              // 璁よ瘉浜篒D
+  verificationNote     String?              // 璁よ瘉澶囨敞
+  verificationHistory  Json?                // 璁よ瘉鍘嗗彶璁板綍
+  
+  // Group management
+  groupId              String?              // 鍒嗙粍ID
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  Brand        Brand         @relation(fields: [brandId], references: [id])
+  collaborations Collaboration[]
+  creator        User?           @relation("InfluencerCreator", fields: [createdBy], references: [id])
+  verifier       User?           @relation("InfluencerVerifier", fields: [verifiedBy], references: [id])
+  group          InfluencerGroup? @relation(fields: [groupId], references: [id])
+  weChatAddLogs  WeChatAddLog[]  // 寰俊娣诲姞鏃ュ織
+
+  @@unique([brandId, platform, platformId])
+  @@index([brandId])
+  @@index([nickname])
+  @@index([phone])
+  @@index([createdBy])
+  @@index([sourceType])
+  @@index([verificationStatus])
+  @@index([groupId])
+}
+
+model InfluencerGroup {
+  id          String   @id @default(uuid())
+  brandId   String
+  name        String
+  color       String   @default("#1890ff")
+  description String?
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  Brand          Brand           @relation(fields: [brandId], references: [id])
+  influencers      Influencer[]      // 鏃х増锛堟暟鎹縼绉诲悗鍒犻櫎锛?
+  brandInfluencers BrandInfluencer[] // 鏂扮増
+
+  @@index([brandId])
+  @@index([createdBy])
+}
+
+
+model Sample {
+  id          String   @id @default(uuid())
+  brandId   String
+  sku         String
+  name        String
+  unitCost    Int      // 鍗曚欢鎴愭湰锛堝垎锛?
+  retailPrice Int      // 寤鸿闆跺敭浠凤紙鍒嗭級
+  canResend   Boolean  @default(true)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  Brand            Brand               @relation(fields: [brandId], references: [id])
+  dispatches         SampleDispatch[]
+  collaborationSamples CollaborationSample[] // 澶氬澶氬叧鑱?
+  weChatScripts      WeChatScript[]         // 鍏宠仈鐨勮瘽鏈ā鏉?
+
+  @@unique([brandId, sku])
+  @@index([brandId])
+}
+
+model Collaboration {
+  id              String        @id @default(uuid())
+  influencerId    String?                           // 鏃х増杈句汉ID锛堝彲閫夛紝杩佺Щ鍚庡皢寮冪敤锛?
+  brandInfluencerId String?                         // 鏂扮増鍝佺墝-杈句汉鍏宠仈ID
+  brandId       String
+  businessStaffId String
+  stage           PipelineStage @default(LEAD)
+  deadline        DateTime?
+  isOverdue       Boolean       @default(false)
+  blockReason     BlockReason?
+  quotedPrice     Int?          // 鎶ヤ环锛堝垎锛?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  influencer      Influencer?          @relation(fields: [influencerId], references: [id])
+  brandInfluencer BrandInfluencer?     @relation(fields: [brandInfluencerId], references: [id])
+  Brand         Brand              @relation(fields: [brandId], references: [id])
+  businessStaff   User                 @relation(fields: [businessStaffId], references: [id])
+  dispatches      SampleDispatch[]
+  followUps       FollowUpRecord[]
+  result          CollaborationResult?
+  stageHistory    StageHistory[]
+  recommendedSamples CollaborationSample[] // 鎺ㄨ崘鏍峰搧锛堝瀵瑰锛?
+
+  @@index([brandId])
+  @@index([businessStaffId])
+  @@index([stage])
+  @@index([isOverdue])
+  @@index([brandInfluencerId])
+}
+
+model SampleDispatch {
+  id               String         @id @default(uuid())
+  sampleId         String
+  collaborationId  String
+  businessStaffId  String
+  quantity         Int
+  unitCostSnapshot Int            // 蹇収锛岄槻姝㈡牱鍝佹垚鏈彉鏇村奖鍝嶅巻鍙?
+  totalSampleCost  Int            // quantity * unitCostSnapshot
+  shippingCost     Int            // 蹇€掕垂锛堝垎锛?
+  totalCost        Int            // totalSampleCost + shippingCost
+  trackingNumber   String?
+  receivedStatus   ReceivedStatus @default(PENDING)
+  receivedAt       DateTime?
+  onboardStatus    OnboardStatus  @default(UNKNOWN)
+  dispatchedAt     DateTime       @default(now())
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  // Relations
+  sample        Sample        @relation(fields: [sampleId], references: [id])
+  collaboration Collaboration @relation(fields: [collaborationId], references: [id])
+  businessStaff User          @relation(fields: [businessStaffId], references: [id])
+
+  @@index([sampleId])
+  @@index([collaborationId])
+  @@index([businessStaffId])
+  @@index([receivedStatus])
+}
+
+
+model CollaborationResult {
+  id                     String       @id @default(uuid())
+  collaborationId        String       @unique
+  contentType            ContentType
+  publishedAt            DateTime
+  salesQuantity          Int
+  salesGmv               Int          // 閿€鍞瓽MV锛堝垎锛?
+  commissionRate         Float?       // 浣ｉ噾姣斾緥锛堢櫨鍒嗘瘮锛?
+  pitFee                 Int          @default(0) // 鍧戜綅璐癸紙鍒嗭級
+  actualCommission       Int          // 瀹炰粯浣ｉ噾锛堝垎锛?
+  totalSampleCost        Int          // 鍏宠仈瀵勬牱鐨勬€绘垚鏈?
+  totalCollaborationCost Int          // totalSampleCost + pitFee + actualCommission
+  roi                    Float        // salesGmv / totalCollaborationCost
+  profitStatus           ProfitStatus
+  willRepeat             Boolean      @default(false)
+  notes                  String?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  // Relations
+  collaboration Collaboration @relation(fields: [collaborationId], references: [id])
+
+  @@index([collaborationId])
+  @@index([profitStatus])
+  @@index([publishedAt])
+}
+
+model FollowUpRecord {
+  id              String   @id @default(uuid())
+  collaborationId String
+  userId          String
+  content         String
+  createdAt       DateTime @default(now())
+
+  // Relations
+  collaboration Collaboration @relation(fields: [collaborationId], references: [id])
+  user          User          @relation(fields: [userId], references: [id])
+
+  @@index([collaborationId])
+}
+
+model StageHistory {
+  id              String        @id @default(uuid())
+  collaborationId String
+  fromStage       PipelineStage?
+  toStage         PipelineStage
+  changedAt       DateTime      @default(now())
+  notes           String?
+  // 闃舵鍙樻洿鏃剁殑蹇収
+  sampleIds       String[]      // 鍙樻洿鏃剁殑鏍峰搧 ID 鍒楄〃
+  sampleNames     String[]      // 鏍峰搧鍚嶇О鍒楄〃蹇収
+  quotedPrice     Int?          // 鍙樻洿鏃剁殑鎶ヤ环
+
+  // Relations
+  collaboration Collaboration @relation(fields: [collaborationId], references: [id])
+
+  @@index([collaborationId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  content   String
+  isRead    Boolean  @default(false)
+  relatedId String?  // 鍏宠仈鐨勫悎浣?瀵勬牱绛塈D
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model PlanConfig {
+  id              String   @id @default(uuid())
+  planType        PlanType @unique
+  name            String
+  staffLimit      Int
+  influencerLimit Int
+  dataRetentionDays Int
+  price           Int      // 浠锋牸锛堝垎/鏈堬級
+  features        String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+
+// ============================================
+// 杈句汉绔彛鐩稿叧妯″瀷 (Influencer Portal)
+// ============================================
+
+// 杈句汉鑱旂郴浜虹被鍨?
+enum ContactType {
+  SELF       // 鏈汉
+  ASSISTANT  // 鍔╃悊
+  AGENT      // 缁忕邯浜?
+  OTHER      // 鍏朵粬
+}
+
+// 杈句汉璐﹀彿锛堢嫭绔嬩簬宸ュ巶鐨勮揪浜鸿韩浠斤級
+model InfluencerAccount {
+  id           String   @id @default(uuid())
+  primaryPhone String   @unique  // 涓绘墜鏈哄彿
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  contacts          InfluencerContact[]
+  globalInfluencers GlobalInfluencer[]    // 鍏宠仈鐨勫叏灞€杈句汉璁板綍
+
+  @@index([primaryPhone])
+}
+
+// 杈句汉鑱旂郴浜猴紙鏀寔澶氳仈绯讳汉锛?
+model InfluencerContact {
+  id          String      @id @default(uuid())
+  accountId   String
+  phone       String      @unique  // 鑱旂郴浜烘墜鏈哄彿
+  name        String?     // 鑱旂郴浜哄鍚?
+  contactType ContactType @default(SELF)
+  createdAt   DateTime    @default(now())
+  lastLoginAt DateTime?
+
+  // Relations
+  account   InfluencerAccount    @relation(fields: [accountId], references: [id])
+  loginLogs InfluencerLoginLog[]
+
+  @@index([accountId])
+  @@index([phone])
+}
+
+// 杈句汉鐧诲綍鏃ュ織锛堝畨鍏ㄥ璁★級
+model InfluencerLoginLog {
+  id        String   @id @default(uuid())
+  contactId String
+  ip        String
+  userAgent String
+  platform  String?
+  loginAt   DateTime @default(now())
+
+  // Relations
+  contact InfluencerContact @relation(fields: [contactId], references: [id])
+
+  @@index([contactId])
+  @@index([loginAt])
+}
+
+// 鍚堜綔-鏍峰搧澶氬澶氬叧鑱旇〃
+model CollaborationSample {
+  id              String   @id @default(uuid())
+  collaborationId String
+  sampleId        String
+  addedAt         DateTime @default(now())
+
+  // Relations
+  collaboration   Collaboration @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
+  sample          Sample        @relation(fields: [sampleId], references: [id])
+
+  @@unique([collaborationId, sampleId])
+  @@index([collaborationId])
+  @@index([sampleId])
+}
+
+// ============================================
+// 寰俊涓€閿坊鍔犲ソ鍙嬬浉鍏虫ā鍨?
+// ============================================
+
+// 寰俊璇濇湳妯℃澘
+model WeChatScript {
+  id          String   @id @default(uuid())
+  brandId   String                         // 鎵€灞炲伐鍘?
+  sampleId    String?                        // 鍏宠仈浜у搧锛堝彲閫夛紝null琛ㄧず閫氱敤璇濇湳锛?
+  name        String                         // 璇濇湳鍚嶇О
+  content     String   @db.Text              // 璇濇湳鍐呭锛堟敮鎸佸彉閲忓 {杈句汉鏄电О}锛?
+  isDefault   Boolean  @default(false)       // 鏄惁榛樿璇濇湳
+  createdBy   String                         // 鍒涘缓浜?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  Brand     Brand  @relation(fields: [brandId], references: [id])
+  sample      Sample?  @relation(fields: [sampleId], references: [id])
+  creator     User     @relation("WeChatScriptCreator", fields: [createdBy], references: [id])
+  logs        WeChatAddLog[]
+
+  @@index([brandId])
+  @@index([sampleId])
+  @@index([createdBy])
+}
+
+// 寰俊娣诲姞鏃ュ織
+model WeChatAddLog {
+  id              String          @id @default(uuid())
+  brandId       String                         // 鎵€灞炲伐鍘?
+  influencerId    String?                        // 鍏宠仈杈句汉锛堝鏈夛級
+  staffId         String                         // 鎿嶄綔鍟嗗姟
+  scriptId        String?                        // 浣跨敤鐨勮瘽鏈?
+  targetWechatId  String                         // 鐩爣寰俊鍙?
+  targetNickname  String                         // 鐩爣鏄电О
+  targetPlatform  String?                        // 鐩爣骞冲彴
+  noteSet         String?                        // 璁剧疆鐨勫娉紙濡?"杈句汉鏄电О-骞冲彴"锛?
+  status          WeChatAddStatus @default(PENDING) // 娣诲姞鐘舵€?
+  errorMessage    String?                        // 閿欒淇℃伅锛堝鏈夛級
+  retryCount      Int             @default(0)    // 閲嶈瘯娆℃暟
+  isRetryable     Boolean         @default(true) // 鏄惁鍙噸璇?
+  nextRetryAt     DateTime?                      // 涓嬫閲嶈瘯鏃堕棿
+  createdAt       DateTime        @default(now()) // 鍙戣捣鏃堕棿
+  acceptedAt      DateTime?                      // 閫氳繃鏃堕棿锛堝鏈夛級
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  Brand         Brand       @relation(fields: [brandId], references: [id])
+  influencer      Influencer?   @relation(fields: [influencerId], references: [id])
+  staff           User          @relation("WeChatAddLogStaff", fields: [staffId], references: [id])
+  script          WeChatScript? @relation(fields: [scriptId], references: [id])
+
+  @@index([brandId])
+  @@index([influencerId])
+  @@index([staffId])
+  @@index([status])
+  @@index([createdAt])
+}

@@ -84,6 +84,7 @@ export interface TokenPayload {
   email: string;
   role: UserRole;
   factoryId?: string;
+  brandId?: string;
 }
 
 // Influencer with details (for platform admin)

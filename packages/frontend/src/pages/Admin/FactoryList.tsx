@@ -21,14 +21,16 @@ import {
   PlayCircleOutlined,
   EditOutlined,
   EyeOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import type { FactoryStatus, PlanType } from '@ics/shared';
+import type { BrandStatus, PlanType } from '@ics/shared';
 import {
   listFactories,
   reviewFactory,
   updateFactory,
-  toggleFactoryStatus,
+  deleteBrand,
+  toggleBrandStatus,
   getStatusColor,
   getStatusText,
   getPlanTypeColor,
@@ -58,7 +60,7 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
   const [selectedFactoryId, setSelectedFactoryId] = useState<string | null>(null);
   const [form] = Form.useForm();
 
-  // 加载工厂列表
+  // 加载品牌列表
   const loadFactories = async () => {
     setLoading(true);
     try {
@@ -66,7 +68,7 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
       setFactories(result.data);
       setTotal(result.total);
     } catch (error) {
-      message.error('加载工厂列表失败');
+      message.error('加载品牌列表失败');
       console.error(error);
     } finally {
       setLoading(false);
@@ -77,10 +79,10 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
     loadFactories();
   }, [filter]);
 
-  // 审核工厂
-  const handleReview = async (factoryId: string, status: 'APPROVED' | 'REJECTED') => {
+  // 审核品牌
+  const handleReview = async (brandId: string, status: 'APPROVED' | 'REJECTED') => {
     try {
-      await reviewFactory(factoryId, status);
+      await reviewFactory(brandId, status);
       message.success(status === 'APPROVED' ? '已通过审核' : '已拒绝申请');
       loadFactories();
       onRefresh?.();
@@ -90,11 +92,11 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
     }
   };
 
-  // 暂停/恢复工厂
-  const handleToggleStatus = async (factoryId: string, suspend: boolean) => {
+  // 暂停/恢复品牌
+  const handleToggleStatus = async (brandId: string, suspend: boolean) => {
     try {
-      await toggleFactoryStatus(factoryId, suspend);
-      message.success(suspend ? '已暂停工厂' : '已恢复工厂');
+      await toggleBrandStatus(brandId, suspend);
+      message.success(suspend ? '已暂停品牌' : '已恢复品牌');
       loadFactories();
       onRefresh?.();
     } catch (error) {
@@ -104,8 +106,8 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
   };
 
   // 打开详情弹窗
-  const handleViewDetail = (factoryId: string) => {
-    setSelectedFactoryId(factoryId);
+  const handleViewDetail = (brandId: string) => {
+    setSelectedFactoryId(brandId);
     setDetailModalVisible(true);
   };
 
@@ -137,10 +139,23 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
     }
   };
 
+  // 删除品牌
+  const handleDelete = async (brandId: string) => {
+    try {
+      await deleteBrand(brandId);
+      message.success('删除成功');
+      loadFactories();
+      onRefresh?.();
+    } catch (error) {
+      message.error('删除失败');
+      console.error(error);
+    }
+  };
+
   // 表格列定义
   const columns: ColumnsType<FactoryWithOwner> = [
     {
-      title: '工厂名称',
+      title: '品牌名称',
       dataIndex: 'name',
       key: 'name',
       width: 150,
@@ -163,7 +178,7 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (status: FactoryStatus) => (
+      render: (status: BrandStatus) => (
         <Tag color={getStatusColor(status)}>{getStatusText(status)}</Tag>
       ),
     },
@@ -235,7 +250,7 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
                 />
               </Tooltip>
               <Popconfirm
-                title="确定拒绝此工厂的入驻申请吗？"
+                title="确定拒绝此品牌的入驻申请吗？"
                 onConfirm={() => handleReview(record.id, 'REJECTED')}
               >
                 <Tooltip title="拒绝">
@@ -250,7 +265,7 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
           )}
           {record.status === 'APPROVED' && (
             <Popconfirm
-              title="确定暂停此工厂吗？"
+              title="确定暂停此品牌吗？"
               onConfirm={() => handleToggleStatus(record.id, true)}
             >
               <Tooltip title="暂停">
@@ -275,6 +290,22 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
               onClick={() => handleEdit(record)}
             />
           </Tooltip>
+          <Popconfirm
+            title="确定删除此品牌吗？"
+            description="删除后无法恢复，相关数据也会被清除"
+            onConfirm={() => handleDelete(record.id)}
+            okText="确定"
+            cancelText="取消"
+            okButtonProps={{ danger: true }}
+          >
+            <Tooltip title="删除">
+              <Button
+                danger
+                size="small"
+                icon={<DeleteOutlined />}
+              />
+            </Tooltip>
+          </Popconfirm>
         </Space>
       ),
     },
@@ -285,7 +316,7 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
       {/* 筛选栏 */}
       <Space style={{ marginBottom: 16 }} wrap>
         <Input
-          placeholder="搜索工厂名称/负责人"
+          placeholder="搜索品牌名称/负责人"
           prefix={<SearchOutlined />}
           style={{ width: 200 }}
           allowClear
@@ -320,7 +351,7 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
         </Select>
       </Space>
 
-      {/* 工厂列表表格 */}
+      {/* 品牌列表表格 */}
       <Table
         columns={columns}
         dataSource={factories}
@@ -341,7 +372,7 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
 
       {/* 编辑弹窗 */}
       <Modal
-        title="编辑工厂"
+        title="编辑品牌"
         open={editModalVisible}
         onOk={handleSaveEdit}
         onCancel={() => setEditModalVisible(false)}
@@ -377,9 +408,9 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
         </Form>
       </Modal>
 
-      {/* 工厂详情弹窗 */}
+      {/* 品牌详情弹窗 */}
       <FactoryDetailModal
-        factoryId={selectedFactoryId}
+        brandId={selectedFactoryId}
         visible={detailModalVisible}
         onClose={() => {
           setDetailModalVisible(false);

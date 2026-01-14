@@ -45,7 +45,7 @@ router.get(
     try {
       const accountId = req.influencer!.accountId;
       const dashboard = await getDashboard(accountId);
-      
+
       res.json({
         success: true,
         data: dashboard,
@@ -63,7 +63,7 @@ router.get(
 router.get(
   '/samples',
   [
-    query('factoryId').optional().isUUID().withMessage('工厂ID格式不正确'),
+    query('brandId').optional().isUUID().withMessage('工厂ID格式不正确'),
     query('receivedStatus').optional().isIn(['PENDING', 'RECEIVED', 'LOST']).withMessage('签收状态不正确'),
     query('startDate').optional().isISO8601().withMessage('开始日期格式不正确'),
     query('endDate').optional().isISO8601().withMessage('结束日期格式不正确'),
@@ -73,14 +73,14 @@ router.get(
     try {
       const accountId = req.influencer!.accountId;
       const filter = {
-        factoryId: req.query.factoryId as string | undefined,
+        brandId: req.query.brandId as string | undefined,
         receivedStatus: req.query.receivedStatus as ReceivedStatus | undefined,
         startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
         endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined,
       };
-      
+
       const samples = await getSamples(accountId, filter);
-      
+
       res.json({
         success: true,
         data: samples,
@@ -98,7 +98,7 @@ router.get(
 router.get(
   '/collaborations',
   [
-    query('factoryId').optional().isUUID().withMessage('工厂ID格式不正确'),
+    query('brandId').optional().isUUID().withMessage('工厂ID格式不正确'),
     query('stage').optional().isIn([
       'LEAD', 'CONTACTED', 'QUOTED', 'SAMPLED', 'SCHEDULED', 'PUBLISHED', 'REVIEWED'
     ]).withMessage('合作阶段不正确'),
@@ -109,13 +109,13 @@ router.get(
     try {
       const accountId = req.influencer!.accountId;
       const filter = {
-        factoryId: req.query.factoryId as string | undefined,
+        brandId: req.query.brandId as string | undefined,
         stage: req.query.stage as PipelineStage | undefined,
         isOverdue: req.query.isOverdue === 'true' ? true : req.query.isOverdue === 'false' ? false : undefined,
       };
-      
+
       const collaborations = await getCollaborations(accountId, filter);
-      
+
       res.json({
         success: true,
         data: collaborations,
@@ -140,9 +140,9 @@ router.get(
     try {
       const accountId = req.influencer!.accountId;
       const collabId = req.params.id;
-      
+
       const detail = await getCollaborationDetail(accountId, collabId);
-      
+
       res.json({
         success: true,
         data: detail,
@@ -167,9 +167,9 @@ router.post(
     try {
       const accountId = req.influencer!.accountId;
       const dispatchId = req.params.id;
-      
+
       const sample = await confirmSampleReceived(accountId, dispatchId);
-      
+
       res.json({
         success: true,
         data: sample,
@@ -191,7 +191,7 @@ router.get(
     try {
       const accountId = req.influencer!.accountId;
       const factories = await getRelatedFactories(accountId);
-      
+
       res.json({
         success: true,
         data: factories,
@@ -202,4 +202,131 @@ router.get(
   }
 );
 
+// ============================================
+// 认领相关路由
+// ============================================
+
+/**
+ * GET /api/influencer-portal/claims/pending
+ * 获取待认领记录
+ */
+router.get(
+  '/claims/pending',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const accountId = req.influencer!.accountId;
+      const { getPendingClaims } = await import('../services/influencer-claim.service');
+      const claims = await getPendingClaims(accountId);
+
+      res.json({
+        success: true,
+        data: claims,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * GET /api/influencer-portal/claims/count
+ * 获取待认领数量（用于徽标）
+ */
+router.get(
+  '/claims/count',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const accountId = req.influencer!.accountId;
+      const { getPendingClaimCount } = await import('../services/influencer-claim.service');
+      const count = await getPendingClaimCount(accountId);
+
+      res.json({
+        success: true,
+        data: { count },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * POST /api/influencer-portal/claims/:id/confirm
+ * 确认认领
+ */
+router.post(
+  '/claims/:id/confirm',
+  [
+    param('id').isUUID().withMessage('记录ID格式不正确'),
+  ],
+  validateRequest,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const accountId = req.influencer!.accountId;
+      const influencerId = req.params.id;
+      const { confirmClaim } = await import('../services/influencer-claim.service');
+
+      await confirmClaim(accountId, influencerId);
+
+      res.json({
+        success: true,
+        message: '认领成功',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * DELETE /api/influencer-portal/claims/:id
+ * 取消认领
+ */
+router.delete(
+  '/claims/:id',
+  [
+    param('id').isUUID().withMessage('记录ID格式不正确'),
+  ],
+  validateRequest,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const accountId = req.influencer!.accountId;
+      const influencerId = req.params.id;
+      const { cancelClaim } = await import('../services/influencer-claim.service');
+
+      await cancelClaim(accountId, influencerId);
+
+      res.json({
+        success: true,
+        message: '已取消认领',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * GET /api/influencer-portal/claims/claimed
+ * 获取已认领记录
+ */
+router.get(
+  '/claims/claimed',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const accountId = req.influencer!.accountId;
+      const { getClaimedInfluencers } = await import('../services/influencer-claim.service');
+      const claimed = await getClaimedInfluencers(accountId);
+
+      res.json({
+        success: true,
+        data: claimed,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 export default router;
+

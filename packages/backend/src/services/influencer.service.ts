@@ -9,7 +9,7 @@ import type { Platform, PipelineStage, Pagination, PaginatedResult } from '@ics/
 
 // Types
 export interface CreateInfluencerInput {
-  factoryId: string;
+  brandId: string;
   nickname: string;
   platform: Platform;
   platformId: string;
@@ -58,7 +58,7 @@ export interface DuplicateCheckResult {
 
 export interface Influencer {
   id: string;
-  factoryId: string;
+  brandId: string;
   nickname: string;
   platform: Platform;
   platformId: string;
@@ -75,17 +75,17 @@ export interface Influencer {
 /**
  * Check if factory has reached influencer quota limit
  */
-async function checkInfluencerQuota(factoryId: string): Promise<void> {
+async function checkInfluencerQuota(brandId: string): Promise<void> {
   // 使用 platform.service 的 validateQuota 函数
   const { validateQuota } = await import('./platform.service');
-  await validateQuota(factoryId, 'influencer');
+  await validateQuota(brandId, 'influencer');
 }
 
 /**
  * Check for duplicate influencer by phone or platform ID
  */
 export async function checkDuplicate(
-  factoryId: string,
+  brandId: string,
   phone?: string,
   platform?: Platform,
   platformId?: string,
@@ -112,7 +112,7 @@ export async function checkDuplicate(
 
   const existingInfluencer = await prisma.influencer.findFirst({
     where: {
-      factoryId,
+      brandId,
       id: excludeId ? { not: excludeId } : undefined,
       OR: conditions,
     },
@@ -169,13 +169,13 @@ function determineSourceType(userRole: string): 'PLATFORM' | 'FACTORY' | 'STAFF'
  * Create a new influencer
  */
 export async function create(data: CreateInfluencerInput): Promise<Influencer> {
-  const { factoryId, nickname, platform, platformId, phone, wechat, followers, categories, tags, notes, userId } = data;
+  const { brandId, nickname, platform, platformId, phone, wechat, followers, categories, tags, notes, userId } = data;
 
   // Check quota
-  await checkInfluencerQuota(factoryId);
+  await checkInfluencerQuota(brandId);
 
   // Check for duplicates
-  const duplicateCheck = await checkDuplicate(factoryId, phone, platform, platformId);
+  const duplicateCheck = await checkDuplicate(brandId, phone, platform, platformId);
   if (duplicateCheck.isDuplicate) {
     const typeMsg =
       duplicateCheck.duplicateType === 'phone'
@@ -203,7 +203,7 @@ export async function create(data: CreateInfluencerInput): Promise<Influencer> {
 
   const influencer = await prisma.influencer.create({
     data: {
-      factoryId,
+      brandId,
       nickname: nickname.trim(),
       platform,
       platformId: platformId.trim(),
@@ -224,9 +224,9 @@ export async function create(data: CreateInfluencerInput): Promise<Influencer> {
 /**
  * Get influencer by ID
  */
-export async function getById(id: string, factoryId: string): Promise<Influencer> {
+export async function getById(id: string, brandId: string): Promise<Influencer> {
   const influencer = await prisma.influencer.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
   });
 
   if (!influencer) {
@@ -241,12 +241,12 @@ export async function getById(id: string, factoryId: string): Promise<Influencer
  */
 export async function update(
   id: string,
-  factoryId: string,
+  brandId: string,
   data: UpdateInfluencerInput
 ): Promise<Influencer> {
   // Check if influencer exists
   const existing = await prisma.influencer.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
   });
 
   if (!existing) {
@@ -256,7 +256,7 @@ export async function update(
   // Check for duplicates if phone or platformId is being updated
   if (data.phone || (data.platform && data.platformId)) {
     const duplicateCheck = await checkDuplicate(
-      factoryId,
+      brandId,
       data.phone,
       data.platform || (existing.platform as Platform),
       data.platformId || existing.platformId,
@@ -299,9 +299,9 @@ export async function update(
 /**
  * Delete influencer
  */
-export async function remove(id: string, factoryId: string): Promise<void> {
+export async function remove(id: string, brandId: string): Promise<void> {
   const existing = await prisma.influencer.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
   });
 
   if (!existing) {
@@ -324,7 +324,7 @@ export async function remove(id: string, factoryId: string): Promise<void> {
  * List influencers with filtering and pagination
  */
 export async function list(
-  factoryId: string,
+  brandId: string,
   filter: InfluencerFilter,
   pagination: Pagination,
   userId?: string,
@@ -334,7 +334,7 @@ export async function list(
   const { page, pageSize } = pagination;
 
   // Build where clause
-  const where: any = { factoryId };
+  const where: any = { brandId };
 
   // 权限过滤：基础商务只能看到自己创建的达人
   if (userId && userRole === 'BUSINESS') {
@@ -412,11 +412,11 @@ export async function list(
  */
 export async function addTags(
   id: string,
-  factoryId: string,
+  brandId: string,
   newTags: string[]
 ): Promise<Influencer> {
   const existing = await prisma.influencer.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
   });
 
   if (!existing) {
@@ -439,11 +439,11 @@ export async function addTags(
  */
 export async function removeTags(
   id: string,
-  factoryId: string,
+  brandId: string,
   tagsToRemove: string[]
 ): Promise<Influencer> {
   const existing = await prisma.influencer.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
   });
 
   if (!existing) {
@@ -463,9 +463,9 @@ export async function removeTags(
 /**
  * Get all unique tags used in a factory
  */
-export async function getAllTags(factoryId: string): Promise<string[]> {
+export async function getAllTags(brandId: string): Promise<string[]> {
   const influencers = await prisma.influencer.findMany({
-    where: { factoryId },
+    where: { brandId },
     select: { tags: true },
   });
 
@@ -480,9 +480,9 @@ export async function getAllTags(factoryId: string): Promise<string[]> {
 /**
  * Get all unique categories used in a factory
  */
-export async function getAllCategories(factoryId: string): Promise<string[]> {
+export async function getAllCategories(brandId: string): Promise<string[]> {
   const influencers = await prisma.influencer.findMany({
-    where: { factoryId },
+    where: { brandId },
     select: { categories: true },
   });
 
@@ -498,7 +498,7 @@ export async function getAllCategories(factoryId: string): Promise<string[]> {
  * Get smart influencer recommendations
  */
 export async function getSmartRecommendations(
-  factoryId: string,
+  brandId: string,
   _userId: string
 ): Promise<any[]> {
   const recommendations: any[] = [];
@@ -506,7 +506,7 @@ export async function getSmartRecommendations(
   // 1. Get influencers with successful past collaborations (high ROI)
   const highROIInfluencers = await prisma.influencer.findMany({
     where: {
-      factoryId,
+      brandId,
       collaborations: {
         some: {
           stage: 'REVIEWED',
@@ -553,7 +553,7 @@ export async function getSmartRecommendations(
   // 2. Get influencers with multiple successful collaborations (history)
   const historicalInfluencers = await prisma.influencer.findMany({
     where: {
-      factoryId,
+      brandId,
       collaborations: {
         some: {
           stage: {
@@ -612,7 +612,7 @@ export async function getSmartRecommendations(
 
   const recentInfluencers = await prisma.influencer.findMany({
     where: {
-      factoryId,
+      brandId,
       collaborations: {
         some: {
           updatedAt: {
@@ -667,12 +667,12 @@ export async function getSmartRecommendations(
  */
 export async function getInfluencersByIds(
   influencerIds: string[],
-  factoryId: string
+  brandId: string
 ): Promise<any[]> {
   return await prisma.influencer.findMany({
     where: {
       id: { in: influencerIds },
-      factoryId,
+      brandId,
     },
   });
 }
@@ -704,11 +704,11 @@ export async function batchAddTags(influencerIds: string[], tags: string[]): Pro
  */
 export async function getCollaborationHistory(
   influencerId: string,
-  factoryId: string
+  brandId: string
 ): Promise<any[]> {
   // Verify influencer belongs to factory
   const influencer = await prisma.influencer.findFirst({
-    where: { id: influencerId, factoryId },
+    where: { id: influencerId, brandId },
   });
 
   if (!influencer) {
@@ -776,11 +776,11 @@ export async function getCollaborationHistory(
  */
 export async function getROIStats(
   influencerId: string,
-  factoryId: string
+  brandId: string
 ): Promise<any> {
   // Verify influencer belongs to factory
   const influencer = await prisma.influencer.findFirst({
-    where: { id: influencerId, factoryId },
+    where: { id: influencerId, brandId },
   });
 
   if (!influencer) {

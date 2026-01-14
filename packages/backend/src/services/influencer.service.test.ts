@@ -20,7 +20,7 @@ describe('达人服务测试', () => {
     });
     testUserId = testUser.id;
 
-    const testFactory = await prisma.factory.create({
+    const testFactory = await prisma.brand.create({
       data: {
         name: 'Test Factory',
         ownerId: testUser.id,
@@ -35,27 +35,27 @@ describe('达人服务测试', () => {
     // 更新用户关联工厂ID
     await prisma.user.update({
       where: { id: testUser.id },
-      data: { factoryId: testFactory.id },
+      data: { brandId: testFactory.id },
     });
   });
 
   afterAll(async () => {
     // 清理测试数据
-    await prisma.influencer.deleteMany({ where: { factoryId: testFactoryId } });
-    await prisma.factory.delete({ where: { id: testFactoryId } });
+    await prisma.influencer.deleteMany({ where: { brandId: testFactoryId } });
+    await prisma.brand.delete({ where: { id: testFactoryId } });
     await prisma.user.delete({ where: { id: testUserId } });
     await prisma.$disconnect();
   });
 
   beforeEach(async () => {
     // 每个测试前清理达人数据
-    await prisma.influencer.deleteMany({ where: { factoryId: testFactoryId } });
+    await prisma.influencer.deleteMany({ where: { brandId: testFactoryId } });
   });
 
   describe('CRUD 操作', () => {
     it('应该能创建新达人', async () => {
       const input = {
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '测试达人',
         platform: 'DOUYIN' as Platform,
         platformId: 'test123',
@@ -80,7 +80,7 @@ describe('达人服务测试', () => {
 
     it('应该能根据ID获取达人', async () => {
       const created = await influencerService.create({
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '获取测试',
         platform: 'KUAISHOU' as Platform,
         platformId: 'get123',
@@ -95,7 +95,7 @@ describe('达人服务测试', () => {
 
     it('应该能更新达人信息', async () => {
       const created = await influencerService.create({
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '更新前',
         platform: 'XIAOHONGSHU' as Platform,
         platformId: 'update123',
@@ -114,7 +114,7 @@ describe('达人服务测试', () => {
 
     it('应该能删除达人', async () => {
       const created = await influencerService.create({
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '删除测试',
         platform: 'WEIBO' as Platform,
         platformId: 'delete123',
@@ -131,7 +131,7 @@ describe('达人服务测试', () => {
   describe('去重检测', () => {
     it('应该能检测手机号重复', async () => {
       await influencerService.create({
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '原达人',
         platform: 'DOUYIN' as Platform,
         platformId: 'original123',
@@ -152,7 +152,7 @@ describe('达人服务测试', () => {
 
     it('应该能检测平台+账号ID重复', async () => {
       await influencerService.create({
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '原达人2',
         platform: 'KUAISHOU' as Platform,
         platformId: 'dup456',
@@ -171,7 +171,7 @@ describe('达人服务测试', () => {
 
     it('应该阻止创建重复达人', async () => {
       await influencerService.create({
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '已存在',
         platform: 'DOUYIN' as Platform,
         platformId: 'exists789',
@@ -180,7 +180,7 @@ describe('达人服务测试', () => {
 
       await expect(
         influencerService.create({
-          factoryId: testFactoryId,
+          brandId: testFactoryId,
           nickname: '新达人',
           platform: 'DOUYIN' as Platform,
           platformId: 'exists789',
@@ -204,7 +204,7 @@ describe('达人服务测试', () => {
     beforeEach(async () => {
       // 创建搜索测试数据
       await influencerService.create({
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '美妆达人小红',
         platform: 'DOUYIN' as Platform,
         platformId: 'search001',
@@ -213,7 +213,7 @@ describe('达人服务测试', () => {
       });
 
       await influencerService.create({
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '美食博主小明',
         platform: 'KUAISHOU' as Platform,
         platformId: 'search002',
@@ -222,7 +222,7 @@ describe('达人服务测试', () => {
       });
 
       await influencerService.create({
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '科技达人小李',
         platform: 'XIAOHONGSHU' as Platform,
         platformId: 'search003',
@@ -312,7 +312,7 @@ describe('达人服务测试', () => {
   describe('标签管理', () => {
     it('应该能给达人添加标签', async () => {
       const created = await influencerService.create({
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '标签测试',
         platform: 'DOUYIN' as Platform,
         platformId: 'tags001',
@@ -333,7 +333,7 @@ describe('达人服务测试', () => {
 
     it('应该能移除达人标签', async () => {
       const created = await influencerService.create({
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '移除标签测试',
         platform: 'DOUYIN' as Platform,
         platformId: 'tags002',
@@ -354,7 +354,7 @@ describe('达人服务测试', () => {
 
     it('应该能获取工厂所有唯一标签', async () => {
       await influencerService.create({
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '达人1',
         platform: 'DOUYIN' as Platform,
         platformId: 'alltags001',
@@ -362,7 +362,7 @@ describe('达人服务测试', () => {
       });
 
       await influencerService.create({
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '达人2',
         platform: 'KUAISHOU' as Platform,
         platformId: 'alltags002',
@@ -410,7 +410,7 @@ describe('达人服务测试', () => {
         fc.asyncProperty(phoneArbitrary, async (phone: string) => {
           // 先创建一个达人
           const first = await influencerService.create({
-            factoryId: testFactoryId,
+            brandId: testFactoryId,
             nickname: `手机重复测试_${Date.now()}`,
             platform: 'DOUYIN' as Platform,
             platformId: `phone_dup_${Date.now()}_${Math.random().toString(36).slice(2)}`,
@@ -446,7 +446,7 @@ describe('达人服务测试', () => {
         fc.asyncProperty(platformArbitrary, platformIdArbitrary, async (platform: Platform, platformId: string) => {
           // 先创建一个达人
           const first = await influencerService.create({
-            factoryId: testFactoryId,
+            brandId: testFactoryId,
             nickname: `平台重复测试_${Date.now()}`,
             platform,
             platformId,
@@ -489,7 +489,7 @@ describe('达人服务测试', () => {
 
             // 先创建一个达人
             const first = await influencerService.create({
-              factoryId: testFactoryId,
+              brandId: testFactoryId,
               nickname: `唯一性测试_${Date.now()}`,
               platform: 'DOUYIN' as Platform,
               platformId: platformId1,
@@ -524,7 +524,7 @@ describe('达人服务测试', () => {
         fc.asyncProperty(platformArbitrary, platformIdArbitrary, async (platform: Platform, platformId: string) => {
           // 先创建一个达人
           const first = await influencerService.create({
-            factoryId: testFactoryId,
+            brandId: testFactoryId,
             nickname: `创建重复测试_${Date.now()}`,
             platform,
             platformId,
@@ -534,7 +534,7 @@ describe('达人服务测试', () => {
             // 尝试创建重复达人
             await expect(
               influencerService.create({
-                factoryId: testFactoryId,
+                brandId: testFactoryId,
                 nickname: `重复达人_${Date.now()}`,
                 platform,
                 platformId,
@@ -557,7 +557,7 @@ describe('达人服务测试', () => {
         fc.asyncProperty(phoneArbitrary, platformIdArbitrary, async (phone: string, platformId: string) => {
           // 创建一个达人
           const influencer = await influencerService.create({
-            factoryId: testFactoryId,
+            brandId: testFactoryId,
             nickname: `自身排除测试_${Date.now()}`,
             platform: 'DOUYIN' as Platform,
             platformId,
@@ -613,19 +613,19 @@ describe('达人服务测试', () => {
       // 先创建一些测试数据
       const testInfluencers = await Promise.all([
         influencerService.create({
-          factoryId: testFactoryId,
+          brandId: testFactoryId,
           nickname: `搜索测试_美妆达人_${Date.now()}`,
           platform: 'DOUYIN' as Platform,
           platformId: `search_kw_1_${Date.now()}`,
         }),
         influencerService.create({
-          factoryId: testFactoryId,
+          brandId: testFactoryId,
           nickname: `搜索测试_美食博主_${Date.now()}`,
           platform: 'KUAISHOU' as Platform,
           platformId: `search_kw_2_${Date.now()}`,
         }),
         influencerService.create({
-          factoryId: testFactoryId,
+          brandId: testFactoryId,
           nickname: `搜索测试_科技达人_${Date.now()}`,
           platform: 'XIAOHONGSHU' as Platform,
           platformId: `search_kw_3_${Date.now()}`,
@@ -668,19 +668,19 @@ describe('达人服务测试', () => {
       // 创建不同平台的测试数据
       const testInfluencers = await Promise.all([
         influencerService.create({
-          factoryId: testFactoryId,
+          brandId: testFactoryId,
           nickname: `平台测试_抖音_${Date.now()}`,
           platform: 'DOUYIN' as Platform,
           platformId: `search_plat_1_${Date.now()}`,
         }),
         influencerService.create({
-          factoryId: testFactoryId,
+          brandId: testFactoryId,
           nickname: `平台测试_快手_${Date.now()}`,
           platform: 'KUAISHOU' as Platform,
           platformId: `search_plat_2_${Date.now()}`,
         }),
         influencerService.create({
-          factoryId: testFactoryId,
+          brandId: testFactoryId,
           nickname: `平台测试_小红书_${Date.now()}`,
           platform: 'XIAOHONGSHU' as Platform,
           platformId: `search_plat_3_${Date.now()}`,
@@ -718,21 +718,21 @@ describe('达人服务测试', () => {
       // 创建不同类目的测试数据
       const testInfluencers = await Promise.all([
         influencerService.create({
-          factoryId: testFactoryId,
+          brandId: testFactoryId,
           nickname: `类目测试_1_${Date.now()}`,
           platform: 'DOUYIN' as Platform,
           platformId: `search_cat_1_${Date.now()}`,
           categories: ['美妆', '护肤'],
         }),
         influencerService.create({
-          factoryId: testFactoryId,
+          brandId: testFactoryId,
           nickname: `类目测试_2_${Date.now()}`,
           platform: 'KUAISHOU' as Platform,
           platformId: `search_cat_2_${Date.now()}`,
           categories: ['美食', '生活'],
         }),
         influencerService.create({
-          factoryId: testFactoryId,
+          brandId: testFactoryId,
           nickname: `类目测试_3_${Date.now()}`,
           platform: 'XIAOHONGSHU' as Platform,
           platformId: `search_cat_3_${Date.now()}`,
@@ -771,21 +771,21 @@ describe('达人服务测试', () => {
       // 创建不同标签的测试数据
       const testInfluencers = await Promise.all([
         influencerService.create({
-          factoryId: testFactoryId,
+          brandId: testFactoryId,
           nickname: `标签测试_1_${Date.now()}`,
           platform: 'DOUYIN' as Platform,
           platformId: `search_tag_1_${Date.now()}`,
           tags: ['高配合度', '优质'],
         }),
         influencerService.create({
-          factoryId: testFactoryId,
+          brandId: testFactoryId,
           nickname: `标签测试_2_${Date.now()}`,
           platform: 'KUAISHOU' as Platform,
           platformId: `search_tag_2_${Date.now()}`,
           tags: ['价格敏感', '新人'],
         }),
         influencerService.create({
-          factoryId: testFactoryId,
+          brandId: testFactoryId,
           nickname: `标签测试_3_${Date.now()}`,
           platform: 'XIAOHONGSHU' as Platform,
           platformId: `search_tag_3_${Date.now()}`,

@@ -65,3 +65,25 @@
 .animation-delay-2000 {
   animation-delay: 2s;
 }
+
+/* Ant Design Menu 侧边栏样式覆盖 */
+.ant-menu-inline {
+  border-inline-end: none !important;
+}
+
+.ant-menu-item {
+  border-radius: 8px !important;
+  margin-inline: 8px !important;
+  margin-block: 4px !important;
+  width: calc(100% - 16px) !important;
+}
+
+.ant-menu-item-selected {
+  background-color: rgba(99, 120, 255, 0.1) !important;
+}
+
+.ant-menu-item:hover {
+  background-color: rgba(99, 120, 255, 0.05) !important;
+}
+
+/* 修复内容区域左侧间距 - 已移除，避免影响其他页面 */

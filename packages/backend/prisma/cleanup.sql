@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS "GlobalInfluencer" CASCADE;
+DROP TYPE IF EXISTS "InfluencerSourceType_old" CASCADE;
+DROP TYPE IF EXISTS "Platform_old" CASCADE;

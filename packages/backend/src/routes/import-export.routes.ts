@@ -96,8 +96,8 @@ router.post(
   upload.single('file'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -113,12 +113,12 @@ router.post(
         if (!mapping || !mapping.sku || !mapping.name || !mapping.unitCost || !mapping.retailPrice) {
           throw createBadRequestError('请提供字段映射（SKU、名称、单件成本、建议零售价为必填）');
         }
-        result = await importService.previewSampleImport(req.file.buffer, mapping, factoryId);
+        result = await importService.previewSampleImport(req.file.buffer, mapping, brandId);
       } else {
         if (!mapping || !mapping.nickname || !mapping.platform || !mapping.platformId) {
           throw createBadRequestError('请提供字段映射（昵称、平台、平台账号ID为必填）');
         }
-        result = await importService.previewInfluencerImport(req.file.buffer, mapping, factoryId);
+        result = await importService.previewInfluencerImport(req.file.buffer, mapping, brandId);
       }
 
       res.json({
@@ -146,8 +146,8 @@ router.post(
   upload.single('file'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -164,12 +164,12 @@ router.post(
         if (!mapping || !mapping.sku || !mapping.name || !mapping.unitCost || !mapping.retailPrice) {
           throw createBadRequestError('请提供字段映射（SKU、名称、单件成本、建议零售价为必填）');
         }
-        result = await importService.executeSampleImport(req.file.buffer, mapping, factoryId, skipDuplicates);
+        result = await importService.executeSampleImport(req.file.buffer, mapping, brandId, skipDuplicates);
       } else {
         if (!mapping || !mapping.nickname || !mapping.platform || !mapping.platformId) {
           throw createBadRequestError('请提供字段映射（昵称、平台、平台账号ID为必填）');
         }
-        result = await importService.executeInfluencerImport(req.file.buffer, mapping, factoryId, skipDuplicates);
+        result = await importService.executeInfluencerImport(req.file.buffer, mapping, brandId, skipDuplicates);
       }
 
       res.json({
@@ -204,8 +204,8 @@ router.get(
   handleValidationErrors,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -235,20 +235,20 @@ router.get(
 
       // Handle special report types
       if (exportType === 'staff-performance') {
-        buffer = await reportService.exportStaffPerformanceReport(factoryId, dateRange);
+        buffer = await reportService.exportStaffPerformanceReport(brandId, dateRange);
         filename = `商务绩效报表_${new Date().toISOString().slice(0, 10)}.xlsx`;
       } else if (exportType === 'roi-report') {
         const validGroupBy = groupBy as 'influencer' | 'sample' | 'staff' | 'month' || 'month';
-        buffer = await reportService.exportRoiReport(factoryId, validGroupBy, dateRange);
+        buffer = await reportService.exportRoiReport(brandId, validGroupBy, dateRange);
         filename = `ROI报表_${new Date().toISOString().slice(0, 10)}.xlsx`;
       } else if (exportType === 'sample-cost-report') {
         // Use collaboration report as sample cost report
-        buffer = await reportService.exportCollaborationReport(factoryId, dateRange);
+        buffer = await reportService.exportCollaborationReport(brandId, dateRange);
         filename = `样品成本报表_${new Date().toISOString().slice(0, 10)}.xlsx`;
       } else {
         // Use generic export service
         const result = await exportService.exportData(exportType, {
-          factoryId,
+          brandId,
           dateRange,
           groupBy,
         });

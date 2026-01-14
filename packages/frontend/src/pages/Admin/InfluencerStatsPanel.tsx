@@ -44,7 +44,7 @@ export default function InfluencerStatsPanel() {
       render: (type: string) => {
         const map: Record<string, string> = {
           PLATFORM: '平台添加',
-          FACTORY: '工厂添加',
+          FACTORY: '品牌添加',
           STAFF: '商务添加',
         };
         return map[type] || type;
@@ -76,7 +76,7 @@ export default function InfluencerStatsPanel() {
       render: (_: any, __: any, index: number) => index + 1,
     },
     {
-      title: '工厂名称',
+      title: '品牌名称',
       dataIndex: 'factoryName',
       key: 'factoryName',
     },
@@ -109,7 +109,7 @@ export default function InfluencerStatsPanel() {
         <BentoCard title="来源分布" span={3}>
           <div className="grid grid-cols-3 gap-4 pt-2">
             <Statistic title="平台添加" value={stats.bySourceType.PLATFORM || 0} />
-            <Statistic title="工厂添加" value={stats.bySourceType.FACTORY || 0} />
+            <Statistic title="品牌添加" value={stats.bySourceType.FACTORY || 0} />
             <Statistic title="商务添加" value={stats.bySourceType.STAFF || 0} />
           </div>
         </BentoCard>
@@ -134,13 +134,13 @@ export default function InfluencerStatsPanel() {
           />
         </BentoCard>
 
-        <BentoCard title="工厂达人排名 (Top 10)" span={3} className="h-full">
+        <BentoCard title="品牌达人排名 (Top 10)" span={3} className="h-full">
           <Table
             columns={factoryRankingColumns}
             dataSource={stats.topFactories}
             pagination={false}
             size="small"
-            rowKey="factoryId"
+            rowKey="brandId"
             className="mt-2"
           />
         </BentoCard>

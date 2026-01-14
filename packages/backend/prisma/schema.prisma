@@ -15,6 +15,7 @@ enum UserRole {
   PLATFORM_ADMIN  // 平台管理员
   BRAND           // 品牌（原 FACTORY_OWNER）
   BUSINESS        // 商务（原 BUSINESS_STAFF）
+  INFLUENCER      // 达人
 }
 
 enum UserStatus {
@@ -22,7 +23,7 @@ enum UserStatus {
   DISABLED
 }
 
-enum FactoryStatus {
+enum BrandStatus {
   PENDING
   APPROVED
   REJECTED
@@ -106,7 +107,7 @@ model User {
   phone        String?    // 手机号（必填）
   wechat       String?    // 微信号（必填）
   role         UserRole
-  factoryId    String?
+  brandId    String?
   
   // 商务独立性：商务可独立注册，后续可加入品牌
   isIndependent Boolean   @default(true)   // 是否独立商务（未加入品牌）
@@ -129,8 +130,8 @@ model User {
   updatedAt    DateTime   @updatedAt
 
   // Relations
-  factory         Factory?          @relation("FactoryStaff", fields: [factoryId], references: [id])
-  ownedFactory    Factory?          @relation("FactoryOwner")
+  brand         Brand?          @relation("BrandStaff", fields: [brandId], references: [id])
+  ownedBrand    Brand?          @relation("BrandOwner")
   collaborations  Collaboration[]
   sampleDispatches SampleDispatch[]
   followUpRecords FollowUpRecord[]
@@ -139,15 +140,15 @@ model User {
   verifiedInfluencers Influencer[]  @relation("InfluencerVerifier")
 
   @@index([email])
-  @@index([factoryId])
+  @@index([brandId])
   @@index([phone])
 }
 
-model Factory {
+model Brand {
   id              String        @id @default(uuid())
   name            String
   ownerId         String        @unique
-  status          FactoryStatus @default(PENDING)
+  status          BrandStatus @default(PENDING)
   planType        PlanType      @default(FREE)
   staffLimit      Int           @default(3)
   influencerLimit Int           @default(100)
@@ -155,8 +156,8 @@ model Factory {
   updatedAt       DateTime      @updatedAt
 
   // Relations
-  owner          User            @relation("FactoryOwner", fields: [ownerId], references: [id])
-  staff          User[]          @relation("FactoryStaff")
+  owner          User            @relation("BrandOwner", fields: [ownerId], references: [id])
+  staff          User[]          @relation("BrandStaff")
   influencers    Influencer[]
   influencerGroups InfluencerGroup[]
   samples        Sample[]
@@ -168,7 +169,7 @@ model Factory {
 
 model Influencer {
   id         String   @id @default(uuid())
-  factoryId  String
+  brandId  String
   nickname   String
   platform   Platform
   platformId String
@@ -193,29 +194,35 @@ model Influencer {
   // Group management
   groupId              String?              // 分组ID
   
+  // 达人账号关联（认领后填充）
+  accountId            String?              // 关联的 InfluencerAccount
+  claimedAt            DateTime?            // 认领时间
+  
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   // Relations
-  factory        Factory         @relation(fields: [factoryId], references: [id])
+  brand        Brand         @relation(fields: [brandId], references: [id])
   collaborations Collaboration[]
   creator        User?           @relation("InfluencerCreator", fields: [createdBy], references: [id])
   verifier       User?           @relation("InfluencerVerifier", fields: [verifiedBy], references: [id])
   group          InfluencerGroup? @relation(fields: [groupId], references: [id])
+  account        InfluencerAccount? @relation(fields: [accountId], references: [id])
 
-  @@unique([factoryId, platform, platformId])
-  @@index([factoryId])
+  @@unique([brandId, platform, platformId])
+  @@index([brandId])
   @@index([nickname])
   @@index([phone])
   @@index([createdBy])
   @@index([sourceType])
   @@index([verificationStatus])
   @@index([groupId])
+  @@index([accountId])
 }
 
 model InfluencerGroup {
   id          String   @id @default(uuid())
-  factoryId   String
+  brandId   String
   name        String
   color       String   @default("#1890ff")
   description String?
@@ -224,17 +231,17 @@ model InfluencerGroup {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  factory     Factory      @relation(fields: [factoryId], references: [id])
+  brand     Brand      @relation(fields: [brandId], references: [id])
   influencers Influencer[]
 
-  @@index([factoryId])
+  @@index([brandId])
   @@index([createdBy])
 }
 
 
 model Sample {
   id          String   @id @default(uuid())
-  factoryId   String
+  brandId   String
   sku         String
   name        String
   unitCost    Int      // 单件成本（分）
@@ -245,19 +252,22 @@ model Sample {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  factory   Factory          @relation(fields: [factoryId], references: [id])
+  brand   Brand          @relation(fields: [brandId], references: [id])
   dispatches SampleDispatch[]
+  collaborations Collaboration[] @relation("CollaborationSample")
 
-  @@unique([factoryId, sku])
-  @@index([factoryId])
+  @@unique([brandId, sku])
+  @@index([brandId])
 }
 
 model Collaboration {
   id              String        @id @default(uuid())
   influencerId    String
-  factoryId       String
+  brandId       String
   businessStaffId String
   stage           PipelineStage @default(LEAD)
+  sampleId        String?       // 推荐样品ID
+  quotedPrice     Int?          // 报价（分）
   deadline        DateTime?
   isOverdue       Boolean       @default(false)
   blockReason     BlockReason?
@@ -266,17 +276,19 @@ model Collaboration {
 
   // Relations
   influencer    Influencer           @relation(fields: [influencerId], references: [id])
-  factory       Factory              @relation(fields: [factoryId], references: [id])
+  brand       Brand              @relation(fields: [brandId], references: [id])
   businessStaff User                 @relation(fields: [businessStaffId], references: [id])
+  sample        Sample?              @relation("CollaborationSample", fields: [sampleId], references: [id])
   dispatches    SampleDispatch[]
   followUps     FollowUpRecord[]
   result        CollaborationResult?
   stageHistory  StageHistory[]
 
-  @@index([factoryId])
+  @@index([brandId])
   @@index([businessStaffId])
   @@index([stage])
   @@index([isOverdue])
+  @@index([sampleId])
 }
 
 model SampleDispatch {
@@ -408,17 +420,24 @@ enum ContactType {
   OTHER      // 其他
 }
 
-// 达人账号（独立于工厂的达人身份）
+// 达人账号（独立于品牌的达人身份）
 model InfluencerAccount {
   id           String   @id @default(uuid())
   primaryPhone String   @unique  // 主手机号
+  
+  // 匹配字段（用于与品牌录入的达人记录匹配）
+  wechatId     String?  @unique  // 微信号
+  nickname     String?            // 达人昵称
+  
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   // Relations
-  contacts InfluencerContact[]
+  contacts         InfluencerContact[]
+  claimedInfluencers Influencer[]  // 已认领的品牌达人记录
 
   @@index([primaryPhone])
+  @@index([wechatId])
 }
 
 // 达人联系人（支持多联系人）

@@ -136,7 +136,7 @@ const CollaborationModal = ({ visible, collaborationId, onClose }: Collaboration
         shippingCost: shippingCostInCents,
         trackingNumber: values.trackingNumber,
       });
-      
+
       // 如果当前阶段在"已寄样"之前,自动推进到"已寄样"
       if (collaboration && ['LEAD', 'CONTACTED', 'QUOTED'].includes(collaboration.stage)) {
         try {
@@ -146,11 +146,11 @@ const CollaborationModal = ({ visible, collaborationId, onClose }: Collaboration
           // 即使阶段更新失败,寄样记录也已经添加成功了
         }
       }
-      
+
       message.success('寄样记录已添加');
       setDispatchModalVisible(false); // 先关闭模态框
       dispatchForm.resetFields(); // 重置表单
-      
+
       // 延迟刷新,确保模态框已关闭
       setTimeout(() => {
         fetchCollaboration(); // 刷新当前详情数据
@@ -182,6 +182,16 @@ const CollaborationModal = ({ visible, collaborationId, onClose }: Collaboration
           </Descriptions.Item>
           <Descriptions.Item label="平台账号ID">
             {collaboration.influencer.platformId}
+          </Descriptions.Item>
+          <Descriptions.Item label="推荐样品">
+            {collaboration.sample ? (
+              <Tag color="cyan">{collaboration.sample.name}</Tag>
+            ) : '-'}
+          </Descriptions.Item>
+          <Descriptions.Item label="报价">
+            {collaboration.quotedPrice ? (
+              <Text strong style={{ color: '#1890ff' }}>¥{collaboration.quotedPrice.toFixed(2)}</Text>
+            ) : '-'}
           </Descriptions.Item>
           <Descriptions.Item label="负责商务">
             <UserOutlined /> {collaboration.businessStaff.name}
@@ -315,7 +325,7 @@ const CollaborationModal = ({ visible, collaborationId, onClose }: Collaboration
                           SKU: {item.sample?.sku} | 数量: {item.quantity}
                         </Text>
                         <Text type="secondary">
-                          成本: ¥{(item.totalCost / 100).toFixed(2)} | 
+                          成本: ¥{(item.totalCost / 100).toFixed(2)} |
                           寄出时间: {dayjs(item.dispatchedAt).format('YYYY-MM-DD')}
                         </Text>
                         {item.trackingNumber && (
@@ -327,8 +337,8 @@ const CollaborationModal = ({ visible, collaborationId, onClose }: Collaboration
                     }
                   />
                   <Tag color={item.receivedStatus === 'RECEIVED' ? 'success' : 'default'}>
-                    {item.receivedStatus === 'RECEIVED' ? '已签收' : 
-                     item.receivedStatus === 'LOST' ? '已丢失' : '待签收'}
+                    {item.receivedStatus === 'RECEIVED' ? '已签收' :
+                      item.receivedStatus === 'LOST' ? '已丢失' : '待签收'}
                   </Tag>
                 </List.Item>
               )}

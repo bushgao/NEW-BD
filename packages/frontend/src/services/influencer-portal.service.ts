@@ -61,7 +61,7 @@ export interface InfluencerSampleItem {
   id: string;
   sampleName: string;
   sampleSku: string;
-  factoryId: string;
+  brandId: string;
   factoryName: string;
   dispatchedAt: string;
   trackingNumber: string | null;
@@ -74,14 +74,14 @@ export interface InfluencerSampleList {
   items: InfluencerSampleItem[];
   total: number;
   groupedByFactory: {
-    factoryId: string;
+    brandId: string;
     factoryName: string;
     samples: InfluencerSampleItem[];
   }[];
 }
 
 export interface SampleFilter {
-  factoryId?: string;
+  brandId?: string;
   receivedStatus?: ReceivedStatus;
   startDate?: string;
   endDate?: string;
@@ -89,7 +89,7 @@ export interface SampleFilter {
 
 export interface InfluencerCollabItem {
   id: string;
-  factoryId: string;
+  brandId: string;
   factoryName: string;
   stage: PipelineStage;
   deadline: string | null;
@@ -104,14 +104,14 @@ export interface InfluencerCollabList {
 }
 
 export interface CollabFilter {
-  factoryId?: string;
+  brandId?: string;
   stage?: PipelineStage;
   isOverdue?: boolean;
 }
 
 export interface InfluencerCollabDetail {
   id: string;
-  factoryId: string;
+  brandId: string;
   factoryName: string;
   stage: PipelineStage;
   deadline: string | null;
@@ -206,7 +206,7 @@ export async function login(
   email: string,
   password: string
 ): Promise<ApiResponse<{ contact: InfluencerContact; tokens: InfluencerAuthToken }>> {
-  const response = await fetch(`${API_BASE}/influencer-portal/auth/login`, {
+  const response = await fetch(`${API_BASE}/influencer-portal/auth/login-password`, {
     method: 'POST',
     headers: buildHeaders(false),
     body: JSON.stringify({ email, password }),
@@ -268,7 +268,7 @@ export async function getDashboard(): Promise<ApiResponse<InfluencerDashboard>> 
 export async function getSamples(filter?: SampleFilter): Promise<ApiResponse<InfluencerSampleList>> {
   const params = new URLSearchParams();
 
-  if (filter?.factoryId) params.append('factoryId', filter.factoryId);
+  if (filter?.brandId) params.append('brandId', filter.brandId);
   if (filter?.receivedStatus) params.append('receivedStatus', filter.receivedStatus);
   if (filter?.startDate) params.append('startDate', filter.startDate);
   if (filter?.endDate) params.append('endDate', filter.endDate);
@@ -310,7 +310,7 @@ export async function getCollaborations(
 ): Promise<ApiResponse<InfluencerCollabList>> {
   const params = new URLSearchParams();
 
-  if (filter?.factoryId) params.append('factoryId', filter.factoryId);
+  if (filter?.brandId) params.append('brandId', filter.brandId);
   if (filter?.stage) params.append('stage', filter.stage);
   if (filter?.isOverdue !== undefined) params.append('isOverdue', String(filter.isOverdue));
 

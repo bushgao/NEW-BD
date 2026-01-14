@@ -21,7 +21,7 @@ describe('合作结果服务测试', () => {
     });
     testUserId = testUser.id;
 
-    const testFactory = await prisma.factory.create({
+    const testFactory = await prisma.brand.create({
       data: {
         name: 'Test Result Factory',
         ownerId: testUser.id,
@@ -36,13 +36,13 @@ describe('合作结果服务测试', () => {
     // 更新用户关联工厂ID
     await prisma.user.update({
       where: { id: testUser.id },
-      data: { factoryId: testFactory.id },
+      data: { brandId: testFactory.id },
     });
 
     // 创建测试达人
     const testInfluencer = await prisma.influencer.create({
       data: {
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '结果测试达人',
         platform: 'DOUYIN',
         platformId: `result-test-${Date.now()}`,
@@ -55,24 +55,24 @@ describe('合作结果服务测试', () => {
 
   afterAll(async () => {
     // 清理测试数据
-    await prisma.collaborationResult.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.stageHistory.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.sampleDispatch.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.collaboration.deleteMany({ where: { factoryId: testFactoryId } });
-    await prisma.sample.deleteMany({ where: { factoryId: testFactoryId } });
-    await prisma.influencer.deleteMany({ where: { factoryId: testFactoryId } });
-    await prisma.factory.delete({ where: { id: testFactoryId } });
+    await prisma.collaborationResult.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.stageHistory.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.sampleDispatch.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.collaboration.deleteMany({ where: { brandId: testFactoryId } });
+    await prisma.sample.deleteMany({ where: { brandId: testFactoryId } });
+    await prisma.influencer.deleteMany({ where: { brandId: testFactoryId } });
+    await prisma.brand.delete({ where: { id: testFactoryId } });
     await prisma.user.delete({ where: { id: testUserId } });
     await prisma.$disconnect();
   });
 
   beforeEach(async () => {
     // 每个测试前清理数据
-    await prisma.collaborationResult.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.stageHistory.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.sampleDispatch.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.collaboration.deleteMany({ where: { factoryId: testFactoryId } });
-    await prisma.sample.deleteMany({ where: { factoryId: testFactoryId } });
+    await prisma.collaborationResult.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.stageHistory.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.sampleDispatch.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.collaboration.deleteMany({ where: { brandId: testFactoryId } });
+    await prisma.sample.deleteMany({ where: { brandId: testFactoryId } });
   });
 
   // ==================== Property 8: ROI计算属性测试 ====================
@@ -108,7 +108,7 @@ describe('合作结果服务测试', () => {
             const collaboration = await prisma.collaboration.create({
               data: {
                 influencerId: testInfluencerId,
-                factoryId: testFactoryId,
+                brandId: testFactoryId,
                 businessStaffId: testUserId,
                 stage: 'PUBLISHED',
                 isOverdue: false,
@@ -117,7 +117,7 @@ describe('合作结果服务测试', () => {
 
             // 创建样品和寄样记录
             const sample = await sampleService.createSample({
-              factoryId: testFactoryId,
+              brandId: testFactoryId,
               sku: `ROI-SKU-${Date.now()}-${Math.random().toString(36).slice(2)}`,
               name: `ROI测试样品_${Date.now()}`,
               unitCost: sampleCost,
@@ -183,7 +183,7 @@ describe('合作结果服务测试', () => {
             const collaboration = await prisma.collaboration.create({
               data: {
                 influencerId: testInfluencerId,
-                factoryId: testFactoryId,
+                brandId: testFactoryId,
                 businessStaffId: testUserId,
                 stage: 'PUBLISHED',
                 isOverdue: false,
@@ -191,7 +191,7 @@ describe('合作结果服务测试', () => {
             });
 
             const sample = await sampleService.createSample({
-              factoryId: testFactoryId,
+              brandId: testFactoryId,
               sku: `LOSS-SKU-${Date.now()}-${Math.random().toString(36).slice(2)}`,
               name: `LOSS测试样品_${Date.now()}`,
               unitCost: totalCost,
@@ -247,7 +247,7 @@ describe('合作结果服务测试', () => {
             const collaboration = await prisma.collaboration.create({
               data: {
                 influencerId: testInfluencerId,
-                factoryId: testFactoryId,
+                brandId: testFactoryId,
                 businessStaffId: testUserId,
                 stage: 'PUBLISHED',
                 isOverdue: false,
@@ -255,7 +255,7 @@ describe('合作结果服务测试', () => {
             });
 
             const sample = await sampleService.createSample({
-              factoryId: testFactoryId,
+              brandId: testFactoryId,
               sku: `PROFIT-SKU-${Date.now()}-${Math.random().toString(36).slice(2)}`,
               name: `PROFIT测试样品_${Date.now()}`,
               unitCost: totalCost,
@@ -312,7 +312,7 @@ describe('合作结果服务测试', () => {
             const collaboration = await prisma.collaboration.create({
               data: {
                 influencerId: testInfluencerId,
-                factoryId: testFactoryId,
+                brandId: testFactoryId,
                 businessStaffId: testUserId,
                 stage: 'PUBLISHED',
                 isOverdue: false,
@@ -320,7 +320,7 @@ describe('合作结果服务测试', () => {
             });
 
             const sample = await sampleService.createSample({
-              factoryId: testFactoryId,
+              brandId: testFactoryId,
               sku: `HIGH-SKU-${Date.now()}-${Math.random().toString(36).slice(2)}`,
               name: `HIGH_PROFIT测试样品_${Date.now()}`,
               unitCost: totalCost,
@@ -375,7 +375,7 @@ describe('合作结果服务测试', () => {
             const collaboration = await prisma.collaboration.create({
               data: {
                 influencerId: testInfluencerId,
-                factoryId: testFactoryId,
+                brandId: testFactoryId,
                 businessStaffId: testUserId,
                 stage: 'PUBLISHED',
                 isOverdue: false,
@@ -383,7 +383,7 @@ describe('合作结果服务测试', () => {
             });
 
             const sample = await sampleService.createSample({
-              factoryId: testFactoryId,
+              brandId: testFactoryId,
               sku: `COST-SKU-${Date.now()}-${Math.random().toString(36).slice(2)}`,
               name: `成本测试样品_${Date.now()}`,
               unitCost: sampleCost,
@@ -471,7 +471,7 @@ describe('合作结果服务测试', () => {
                 const collaboration = await prisma.collaboration.create({
                   data: {
                     influencerId: testInfluencerId,
-                    factoryId: testFactoryId,
+                    brandId: testFactoryId,
                     businessStaffId: testUserId,
                     stage: 'PUBLISHED',
                     isOverdue: false,
@@ -480,7 +480,7 @@ describe('合作结果服务测试', () => {
                 createdCollaborations.push(collaboration.id);
 
                 const sample = await sampleService.createSample({
-                  factoryId: testFactoryId,
+                  brandId: testFactoryId,
                   sku: `REPORT-ROI-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`,
                   name: `报表ROI测试样品_${i}_${Date.now()}`,
                   unitCost: data.sampleCost,
@@ -571,7 +571,7 @@ describe('合作结果服务测试', () => {
                 const collaboration = await prisma.collaboration.create({
                   data: {
                     influencerId: testInfluencerId,
-                    factoryId: testFactoryId,
+                    brandId: testFactoryId,
                     businessStaffId: testUserId,
                     stage: 'PUBLISHED',
                     isOverdue: false,
@@ -580,7 +580,7 @@ describe('合作结果服务测试', () => {
                 createdCollaborations.push(collaboration.id);
 
                 const sample = await sampleService.createSample({
-                  factoryId: testFactoryId,
+                  brandId: testFactoryId,
                   sku: `PROFIT-RATE-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`,
                   name: `回本率测试样品_${i}_${Date.now()}`,
                   unitCost: data.sampleCost,

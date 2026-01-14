@@ -17,6 +17,8 @@ const PORT = process.env.PORT || 3000;
 // CORS 配置 - 支持前端和 Chrome 插件
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
   'http://localhost:3000',
   // Chrome 插件使用 chrome-extension:// 协议
 ];
@@ -25,22 +27,22 @@ app.use(cors({
   origin: (origin, callback) => {
     // 允许没有 origin 的请求（如 Postman、Chrome 插件）
     if (!origin) return callback(null, true);
-    
+
     // 允许 chrome-extension:// 协议
     if (origin.startsWith('chrome-extension://')) {
       return callback(null, true);
     }
-    
+
     // 检查是否在允许列表中
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    
+
     // 生产环境可以从环境变量读取
     if (process.env.CORS_ORIGIN && origin === process.env.CORS_ORIGIN) {
       return callback(null, true);
     }
-    
+
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
@@ -60,11 +62,11 @@ app.get('/health/db', async (_req, res) => {
     await prisma.$queryRaw`SELECT 1`;
     res.json({ status: 'ok', database: 'connected', timestamp: new Date().toISOString() });
   } catch (error) {
-    res.status(503).json({ 
-      status: 'error', 
-      database: 'disconnected', 
+    res.status(503).json({
+      status: 'error',
+      database: 'disconnected',
       message: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString() 
+      timestamp: new Date().toISOString()
     });
   }
 });

@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Form, Input, Button, Typography, message } from 'antd';
-import { LockOutlined, MailOutlined, AppstoreOutlined, ArrowRightOutlined } from '@ant-design/icons';
+import { LockOutlined, PhoneOutlined, AppstoreOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import { useAuthStore, getDefaultPathForRole } from '../../stores/authStore';
 import * as authService from '../../services/auth.service';
 
 const { Title, Text } = Typography;
 
 interface LoginFormValues {
-  email: string;
+  phone: string;
   password: string;
 }
 
@@ -21,7 +21,11 @@ const LoginPage = () => {
   const handleSubmit = async (values: LoginFormValues) => {
     setLoading(true);
     try {
-      const response = await authService.login(values);
+      // 手机号转换为邮箱格式（后端兼容）
+      const response = await authService.login({
+        email: `${values.phone}@phone.local`,
+        password: values.password,
+      });
 
       if (response.success && response.data) {
         const { user, tokens } = response.data;
@@ -161,16 +165,16 @@ const LoginPage = () => {
             requiredMark={false}
           >
             <Form.Item
-              name="email"
+              name="phone"
               style={{ marginBottom: '20px' }}
               rules={[
-                { required: true, message: '请输入邮箱' },
-                { type: 'email', message: '请输入邮箱' },
+                { required: true, message: '请输入手机号' },
+                { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' },
               ]}
             >
               <Input
-                prefix={<MailOutlined style={{ color: 'rgba(255, 255, 255, 0.3)', marginRight: '8px' }} />}
-                placeholder="邮箱地址"
+                prefix={<PhoneOutlined style={{ color: 'rgba(255, 255, 255, 0.3)', marginRight: '8px' }} />}
+                placeholder="手机号"
                 size="large"
                 style={{
                   height: '52px',

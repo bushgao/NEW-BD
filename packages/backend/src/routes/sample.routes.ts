@@ -74,8 +74,8 @@ router.get(
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -86,7 +86,7 @@ router.get(
         req.query.canResend === 'false' ? false : undefined;
 
       const result = await sampleService.listSamples(
-        factoryId,
+        brandId,
         { keyword, canResend },
         { page, pageSize }
       );
@@ -113,8 +113,8 @@ router.get(
   requireRoles('BRAND'),
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -126,7 +126,7 @@ router.get(
         };
       }
 
-      const report = await sampleService.getSampleCostReport(factoryId, dateRange);
+      const report = await sampleService.getSampleCostReport(brandId, dateRange);
 
       res.json({
         success: true,
@@ -152,12 +152,12 @@ router.get(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
-      const sample = await sampleService.getSampleById(req.params.id, factoryId);
+      const sample = await sampleService.getSampleById(req.params.id, brandId);
 
       res.json({
         success: true,
@@ -183,15 +183,15 @@ router.post(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
       const { sku, name, unitCost, retailPrice, canResend, notes } = req.body;
 
       const sample = await sampleService.createSample({
-        factoryId,
+        brandId,
         sku,
         name,
         unitCost,
@@ -225,14 +225,14 @@ router.put(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
       const { sku, name, unitCost, retailPrice, canResend, notes } = req.body;
 
-      const sample = await sampleService.updateSample(req.params.id, factoryId, {
+      const sample = await sampleService.updateSample(req.params.id, brandId, {
         sku,
         name,
         unitCost,
@@ -265,12 +265,12 @@ router.delete(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
-      await sampleService.deleteSample(req.params.id, factoryId);
+      await sampleService.deleteSample(req.params.id, brandId);
 
       res.json({
         success: true,
@@ -295,8 +295,8 @@ router.get(
   requireFactoryMember,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
@@ -311,7 +311,7 @@ router.get(
         onboardStatus: req.query.onboardStatus as OnboardStatus | undefined,
       };
 
-      const result = await sampleService.listDispatches(factoryId, filter, { page, pageSize });
+      const result = await sampleService.listDispatches(brandId, filter, { page, pageSize });
 
       res.json({
         success: true,
@@ -336,12 +336,12 @@ router.get(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
-      const dispatch = await sampleService.getDispatchById(req.params.id, factoryId);
+      const dispatch = await sampleService.getDispatchById(req.params.id, brandId);
 
       res.json({
         success: true,
@@ -403,14 +403,14 @@ router.put(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const factoryId = req.user!.factoryId;
-      if (!factoryId) {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
         throw createBadRequestError('用户未关联工厂');
       }
 
       const { receivedStatus, onboardStatus } = req.body;
 
-      const dispatch = await sampleService.updateDispatchStatus(req.params.id, factoryId, {
+      const dispatch = await sampleService.updateDispatchStatus(req.params.id, brandId, {
         receivedStatus,
         onboardStatus,
       });

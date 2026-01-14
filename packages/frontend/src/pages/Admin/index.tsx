@@ -20,6 +20,7 @@ import FactoryList from './FactoryList';
 import PlanConfigList from './PlanConfigList';
 import InfluencerManagement from './InfluencerManagement';
 import InfluencerStatsPanel from './InfluencerStatsPanel';
+import IndependentBusinessList from './IndependentBusinessList';
 import {
   getPlatformStats,
   type PlatformStats,
@@ -61,8 +62,13 @@ const AdminPage = () => {
     },
     {
       key: 'factories',
-      label: '工厂管理',
+      label: '品牌管理',
       children: <FactoryList onRefresh={loadStats} />,
+    },
+    {
+      key: 'independent',
+      label: '独立商务',
+      children: <IndependentBusinessList />,
     },
     {
       key: 'influencers',
@@ -78,12 +84,13 @@ const AdminPage = () => {
 
   return (
     <Spin spinning={loading}>
-      <div 
-        style={{ 
+      <div
+        style={{
           minHeight: '100vh',
           background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
           position: 'relative',
-          padding: '24px',
+          padding: '40px',
+          margin: '-24px',
         }}
       >
         {/* 背景装饰元素 */}
@@ -111,7 +118,7 @@ const AdminPage = () => {
           pointerEvents: 'none',
           zIndex: 0,
         }} />
-        
+
         <div style={{ position: 'relative', zIndex: 1 }}>
           <Title level={4} style={{ marginBottom: 24 }}>
             平台管理
@@ -123,7 +130,7 @@ const AdminPage = () => {
               <Card variant="elevated" hoverable>
                 <CardContent>
                   <Statistic
-                    title="工厂总数"
+                    title="品牌总数"
                     value={stats?.totalFactories || 0}
                     prefix={<ShopOutlined />}
                   />
@@ -192,22 +199,22 @@ const AdminPage = () => {
           {/* 套餐分布 */}
           {stats && (
             <Row gutter={16} style={{ marginBottom: 24 }}>
-              <Col xs={24} sm={8}>
+              <Col xs={24} sm={12} md={6}>
                 <Card variant="elevated" hoverable>
                   <CardContent>
                     <Statistic
-                      title="免费版工厂"
+                      title="免费版品牌"
                       value={stats.factoriesByPlan.FREE || 0}
                       suffix="家"
                     />
                   </CardContent>
                 </Card>
               </Col>
-              <Col xs={24} sm={8}>
+              <Col xs={24} sm={12} md={6}>
                 <Card variant="elevated" hoverable>
                   <CardContent>
                     <Statistic
-                      title="专业版工厂"
+                      title="专业版品牌"
                       value={stats.factoriesByPlan.PROFESSIONAL || 0}
                       suffix="家"
                       valueStyle={{ color: '#1890ff' }}
@@ -215,14 +222,26 @@ const AdminPage = () => {
                   </CardContent>
                 </Card>
               </Col>
-              <Col xs={24} sm={8}>
+              <Col xs={24} sm={12} md={6}>
                 <Card variant="elevated" hoverable>
                   <CardContent>
                     <Statistic
-                      title="企业版工厂"
+                      title="企业版品牌"
                       value={stats.factoriesByPlan.ENTERPRISE || 0}
                       suffix="家"
                       valueStyle={{ color: '#faad14' }}
+                    />
+                  </CardContent>
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Card variant="elevated" hoverable>
+                  <CardContent>
+                    <Statistic
+                      title="独立商务"
+                      value={stats.independentBusinessUsers || 0}
+                      suffix="人"
+                      valueStyle={{ color: '#722ed1' }}
                     />
                   </CardContent>
                 </Card>

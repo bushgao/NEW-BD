@@ -1,0 +1,9 @@
+{
+  "name": "com.ics.wechat_bridge",
+  "description": "微信一键添加好友桥接程序",
+  "path": "f:\\NEW BD\\native-host\\wechat_bridge.bat",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://milhagjfhjlckpnbjhanocbmkaaldcna/"
+  ]
+}

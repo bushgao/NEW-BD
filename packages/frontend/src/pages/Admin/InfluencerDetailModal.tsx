@@ -20,7 +20,7 @@ const platformLabels: Record<Platform, string> = {
 
 const sourceTypeLabels: Record<InfluencerSourceType, string> = {
   PLATFORM: '平台添加',
-  FACTORY: '工厂添加',
+  FACTORY: '品牌添加',
   STAFF: '商务添加',
 };
 
@@ -89,8 +89,8 @@ export default function InfluencerDetailModal({ open, onClose, influencerId }: P
 
   const renderSourceInfo = () => (
     <Descriptions bordered column={2}>
-      <Descriptions.Item label="所属工厂">
-        {influencer.factory?.name || '-'}
+      <Descriptions.Item label="所属品牌">
+        {influencer.brand?.name || '-'}
       </Descriptions.Item>
       <Descriptions.Item label="来源类型">
         <Tag color="blue">{sourceTypeLabels[influencer.sourceType]}</Tag>

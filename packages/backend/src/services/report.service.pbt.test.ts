@@ -23,7 +23,7 @@ describe('报表服务属性测试', () => {
     });
     testOwnerId = testOwner.id;
 
-    const testFactory = await prisma.factory.create({
+    const testFactory = await prisma.brand.create({
       data: {
         name: 'Test Report Factory',
         ownerId: testOwner.id,
@@ -38,7 +38,7 @@ describe('报表服务属性测试', () => {
     // 更新老板关联工厂ID
     await prisma.user.update({
       where: { id: testOwner.id },
-      data: { factoryId: testFactory.id },
+      data: { brandId: testFactory.id },
     });
 
     // 创建测试商务人员
@@ -49,7 +49,7 @@ describe('报表服务属性测试', () => {
           passwordHash: 'test-hash',
           name: `测试商务${i + 1}`,
           role: 'BUSINESS_STAFF',
-          factoryId: testFactoryId,
+          brandId: testFactoryId,
         },
       });
       testStaffIds.push(staff.id);
@@ -58,7 +58,7 @@ describe('报表服务属性测试', () => {
     // 创建测试达人
     const testInfluencer = await prisma.influencer.create({
       data: {
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '报表测试达人',
         platform: 'DOUYIN',
         platformId: `report-test-${Date.now()}`,
@@ -71,16 +71,16 @@ describe('报表服务属性测试', () => {
 
   afterAll(async () => {
     // 清理测试数据 - 注意顺序，先清理有外键依赖的表
-    await prisma.collaborationResult.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.stageHistory.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.sampleDispatch.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.collaboration.deleteMany({ where: { factoryId: testFactoryId } });
-    await prisma.sample.deleteMany({ where: { factoryId: testFactoryId } });
-    await prisma.influencer.deleteMany({ where: { factoryId: testFactoryId } });
+    await prisma.collaborationResult.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.stageHistory.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.sampleDispatch.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.collaboration.deleteMany({ where: { brandId: testFactoryId } });
+    await prisma.sample.deleteMany({ where: { brandId: testFactoryId } });
+    await prisma.influencer.deleteMany({ where: { brandId: testFactoryId } });
     // 先断开用户与工厂的关联
-    await prisma.user.updateMany({ where: { factoryId: testFactoryId }, data: { factoryId: null } });
-    await prisma.user.update({ where: { id: testOwnerId }, data: { factoryId: null } });
-    await prisma.factory.delete({ where: { id: testFactoryId } });
+    await prisma.user.updateMany({ where: { brandId: testFactoryId }, data: { brandId: null } });
+    await prisma.user.update({ where: { id: testOwnerId }, data: { brandId: null } });
+    await prisma.brand.delete({ where: { id: testFactoryId } });
     for (const staffId of testStaffIds) {
       await prisma.user.delete({ where: { id: staffId } });
     }
@@ -90,11 +90,11 @@ describe('报表服务属性测试', () => {
 
   beforeEach(async () => {
     // 每个测试前清理数据
-    await prisma.collaborationResult.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.stageHistory.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.sampleDispatch.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.collaboration.deleteMany({ where: { factoryId: testFactoryId } });
-    await prisma.sample.deleteMany({ where: { factoryId: testFactoryId } });
+    await prisma.collaborationResult.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.stageHistory.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.sampleDispatch.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.collaboration.deleteMany({ where: { brandId: testFactoryId } });
+    await prisma.sample.deleteMany({ where: { brandId: testFactoryId } });
   });
 
   // ==================== Property 10: 商务绩效统计属性测试 ====================
@@ -131,7 +131,7 @@ describe('报表服务属性测试', () => {
                 const collaboration = await prisma.collaboration.create({
                   data: {
                     influencerId: testInfluencerId,
-                    factoryId: testFactoryId,
+                    brandId: testFactoryId,
                     businessStaffId: staffId,
                     stage: 'LEAD',
                     isOverdue: false,
@@ -178,7 +178,7 @@ describe('报表服务属性测试', () => {
                 const collaboration = await prisma.collaboration.create({
                   data: {
                     influencerId: testInfluencerId,
-                    factoryId: testFactoryId,
+                    brandId: testFactoryId,
                     businessStaffId: staffId,
                     stage: stage as any,
                     isOverdue: false,
@@ -225,7 +225,7 @@ describe('报表服务属性测试', () => {
                 const collaboration = await prisma.collaboration.create({
                   data: {
                     influencerId: testInfluencerId,
-                    factoryId: testFactoryId,
+                    brandId: testFactoryId,
                     businessStaffId: staffId,
                     stage: stage as any,
                     isOverdue: false,
@@ -273,7 +273,7 @@ describe('报表服务属性测试', () => {
                 const collaboration = await prisma.collaboration.create({
                   data: {
                     influencerId: testInfluencerId,
-                    factoryId: testFactoryId,
+                    brandId: testFactoryId,
                     businessStaffId: staffId,
                     stage: 'PUBLISHED',
                     isOverdue: false,
@@ -282,7 +282,7 @@ describe('报表服务属性测试', () => {
                 createdCollaborations.push(collaboration.id);
 
                 const sample = await sampleService.createSample({
-                  factoryId: testFactoryId,
+                  brandId: testFactoryId,
                   sku: `PERF-GMV-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`,
                   name: `绩效GMV测试样品_${i}`,
                   unitCost: 1000,
@@ -378,7 +378,7 @@ describe('报表服务属性测试', () => {
                 const collaboration = await prisma.collaboration.create({
                   data: {
                     influencerId: testInfluencerId,
-                    factoryId: testFactoryId,
+                    brandId: testFactoryId,
                     businessStaffId: staffId,
                     stage: 'SAMPLED',
                     isOverdue: false,
@@ -387,7 +387,7 @@ describe('报表服务属性测试', () => {
                 createdCollaborations.push(collaboration.id);
 
                 const sample = await sampleService.createSample({
-                  factoryId: testFactoryId,
+                  brandId: testFactoryId,
                   sku: `DASH-SAMPLE-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`,
                   name: `看板寄样测试_${i}`,
                   unitCost: data.unitCost,
@@ -447,7 +447,7 @@ describe('报表服务属性测试', () => {
                 const collaboration = await prisma.collaboration.create({
                   data: {
                     influencerId: testInfluencerId,
-                    factoryId: testFactoryId,
+                    brandId: testFactoryId,
                     businessStaffId: staffId,
                     stage: 'PUBLISHED',
                     isOverdue: false,
@@ -456,7 +456,7 @@ describe('报表服务属性测试', () => {
                 createdCollaborations.push(collaboration.id);
 
                 const sample = await sampleService.createSample({
-                  factoryId: testFactoryId,
+                  brandId: testFactoryId,
                   sku: `DASH-GMV-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`,
                   name: `看板GMV测试_${i}`,
                   unitCost: 1000,
@@ -531,7 +531,7 @@ describe('报表服务属性测试', () => {
                 const collaboration = await prisma.collaboration.create({
                   data: {
                     influencerId: testInfluencerId,
-                    factoryId: testFactoryId,
+                    brandId: testFactoryId,
                     businessStaffId: staffId,
                     stage: 'PUBLISHED',
                     isOverdue: false,
@@ -540,7 +540,7 @@ describe('报表服务属性测试', () => {
                 createdCollaborations.push(collaboration.id);
 
                 const sample = await sampleService.createSample({
-                  factoryId: testFactoryId,
+                  brandId: testFactoryId,
                   sku: `DASH-ROI-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`,
                   name: `看板ROI测试_${i}`,
                   unitCost: data.sampleCost,
@@ -615,7 +615,7 @@ describe('报表服务属性测试', () => {
                 const collaboration = await prisma.collaboration.create({
                   data: {
                     influencerId: testInfluencerId,
-                    factoryId: testFactoryId,
+                    brandId: testFactoryId,
                     businessStaffId: staffId,
                     stage: stage as any,
                     isOverdue: false,

@@ -37,7 +37,7 @@ export interface InfluencerSampleItem {
   id: string;
   sampleName: string;
   sampleSku: string;
-  factoryId: string;
+  brandId: string;
   factoryName: string;
   dispatchedAt: Date;
   trackingNumber: string | null;
@@ -50,14 +50,14 @@ export interface InfluencerSampleList {
   items: InfluencerSampleItem[];
   total: number;
   groupedByFactory: {
-    factoryId: string;
+    brandId: string;
     factoryName: string;
     samples: InfluencerSampleItem[];
   }[];
 }
 
 export interface SampleFilter {
-  factoryId?: string;
+  brandId?: string;
   receivedStatus?: ReceivedStatus;
   startDate?: Date;
   endDate?: Date;
@@ -65,7 +65,7 @@ export interface SampleFilter {
 
 export interface InfluencerCollabItem {
   id: string;
-  factoryId: string;
+  brandId: string;
   factoryName: string;
   stage: PipelineStage;
   deadline: Date | null;
@@ -80,14 +80,14 @@ export interface InfluencerCollabList {
 }
 
 export interface CollabFilter {
-  factoryId?: string;
+  brandId?: string;
   stage?: PipelineStage;
   isOverdue?: boolean;
 }
 
 export interface InfluencerCollabDetail {
   id: string;
-  factoryId: string;
+  brandId: string;
   factoryName: string;
   stage: PipelineStage;
   deadline: Date | null;
@@ -147,8 +147,8 @@ function toInfluencerSampleItem(dispatch: any): InfluencerSampleItem {
     id: dispatch.id,
     sampleName: dispatch.sample.name,
     sampleSku: dispatch.sample.sku,
-    factoryId: dispatch.collaboration.factory.id,
-    factoryName: dispatch.collaboration.factory.name,
+    brandId: dispatch.collaboration.brand.id,
+    factoryName: dispatch.collaboration.brand.name,
     dispatchedAt: dispatch.dispatchedAt,
     trackingNumber: dispatch.trackingNumber,
     receivedStatus: dispatch.receivedStatus,
@@ -187,7 +187,7 @@ export async function getDashboard(accountId: string): Promise<InfluencerDashboa
           sample: { select: { name: true, sku: true } },
         },
       },
-      factory: { select: { id: true, name: true } },
+      brand: { select: { id: true, name: true } },
     },
   });
 
@@ -245,8 +245,8 @@ export async function getSamples(
     },
   };
 
-  if (filter.factoryId) {
-    whereClause.collaboration.factoryId = filter.factoryId;
+  if (filter.brandId) {
+    whereClause.collaboration.brandId = filter.brandId;
   }
 
   if (filter.receivedStatus) {
@@ -270,7 +270,7 @@ export async function getSamples(
       sample: { select: { name: true, sku: true } },
       collaboration: {
         include: {
-          factory: { select: { id: true, name: true } },
+          brand: { select: { id: true, name: true } },
         },
       },
     },
@@ -281,17 +281,17 @@ export async function getSamples(
   const items = dispatches.map((d) => toInfluencerSampleItem(d));
 
   // 按工厂分组
-  const factoryMap = new Map<string, { factoryId: string; factoryName: string; samples: InfluencerSampleItem[] }>();
+  const factoryMap = new Map<string, { brandId: string; factoryName: string; samples: InfluencerSampleItem[] }>();
   
   items.forEach((item) => {
-    if (!factoryMap.has(item.factoryId)) {
-      factoryMap.set(item.factoryId, {
-        factoryId: item.factoryId,
+    if (!factoryMap.has(item.brandId)) {
+      factoryMap.set(item.brandId, {
+        brandId: item.brandId,
         factoryName: item.factoryName,
         samples: [],
       });
     }
-    factoryMap.get(item.factoryId)!.samples.push(item);
+    factoryMap.get(item.brandId)!.samples.push(item);
   });
 
   const groupedByFactory = Array.from(factoryMap.values());
@@ -322,8 +322,8 @@ export async function getCollaborations(
     influencerId: { in: influencerIds },
   };
 
-  if (filter.factoryId) {
-    whereClause.factoryId = filter.factoryId;
+  if (filter.brandId) {
+    whereClause.brandId = filter.brandId;
   }
 
   if (filter.stage) {
@@ -338,7 +338,7 @@ export async function getCollaborations(
   const collaborations = await prisma.collaboration.findMany({
     where: whereClause,
     include: {
-      factory: { select: { id: true, name: true } },
+      brand: { select: { id: true, name: true } },
       dispatches: { select: { id: true } },
     },
     orderBy: { createdAt: 'desc' },
@@ -347,8 +347,8 @@ export async function getCollaborations(
   // 转换为达人合作项（过滤敏感信息）
   const items: InfluencerCollabItem[] = collaborations.map((c) => ({
     id: c.id,
-    factoryId: c.factory.id,
-    factoryName: c.factory.name,
+    brandId: c.brand.id,
+    factoryName: c.brand.name,
     stage: c.stage,
     deadline: c.deadline,
     isOverdue: c.isOverdue,
@@ -377,7 +377,7 @@ export async function getCollaborationDetail(
   const collaboration = await prisma.collaboration.findUnique({
     where: { id: collabId },
     include: {
-      factory: { select: { id: true, name: true } },
+      brand: { select: { id: true, name: true } },
       dispatches: {
         include: {
           sample: { select: { name: true, sku: true } },
@@ -404,8 +404,8 @@ export async function getCollaborationDetail(
     id: d.id,
     sampleName: d.sample.name,
     sampleSku: d.sample.sku,
-    factoryId: collaboration.factory.id,
-    factoryName: collaboration.factory.name,
+    brandId: collaboration.brand.id,
+    factoryName: collaboration.brand.name,
     dispatchedAt: d.dispatchedAt,
     trackingNumber: d.trackingNumber,
     receivedStatus: d.receivedStatus,
@@ -422,8 +422,8 @@ export async function getCollaborationDetail(
 
   return {
     id: collaboration.id,
-    factoryId: collaboration.factory.id,
-    factoryName: collaboration.factory.name,
+    brandId: collaboration.brand.id,
+    factoryName: collaboration.brand.name,
     stage: collaboration.stage,
     deadline: collaboration.deadline,
     isOverdue: collaboration.isOverdue,
@@ -451,7 +451,7 @@ export async function confirmSampleReceived(
       sample: { select: { name: true, sku: true } },
       collaboration: {
         include: {
-          factory: { select: { id: true, name: true } },
+          brand: { select: { id: true, name: true } },
         },
       },
     },
@@ -482,7 +482,7 @@ export async function confirmSampleReceived(
       sample: { select: { name: true, sku: true } },
       collaboration: {
         include: {
-          factory: { select: { id: true, name: true } },
+          brand: { select: { id: true, name: true } },
           influencer: { select: { nickname: true } },
         },
       },
@@ -521,13 +521,13 @@ export async function getRelatedFactories(accountId: string): Promise<{ id: stri
   const collaborations = await prisma.collaboration.findMany({
     where: { influencerId: { in: influencerIds } },
     select: {
-      factory: { select: { id: true, name: true } },
+      brand: { select: { id: true, name: true } },
     },
-    distinct: ['factoryId'],
+    distinct: ['brandId'],
   });
 
   return collaborations.map((c) => ({
-    id: c.factory.id,
-    name: c.factory.name,
+    id: c.brand.id,
+    name: c.brand.name,
   }));
 }

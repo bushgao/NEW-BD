@@ -21,7 +21,7 @@ describe('合作流程服务测试', () => {
     });
     testUserId = testUser.id;
 
-    const testFactory = await prisma.factory.create({
+    const testFactory = await prisma.brand.create({
       data: {
         name: 'Test Collab Factory',
         ownerId: testUser.id,
@@ -36,13 +36,13 @@ describe('合作流程服务测试', () => {
     // 更新用户关联工厂ID
     await prisma.user.update({
       where: { id: testUser.id },
-      data: { factoryId: testFactory.id },
+      data: { brandId: testFactory.id },
     });
 
     // 创建测试达人
     const testInfluencer = await prisma.influencer.create({
       data: {
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         nickname: '测试达人',
         platform: 'DOUYIN',
         platformId: `collab-test-${Date.now()}`,
@@ -55,26 +55,26 @@ describe('合作流程服务测试', () => {
 
   afterAll(async () => {
     // 清理测试数据 - 注意顺序，先清理有外键依赖的表
-    await prisma.followUpRecord.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.stageHistory.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.sampleDispatch.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.collaborationResult.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.collaboration.deleteMany({ where: { factoryId: testFactoryId } });
-    await prisma.influencer.deleteMany({ where: { factoryId: testFactoryId } });
+    await prisma.followUpRecord.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.stageHistory.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.sampleDispatch.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.collaborationResult.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.collaboration.deleteMany({ where: { brandId: testFactoryId } });
+    await prisma.influencer.deleteMany({ where: { brandId: testFactoryId } });
     // 先断开用户与工厂的关联
-    await prisma.user.update({ where: { id: testUserId }, data: { factoryId: null } });
-    await prisma.factory.delete({ where: { id: testFactoryId } });
+    await prisma.user.update({ where: { id: testUserId }, data: { brandId: null } });
+    await prisma.brand.delete({ where: { id: testFactoryId } });
     await prisma.user.delete({ where: { id: testUserId } });
     await prisma.$disconnect();
   });
 
   beforeEach(async () => {
     // 每个测试前清理合作数据
-    await prisma.followUpRecord.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.stageHistory.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.sampleDispatch.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.collaborationResult.deleteMany({ where: { collaboration: { factoryId: testFactoryId } } });
-    await prisma.collaboration.deleteMany({ where: { factoryId: testFactoryId } });
+    await prisma.followUpRecord.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.stageHistory.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.sampleDispatch.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.collaborationResult.deleteMany({ where: { collaboration: { brandId: testFactoryId } } });
+    await prisma.collaboration.deleteMany({ where: { brandId: testFactoryId } });
   });
 
 
@@ -82,7 +82,7 @@ describe('合作流程服务测试', () => {
     it('应该能创建合作记录并设置初始阶段', async () => {
       const collaboration = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
         notes: '初始创建',
@@ -97,7 +97,7 @@ describe('合作流程服务测试', () => {
     it('应该能更新合作阶段（模拟拖拽）', async () => {
       const collaboration = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
       });
@@ -116,7 +116,7 @@ describe('合作流程服务测试', () => {
     it('应该记录阶段变更历史', async () => {
       const collaboration = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
       });
@@ -145,7 +145,7 @@ describe('合作流程服务测试', () => {
     it('应该能连续更新多个阶段', async () => {
       const collaboration = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
       });
@@ -177,7 +177,7 @@ describe('合作流程服务测试', () => {
 
       const collaboration = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
       });
@@ -197,7 +197,7 @@ describe('合作流程服务测试', () => {
       // 创建多个不同阶段的合作
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
       });
@@ -215,7 +215,7 @@ describe('合作流程服务测试', () => {
     it('设置截止时间后应正确计算超期状态', async () => {
       const collaboration = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
       });
@@ -234,7 +234,7 @@ describe('合作流程服务测试', () => {
     it('未来的截止时间不应标记为超期', async () => {
       const collaboration = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
       });
@@ -253,7 +253,7 @@ describe('合作流程服务测试', () => {
     it('清除截止时间后超期状态应重置', async () => {
       const collaboration = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
       });
@@ -281,7 +281,7 @@ describe('合作流程服务测试', () => {
       // 创建一个带过去截止时间的合作（但isOverdue初始为false）
       const collaboration = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
       });
@@ -310,7 +310,7 @@ describe('合作流程服务测试', () => {
       // 创建一个超期合作
       const overdueCollab = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
       });
@@ -323,7 +323,7 @@ describe('合作流程服务测试', () => {
       // 创建一个正常合作
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'CONTACTED',
       });
@@ -343,7 +343,7 @@ describe('合作流程服务测试', () => {
     it('应该能添加跟进记录', async () => {
       const collaboration = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
       });
@@ -365,7 +365,7 @@ describe('合作流程服务测试', () => {
     it('应该能获取跟进记录列表', async () => {
       const collaboration = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
       });
@@ -403,7 +403,7 @@ describe('合作流程服务测试', () => {
     it('跟进记录应按时间倒序排列', async () => {
       const collaboration = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
       });
@@ -439,7 +439,7 @@ describe('合作流程服务测试', () => {
     it('空内容的跟进记录应被拒绝', async () => {
       const collaboration = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
       });
@@ -466,7 +466,7 @@ describe('合作流程服务测试', () => {
     it('跟进记录应包含用户信息', async () => {
       const collaboration = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
       });
@@ -488,7 +488,7 @@ describe('合作流程服务测试', () => {
     it('应该能设置卡点原因', async () => {
       const collaboration = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'QUOTED',
       });
@@ -506,7 +506,7 @@ describe('合作流程服务测试', () => {
     it('应该能清除卡点原因', async () => {
       const collaboration = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'QUOTED',
       });
@@ -532,14 +532,14 @@ describe('合作流程服务测试', () => {
       // 创建不同阶段的合作
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
       });
 
       await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'CONTACTED',
       });
@@ -555,7 +555,7 @@ describe('合作流程服务测试', () => {
     it('统计应包含超期数量', async () => {
       const collaboration = await collaborationService.createCollaboration({
         influencerId: testInfluencerId,
-        factoryId: testFactoryId,
+        brandId: testFactoryId,
         businessStaffId: testUserId,
         stage: 'LEAD',
       });
@@ -601,7 +601,7 @@ describe('合作流程服务测试', () => {
         fc.asyncProperty(stageArbitrary, async (stage: PipelineStage) => {
           const collaboration = await collaborationService.createCollaboration({
             influencerId: testInfluencerId,
-            factoryId: testFactoryId,
+            brandId: testFactoryId,
             businessStaffId: testUserId,
             stage,
           });
@@ -632,7 +632,7 @@ describe('合作流程服务测试', () => {
 
             const collaboration = await collaborationService.createCollaboration({
               influencerId: testInfluencerId,
-              factoryId: testFactoryId,
+              brandId: testFactoryId,
               businessStaffId: testUserId,
               stage: fromStage,
             });
@@ -691,7 +691,7 @@ describe('合作流程服务测试', () => {
 
             const collaboration = await collaborationService.createCollaboration({
               influencerId: testInfluencerId,
-              factoryId: testFactoryId,
+              brandId: testFactoryId,
               businessStaffId: testUserId,
               stage: uniqueStages[0],
             });
@@ -758,7 +758,7 @@ describe('合作流程服务测试', () => {
         fc.asyncProperty(pastOffsetArbitrary, async (daysAgo: number) => {
           const collaboration = await collaborationService.createCollaboration({
             influencerId: testInfluencerId,
-            factoryId: testFactoryId,
+            brandId: testFactoryId,
             businessStaffId: testUserId,
             stage: 'LEAD',
           });
@@ -791,7 +791,7 @@ describe('合作流程服务测试', () => {
         fc.asyncProperty(futureOffsetArbitrary, async (daysLater: number) => {
           const collaboration = await collaborationService.createCollaboration({
             influencerId: testInfluencerId,
-            factoryId: testFactoryId,
+            brandId: testFactoryId,
             businessStaffId: testUserId,
             stage: 'LEAD',
           });
@@ -824,7 +824,7 @@ describe('合作流程服务测试', () => {
         fc.asyncProperty(pastOffsetArbitrary, async (daysAgo: number) => {
           const collaboration = await collaborationService.createCollaboration({
             influencerId: testInfluencerId,
-            factoryId: testFactoryId,
+            brandId: testFactoryId,
             businessStaffId: testUserId,
             stage: 'LEAD',
           });
@@ -866,7 +866,7 @@ describe('合作流程服务测试', () => {
           async (stage: PipelineStage) => {
             const collaboration = await collaborationService.createCollaboration({
               influencerId: testInfluencerId,
-              factoryId: testFactoryId,
+              brandId: testFactoryId,
               businessStaffId: testUserId,
               stage,
             });

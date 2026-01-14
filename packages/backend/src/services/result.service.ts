@@ -112,7 +112,7 @@ export function calculateRoi(salesGmv: number, totalCost: number): number {
 /**
  * 录入合作结果
  */
-export async function createResult(data: CreateResultInput, factoryId: string) {
+export async function createResult(data: CreateResultInput, brandId: string) {
   const {
     collaborationId,
     contentType,
@@ -128,7 +128,7 @@ export async function createResult(data: CreateResultInput, factoryId: string) {
 
   // 验证合作记录存在且属于该工厂
   const collaboration = await prisma.collaboration.findFirst({
-    where: { id: collaborationId, factoryId },
+    where: { id: collaborationId, brandId },
     include: {
       dispatches: true,
       result: true,
@@ -206,11 +206,11 @@ export async function createResult(data: CreateResultInput, factoryId: string) {
 /**
  * 获取合作结果详情
  */
-export async function getResultById(id: string, factoryId: string) {
+export async function getResultById(id: string, brandId: string) {
   const result = await prisma.collaborationResult.findFirst({
     where: {
       id,
-      collaboration: { factoryId },
+      collaboration: { brandId },
     },
     include: {
       collaboration: {
@@ -239,12 +239,12 @@ export async function getResultById(id: string, factoryId: string) {
  */
 export async function getResultByCollaborationId(
   collaborationId: string,
-  factoryId: string
+  brandId: string
 ) {
   const result = await prisma.collaborationResult.findFirst({
     where: {
       collaborationId,
-      collaboration: { factoryId },
+      collaboration: { brandId },
     },
     include: {
       collaboration: {
@@ -270,13 +270,13 @@ export async function getResultByCollaborationId(
  */
 export async function updateResult(
   id: string,
-  factoryId: string,
+  brandId: string,
   data: UpdateResultInput
 ) {
   const existing = await prisma.collaborationResult.findFirst({
     where: {
       id,
-      collaboration: { factoryId },
+      collaboration: { brandId },
     },
     include: {
       collaboration: {
@@ -345,7 +345,7 @@ export async function updateResult(
  * 获取合作结果列表
  */
 export async function listResults(
-  factoryId: string,
+  brandId: string,
   filter: {
     profitStatus?: ProfitStatus;
     contentType?: ContentType;
@@ -358,7 +358,7 @@ export async function listResults(
   const { page, pageSize } = pagination;
 
   const where: any = {
-    collaboration: { factoryId },
+    collaboration: { brandId },
   };
 
   if (filter.profitStatus) where.profitStatus = filter.profitStatus;
@@ -407,14 +407,14 @@ export async function listResults(
  * 获取 ROI 报表（按维度分组）
  */
 export async function getRoiReport(
-  factoryId: string,
+  brandId: string,
   filter: RoiReportFilter
 ): Promise<RoiReport> {
   const { groupBy, startDate, endDate } = filter;
 
   // 构建查询条件
   const where: any = {
-    collaboration: { factoryId },
+    collaboration: { brandId },
   };
 
   if (startDate || endDate) {
@@ -556,9 +556,9 @@ export async function getRoiReport(
 /**
  * 获取合作结果统计概览
  */
-export async function getResultStats(factoryId: string, dateRange?: { startDate: Date; endDate: Date }) {
+export async function getResultStats(brandId: string, dateRange?: { startDate: Date; endDate: Date }) {
   const where: any = {
-    collaboration: { factoryId },
+    collaboration: { brandId },
   };
 
   if (dateRange) {

@@ -4,7 +4,7 @@ import type { PaginatedResult, ReceivedStatus, OnboardStatus } from '@ics/shared
 // Types
 export interface Sample {
   id: string;
-  factoryId: string;
+  brandId: string;
   sku: string;
   name: string;
   unitCost: number; // 单件成本（分）

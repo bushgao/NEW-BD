@@ -8,7 +8,7 @@ import type { ReceivedStatus, OnboardStatus } from '@prisma/client';
 
 // 类型定义
 export interface CreateSampleInput {
-  factoryId: string;
+  brandId: string;
   sku: string;
   name: string;
   unitCost: number; // 单件成本（分）
@@ -86,11 +86,11 @@ export interface SampleCostReport {
  * 创建样品
  */
 export async function createSample(data: CreateSampleInput) {
-  const { factoryId, sku, name, unitCost, retailPrice, canResend, notes } = data;
+  const { brandId, sku, name, unitCost, retailPrice, canResend, notes } = data;
 
   // 检查 SKU 是否重复
   const existing = await prisma.sample.findFirst({
-    where: { factoryId, sku },
+    where: { brandId, sku },
   });
 
   if (existing) {
@@ -99,7 +99,7 @@ export async function createSample(data: CreateSampleInput) {
 
   const sample = await prisma.sample.create({
     data: {
-      factoryId,
+      brandId,
       sku: sku.trim(),
       name: name.trim(),
       unitCost,
@@ -115,9 +115,9 @@ export async function createSample(data: CreateSampleInput) {
 /**
  * 根据 ID 获取样品
  */
-export async function getSampleById(id: string, factoryId: string) {
+export async function getSampleById(id: string, brandId: string) {
   const sample = await prisma.sample.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
   });
 
   if (!sample) {
@@ -130,9 +130,9 @@ export async function getSampleById(id: string, factoryId: string) {
 /**
  * 更新样品
  */
-export async function updateSample(id: string, factoryId: string, data: UpdateSampleInput) {
+export async function updateSample(id: string, brandId: string, data: UpdateSampleInput) {
   const existing = await prisma.sample.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
   });
 
   if (!existing) {
@@ -142,7 +142,7 @@ export async function updateSample(id: string, factoryId: string, data: UpdateSa
   // 如果更新 SKU，检查是否重复
   if (data.sku && data.sku !== existing.sku) {
     const duplicate = await prisma.sample.findFirst({
-      where: { factoryId, sku: data.sku, id: { not: id } },
+      where: { brandId, sku: data.sku, id: { not: id } },
     });
     if (duplicate) {
       throw createConflictError('SKU 已存在');
@@ -168,9 +168,9 @@ export async function updateSample(id: string, factoryId: string, data: UpdateSa
 /**
  * 删除样品
  */
-export async function deleteSample(id: string, factoryId: string) {
+export async function deleteSample(id: string, brandId: string) {
   const existing = await prisma.sample.findFirst({
-    where: { id, factoryId },
+    where: { id, brandId },
   });
 
   if (!existing) {
@@ -193,14 +193,14 @@ export async function deleteSample(id: string, factoryId: string) {
  * 获取样品列表
  */
 export async function listSamples(
-  factoryId: string,
+  brandId: string,
   filter: SampleFilter,
   pagination: { page: number; pageSize: number }
 ) {
   const { keyword, canResend } = filter;
   const { page, pageSize } = pagination;
 
-  const where: any = { factoryId };
+  const where: any = { brandId };
 
   if (keyword) {
     where.OR = [
@@ -294,11 +294,11 @@ export async function createDispatch(data: CreateDispatchInput) {
 /**
  * 获取寄样记录详情
  */
-export async function getDispatchById(id: string, factoryId: string) {
+export async function getDispatchById(id: string, brandId: string) {
   const dispatch = await prisma.sampleDispatch.findFirst({
     where: {
       id,
-      sample: { factoryId },
+      sample: { brandId },
     },
     include: {
       sample: true,
@@ -325,13 +325,13 @@ export async function getDispatchById(id: string, factoryId: string) {
  */
 export async function updateDispatchStatus(
   id: string,
-  factoryId: string,
+  brandId: string,
   data: UpdateDispatchStatusInput
 ) {
   const existing = await prisma.sampleDispatch.findFirst({
     where: {
       id,
-      sample: { factoryId },
+      sample: { brandId },
     },
   });
 
@@ -372,7 +372,7 @@ export async function updateDispatchStatus(
  * 获取寄样记录列表
  */
 export async function listDispatches(
-  factoryId: string,
+  brandId: string,
   filter: {
     sampleId?: string;
     collaborationId?: string;
@@ -385,7 +385,7 @@ export async function listDispatches(
   const { page, pageSize } = pagination;
 
   const where: any = {
-    sample: { factoryId },
+    sample: { brandId },
   };
 
   if (filter.sampleId) where.sampleId = filter.sampleId;
@@ -429,7 +429,7 @@ export async function listDispatches(
  * 获取样品成本报表
  */
 export async function getSampleCostReport(
-  factoryId: string,
+  brandId: string,
   dateRange?: DateRange
 ): Promise<SampleCostReport> {
   // 构建日期筛选条件
@@ -444,7 +444,7 @@ export async function getSampleCostReport(
 
   // 获取工厂所有样品
   const samples = await prisma.sample.findMany({
-    where: { factoryId },
+    where: { brandId },
     orderBy: { createdAt: 'desc' },
   });
 

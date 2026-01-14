@@ -96,10 +96,10 @@ export function requireFactoryAccess(req: Request, _res: Response, next: NextFun
       return next();
     }
 
-    // Get factoryId from request params or body
-    const factoryId = req.params.factoryId || req.body.factoryId;
+    // Get brandId from request params or body
+    const brandId = req.params.brandId || req.body.brandId;
 
-    if (factoryId && req.user.factoryId !== factoryId) {
+    if (brandId && req.user.brandId !== brandId) {
       throw createForbiddenError('您没有权限访问此工厂的数据');
     }
 
@@ -117,7 +117,7 @@ export const requirePlatformAdmin = requireRoles('PLATFORM_ADMIN');
 /**
  * Middleware to ensure user is a Brand (formerly Factory Owner)
  */
-export const requireFactoryOwner = requireRoles('BRAND');
+export const requireBrandOwner = requireRoles('BRAND');
 
 /**
  * Middleware to ensure user is Business (formerly Business Staff)
@@ -155,7 +155,7 @@ export function hasMinimumRole(userRole: UserRole, minimumRole: UserRole): boole
 }
 
 /**
- * Middleware to enrich user data with factoryId if missing from token
+ * Middleware to enrich user data with brandId if missing from token
  * This provides backward compatibility for old tokens
  */
 export async function enrichUserData(req: Request, _res: Response, next: NextFunction): Promise<void> {
@@ -164,30 +164,38 @@ export async function enrichUserData(req: Request, _res: Response, next: NextFun
       return next();
     }
 
-    // If token already has factoryId, skip
-    if (req.user.factoryId) {
-      console.log('[Enrich User Data] ✅ Token already has factoryId:', req.user.factoryId);
+    // If token already has brandId, skip
+    if (req.user.brandId) {
+      console.log('[Enrich User Data] ✅ Token already has brandId:', req.user.brandId);
       return next();
     }
 
-    // Platform admins don't need factoryId
+    // Platform admins don't need brandId
     if (req.user.role === 'PLATFORM_ADMIN') {
-      console.log('[Enrich User Data] ✅ Platform admin, no factoryId needed');
+      console.log('[Enrich User Data] ✅ Platform admin, no brandId needed');
       return next();
     }
 
-    // Query database for factoryId
-    console.log('[Enrich User Data] ⚠️ Token missing factoryId, querying database...');
+    // Query database for brandId
+    console.log('[Enrich User Data] ⚠️ Token missing brandId, querying database...');
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
-      select: { factoryId: true }
+      select: {
+        brandId: true,
+        ownedBrand: {
+          select: { id: true }
+        }
+      }
     });
 
-    if (user?.factoryId) {
-      req.user.factoryId = user.factoryId;
-      console.log('[Enrich User Data] ✅ Added factoryId from database:', user.factoryId);
+    // 优先使用 brandId（商务用户），其次使用 ownedBrand.id（品牌主账号）
+    const brandId = user?.brandId || user?.ownedBrand?.id;
+
+    if (brandId) {
+      req.user.brandId = brandId;
+      console.log('[Enrich User Data] ✅ Added brandId from database:', brandId);
     } else {
-      console.log('[Enrich User Data] ⚠️ User has no factoryId in database');
+      console.log('[Enrich User Data] ⚠️ User has no brandId in database');
     }
 
     next();
