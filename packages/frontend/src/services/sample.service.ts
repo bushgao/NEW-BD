@@ -136,18 +136,8 @@ export const ONBOARD_STATUS_LABELS: Record<OnboardStatus, string> = {
   NOT_ONBOARD: '未上车',
 };
 
-// Helper functions
-export function formatMoney(cents: number): string {
-  return (cents / 100).toFixed(2);
-}
-
-export function parseMoney(yuan: number): number {
-  return Math.round(yuan * 100);
-}
-
-export function formatPercent(rate: number): string {
-  return `${(rate * 100).toFixed(1)}%`;
-}
+// Helper functions - 从统一工具导入并重新导出
+export { formatMoney, parseMoney, formatPercent } from '../utils/money';
 
 // API functions
 export async function getSamples(filter: SampleFilter = {}): Promise<PaginatedResult<Sample>> {

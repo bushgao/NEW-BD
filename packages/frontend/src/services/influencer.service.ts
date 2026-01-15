@@ -8,8 +8,11 @@ export interface Influencer {
   nickname: string;
   platform: Platform;
   platformId: string;
+  uid: string | null;
+  homeUrl: string | null;
   phone: string | null;
   wechat: string | null;
+  shippingAddress: string | null;
   followers: string | null;
   categories: string[];
   tags: string[];
@@ -22,8 +25,11 @@ export interface CreateInfluencerInput {
   nickname: string;
   platform: Platform;
   platformId: string;
+  uid?: string;
+  homeUrl?: string;
   phone?: string;
   wechat?: string;
+  shippingAddress?: string;
   followers?: string;
   categories?: string[];
   tags?: string[];
@@ -34,8 +40,11 @@ export interface UpdateInfluencerInput {
   nickname?: string;
   platform?: Platform;
   platformId?: string;
+  uid?: string;
+  homeUrl?: string;
   phone?: string;
   wechat?: string;
+  shippingAddress?: string;
   followers?: string;
   categories?: string[];
   tags?: string[];

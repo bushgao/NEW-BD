@@ -628,6 +628,73 @@ router.get(
 );
 
 /**
+ * @route POST /api/platform/influencers
+ * @desc 平台管理员创建达人（入库到指定品牌）
+ * @access Platform Admin
+ */
+router.post(
+  '/influencers',
+  authenticate,
+  requirePlatformAdmin,
+  [
+    body('brandId').isUUID().withMessage('请选择目标品牌'),
+    body('nickname').trim().notEmpty().withMessage('达人昵称不能为空'),
+    body('platform').isIn(['DOUYIN', 'KUAISHOU', 'XIAOHONGSHU', 'SHIPINHAO', 'WEIBO', 'BILIBILI', 'TAOBAO', 'OTHER']).withMessage('无效的平台'),
+    body('platformId').trim().notEmpty().withMessage('平台账号ID不能为空'),
+    body('uid').optional().isString(),
+    body('homeUrl').optional().isString(),
+    body('phone').optional().isString(),
+    body('wechat').optional().isString(),
+    body('followers').optional().isString(),
+    body('tags').optional().isArray(),
+    body('notes').optional().isString(),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const {
+        brandId,
+        nickname,
+        platform,
+        platformId,
+        uid,
+        homeUrl,
+        phone,
+        wechat,
+        followers,
+        tags,
+        notes,
+      } = req.body;
+
+      const adminId = req.user!.userId;
+
+      const influencer = await platformService.createInfluencerForBrand({
+        brandId,
+        nickname,
+        platform,
+        platformId,
+        uid,
+        homeUrl,
+        phone,
+        wechat,
+        followers,
+        tags: tags || [],
+        notes,
+        createdBy: adminId,
+        sourceType: 'PLATFORM',
+      });
+
+      res.status(201).json({
+        success: true,
+        data: influencer,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
  * @route GET /api/platform/influencers/:influencerId
  * @desc 获取达人详情（平台级别）
  * @access Platform Admin

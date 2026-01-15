@@ -519,12 +519,8 @@ export async function deleteUser(userId: string): Promise<void> {
 
 // ============ Helper Functions ============
 
-/**
- * 格式化金额（分转元）
- */
-export function formatMoney(cents: number): string {
-  return (cents / 100).toFixed(2);
-}
+// 格式化函数 - 从统一工具导入并重新导出
+export { formatMoney } from '../utils/money';
 
 /**
  * 获取状态标签颜色

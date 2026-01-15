@@ -144,15 +144,8 @@ export const PROFIT_STATUS_COLORS: Record<ProfitStatus, string> = {
   HIGH_PROFIT: '#13c2c2',
 };
 
-// 格式化金额（分转元）
-export function formatMoney(cents: number): string {
-  return (cents / 100).toFixed(2);
-}
-
-// 格式化 ROI
-export function formatRoi(roi: number): string {
-  return roi.toFixed(2);
-}
+// 格式化函数 - 从统一工具导入并重新导出
+export { formatMoney, formatROI as formatRoi } from '../utils/money';
 
 
 // API 函数

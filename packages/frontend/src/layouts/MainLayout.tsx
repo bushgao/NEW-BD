@@ -15,6 +15,8 @@ import {
   TrophyOutlined,
   SyncOutlined,
   ShopOutlined,
+  CalculatorOutlined,
+  CloudUploadOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useAuthStore } from '../stores/authStore';
@@ -54,6 +56,11 @@ const getMenuItems = (role: string): MenuProps['items'] => {
       key: '/app/follow-up-analytics',
       icon: <LineChartOutlined />,
       label: '跟进分析',
+    },
+    {
+      key: '/app/roi-calculator',
+      icon: <CalculatorOutlined />,
+      label: 'ROI 测算',
     },
   ];
 
@@ -100,6 +107,11 @@ const getMenuItems = (role: string): MenuProps['items'] => {
       key: '/app/admin/influencers',
       icon: <TeamOutlined />,
       label: '达人管理',
+    },
+    {
+      key: '/app/admin/collection',
+      icon: <CloudUploadOutlined />,
+      label: '达人入库',
     },
     {
       key: '/app/admin/users',

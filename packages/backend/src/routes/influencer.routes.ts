@@ -52,8 +52,11 @@ const createInfluencerValidation = [
     .isIn(['DOUYIN', 'KUAISHOU', 'XIAOHONGSHU', 'WEIBO', 'OTHER'])
     .withMessage('无效的平台类型'),
   body('platformId').trim().notEmpty().withMessage('请输入平台账号ID'),
+  body('uid').optional().trim(),
+  body('homeUrl').optional().trim(),
   body('phone').optional().trim(),
   body('wechat').optional().trim(),
+  body('shippingAddress').optional().trim(),
   body('followers').optional().trim(),
   body('categories').optional().isArray().withMessage('类目必须是数组'),
   body('tags').optional().isArray().withMessage('标签必须是数组'),
@@ -67,8 +70,11 @@ const updateInfluencerValidation = [
     .isIn(['DOUYIN', 'KUAISHOU', 'XIAOHONGSHU', 'WEIBO', 'OTHER'])
     .withMessage('无效的平台类型'),
   body('platformId').optional().trim().notEmpty().withMessage('平台账号ID不能为空'),
+  body('uid').optional().trim(),
+  body('homeUrl').optional().trim(),
   body('phone').optional().trim(),
   body('wechat').optional().trim(),
+  body('shippingAddress').optional().trim(),
   body('followers').optional().trim(),
   body('categories').optional().isArray().withMessage('类目必须是数组'),
   body('tags').optional().isArray().withMessage('标签必须是数组'),
@@ -155,8 +161,8 @@ router.get(
       };
 
       const result = await influencerService.list(
-        brandId, 
-        filter, 
+        brandId,
+        filter,
         { page, pageSize },
         req.user!.userId,
         req.user!.role
@@ -310,13 +316,15 @@ router.post(
         throw createBadRequestError('用户未关联工厂');
       }
 
-      const { nickname, platform, platformId, phone, wechat, followers, categories, tags, notes } = req.body;
+      const { nickname, platform, platformId, uid, homeUrl, phone, wechat, followers, categories, tags, notes } = req.body;
 
       const influencer = await influencerService.create({
         brandId,
         nickname,
         platform,
         platformId,
+        uid,
+        homeUrl,
         phone,
         wechat,
         followers,
@@ -356,12 +364,14 @@ router.put(
         throw createBadRequestError('用户未关联工厂');
       }
 
-      const { nickname, platform, platformId, phone, wechat, followers, categories, tags, notes } = req.body;
+      const { nickname, platform, platformId, uid, homeUrl, phone, wechat, followers, categories, tags, notes } = req.body;
 
       const influencer = await influencerService.update(req.params.id, brandId, {
         nickname,
         platform,
         platformId,
+        uid,
+        homeUrl,
         phone,
         wechat,
         followers,
@@ -656,7 +666,7 @@ router.post(
 
       // Verify all influencers belong to the factory
       const influencers = await influencerService.getInfluencersByIds(influencerIds, brandId);
-      
+
       if (influencers.length !== influencerIds.length) {
         throw createBadRequestError('部分达人不存在或不属于当前工厂');
       }
@@ -760,7 +770,7 @@ router.put(
       }
 
       const { groupId } = req.body;
-      
+
       // Import group service
       const groupService = await import('../services/influencer-group.service');
       await groupService.moveInfluencerToGroup(req.params.id, groupId || null, brandId);

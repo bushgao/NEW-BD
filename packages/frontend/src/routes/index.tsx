@@ -27,6 +27,8 @@ const AdminIndependent = lazy(() => import('../pages/Admin/IndependentBusinessLi
 const NotificationsPage = lazy(() => import('../pages/Notifications'));
 const UIShowcase = lazy(() => import('../pages/UIShowcase'));
 const TeamPage = lazy(() => import('../pages/Team'));
+const RoiCalculatorPage = lazy(() => import('../pages/RoiCalculator'));
+const AdminInfluencerCollection = lazy(() => import('../pages/Admin/InfluencerCollection'));
 
 // 平台管理员登录页面
 const AdminLoginPage = lazy(() => import('../pages/AdminLogin'));
@@ -252,6 +254,16 @@ const AppRoutes = () => {
             }
           />
 
+          {/* ROI Calculator - Factory Owner and Business Staff */}
+          <Route
+            path="roi-calculator"
+            element={
+              <RoleRoute allowedRoles={['BRAND', 'BUSINESS']}>
+                <RoiCalculatorPage />
+              </RoleRoute>
+            }
+          />
+
           {/* Team Management - Factory Owner only */}
           <Route
             path="team"
@@ -293,6 +305,7 @@ const AppRoutes = () => {
           <Route path="factories" element={<AdminFactories />} />
           <Route path="independent" element={<AdminIndependent />} />
           <Route path="influencers" element={<AdminInfluencers />} />
+          <Route path="collection" element={<AdminInfluencerCollection />} />
           <Route path="users" element={<AdminUsers />} />
         </Route>
 

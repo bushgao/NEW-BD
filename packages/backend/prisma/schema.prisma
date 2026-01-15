@@ -173,8 +173,11 @@ model Influencer {
   nickname   String
   platform   Platform
   platformId String
+  uid        String?  // 达人UID（平台唯一标识）
+  homeUrl    String?  // 主页链接
   phone      String?
   wechat     String?  // 微信号
+  shippingAddress String?  // 收件地址
   followers  String?  // 粉丝数（存储为字符串，如 "12000"）
   categories String[]
   tags       String[]

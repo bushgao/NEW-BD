@@ -37,8 +37,11 @@ const InfluencerModal = ({
           nickname: influencer.nickname,
           platform: influencer.platform,
           platformId: influencer.platformId,
+          uid: influencer.uid || '',
+          homeUrl: influencer.homeUrl || '',
           phone: influencer.phone || '',
           wechat: influencer.wechat || '',
+          shippingAddress: influencer.shippingAddress || '',
           categories: influencer.categories,
           tags: influencer.tags,
           notes: influencer.notes || '',
@@ -80,8 +83,11 @@ const InfluencerModal = ({
         nickname: values.nickname,
         platform: values.platform,
         platformId: values.platformId,
+        uid: values.uid || undefined,
+        homeUrl: values.homeUrl || undefined,
         phone: values.phone || undefined,
         wechat: values.wechat || undefined,
+        shippingAddress: values.shippingAddress || undefined,
         categories: values.categories || [],
         tags: values.tags || [],
         notes: values.notes || undefined,
@@ -166,12 +172,24 @@ const InfluencerModal = ({
           <Input placeholder="请输入平台账号ID" onBlur={handleDuplicateCheck} />
         </Form.Item>
 
+        <Form.Item name="uid" label="UID">
+          <Input placeholder="请输入达人UID（可选）" />
+        </Form.Item>
+
+        <Form.Item name="homeUrl" label="主页">
+          <Input placeholder="请输入主页链接（可选）" />
+        </Form.Item>
+
         <Form.Item name="phone" label="手机号">
           <Input placeholder="请输入手机号" onBlur={handleDuplicateCheck} />
         </Form.Item>
 
         <Form.Item name="wechat" label="微信号">
           <Input placeholder="请输入微信号" />
+        </Form.Item>
+
+        <Form.Item name="shippingAddress" label="收件地址">
+          <Input.TextArea rows={2} placeholder="请输入收件地址（可选）" />
         </Form.Item>
 
         <Form.Item name="categories" label="类目">

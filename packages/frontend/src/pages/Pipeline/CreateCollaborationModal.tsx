@@ -5,6 +5,7 @@ import {
   Select,
   DatePicker,
   Input,
+  InputNumber,
   message,
   Alert,
   Space,
@@ -22,6 +23,7 @@ import {
 } from '../../services/collaboration.service';
 import { PLATFORM_LABELS, type Influencer } from '../../services/influencer.service';
 import { getSamples, type Sample } from '../../services/sample.service';
+import { parseMoney } from '../../utils/money';
 import FormValidator, { type ValidationResult } from '../../components/forms/FormValidator';
 import dayjs from 'dayjs';
 
@@ -274,7 +276,7 @@ const CreateCollaborationModal = ({
         influencerId: values.influencerId,
         stage: values.stage,
         sampleId: values.sampleId,
-        quotedPrice: values.quotedPrice ? Math.round(Number(values.quotedPrice)) : undefined,
+        quotedPrice: values.quotedPrice ? parseMoney(Number(values.quotedPrice)) : undefined,
         deadline: values.deadline?.toISOString(),
         notes: values.notes,
       });
@@ -460,11 +462,12 @@ const CreateCollaborationModal = ({
         </Form.Item>
 
         <Form.Item name="quotedPrice" label="报价">
-          <Input
-            type="number"
+          <InputNumber
             placeholder="输入报价金额（可选）"
             prefix="¥"
             min={0}
+            precision={2}
+            style={{ width: '100%' }}
           />
         </Form.Item>
 

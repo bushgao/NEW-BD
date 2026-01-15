@@ -1134,6 +1134,109 @@ export async function verifyInfluencer(
 }
 
 /**
+ * 平台管理员创建达人（入库到指定品牌）
+ */
+export interface CreateInfluencerInput {
+  brandId: string;
+  nickname: string;
+  platform: string;
+  platformId: string;
+  uid?: string;
+  homeUrl?: string;
+  phone?: string;
+  wechat?: string;
+  followers?: string;
+  tags: string[];
+  notes?: string;
+  createdBy: string;
+  sourceType: string;
+}
+
+export async function createInfluencerForBrand(input: CreateInfluencerInput) {
+  const {
+    brandId,
+    nickname,
+    platform,
+    platformId,
+    uid,
+    homeUrl,
+    phone,
+    wechat,
+    followers,
+    tags,
+    notes,
+    createdBy,
+    sourceType,
+  } = input;
+
+  // 验证品牌存在
+  const brand = await prisma.brand.findUnique({
+    where: { id: brandId },
+    include: { _count: { select: { influencers: true } } },
+  });
+
+  if (!brand) {
+    throw createNotFoundError('目标品牌不存在');
+  }
+
+  // 检查配额
+  if (brand._count.influencers >= brand.influencerLimit) {
+    throw createQuotaExceededError(
+      `该品牌已达到达人上限（${brand._count.influencers}/${brand.influencerLimit}）`
+    );
+  }
+
+  // 检查重复（同品牌、同平台、同账号ID）
+  const existing = await prisma.influencer.findFirst({
+    where: {
+      brandId,
+      platform: platform as any,
+      platformId,
+    },
+  });
+
+  if (existing) {
+    throw createBadRequestError(`该达人已存在于此品牌中（账号ID: ${platformId}）`);
+  }
+
+  // 创建达人
+  const influencer = await prisma.influencer.create({
+    data: {
+      brandId,
+      nickname,
+      platform: platform as any,
+      platformId,
+      uid,
+      homeUrl,
+      phone,
+      wechat,
+      followers,
+      tags,
+      notes,
+      createdBy,
+      sourceType: sourceType as any,
+      verificationStatus: 'UNVERIFIED',
+    },
+    include: {
+      brand: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      creator: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  return influencer;
+}
+
+/**
  * 获取达人统计数据
  */
 export async function getInfluencerStats(startDate?: Date, endDate?: Date): Promise<InfluencerStats> {

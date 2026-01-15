@@ -37,6 +37,7 @@ import {
 } from '../../services/collaboration.service';
 import { PLATFORM_LABELS } from '../../services/influencer.service';
 import { getSamples, createDispatch, type Sample } from '../../services/sample.service';
+import { formatMoney } from '../../utils/money';
 import dayjs from 'dayjs';
 
 const { Text } = Typography;
@@ -190,7 +191,7 @@ const CollaborationModal = ({ visible, collaborationId, onClose }: Collaboration
           </Descriptions.Item>
           <Descriptions.Item label="报价">
             {collaboration.quotedPrice ? (
-              <Text strong style={{ color: '#1890ff' }}>¥{collaboration.quotedPrice.toFixed(2)}</Text>
+              <Text strong style={{ color: '#1890ff' }}>¥{formatMoney(collaboration.quotedPrice)}</Text>
             ) : '-'}
           </Descriptions.Item>
           <Descriptions.Item label="负责商务">

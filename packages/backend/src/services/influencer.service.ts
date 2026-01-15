@@ -13,8 +13,11 @@ export interface CreateInfluencerInput {
   nickname: string;
   platform: Platform;
   platformId: string;
+  uid?: string;
+  homeUrl?: string;
   phone?: string;
   wechat?: string;
+  shippingAddress?: string;
   followers?: string;
   categories?: string[];
   tags?: string[];
@@ -26,8 +29,11 @@ export interface UpdateInfluencerInput {
   nickname?: string;
   platform?: Platform;
   platformId?: string;
+  uid?: string;
+  homeUrl?: string;
   phone?: string;
   wechat?: string;
+  shippingAddress?: string;
   followers?: string;
   categories?: string[];
   tags?: string[];
@@ -62,8 +68,11 @@ export interface Influencer {
   nickname: string;
   platform: Platform;
   platformId: string;
+  uid: string | null;
+  homeUrl: string | null;
   phone: string | null;
   wechat: string | null;
+  shippingAddress: string | null;
   followers: string | null;
   categories: string[];
   tags: string[];
@@ -169,7 +178,7 @@ function determineSourceType(userRole: string): 'PLATFORM' | 'FACTORY' | 'STAFF'
  * Create a new influencer
  */
 export async function create(data: CreateInfluencerInput): Promise<Influencer> {
-  const { brandId, nickname, platform, platformId, phone, wechat, followers, categories, tags, notes, userId } = data;
+  const { brandId, nickname, platform, platformId, uid, homeUrl, phone, wechat, followers, categories, tags, notes, userId } = data;
 
   // Check quota
   await checkInfluencerQuota(brandId);
@@ -181,8 +190,8 @@ export async function create(data: CreateInfluencerInput): Promise<Influencer> {
       duplicateCheck.duplicateType === 'phone'
         ? '手机号'
         : duplicateCheck.duplicateType === 'platformId'
-        ? '平台账号ID'
-        : '手机号和平台账号ID';
+          ? '平台账号ID'
+          : '手机号和平台账号ID';
     throw createConflictError(`达人${typeMsg}已存在`, {
       duplicateType: duplicateCheck.duplicateType,
       existingInfluencer: duplicateCheck.existingInfluencer,
@@ -207,6 +216,8 @@ export async function create(data: CreateInfluencerInput): Promise<Influencer> {
       nickname: nickname.trim(),
       platform,
       platformId: platformId.trim(),
+      uid: uid?.trim() || null,
+      homeUrl: homeUrl?.trim() || null,
       phone: phone?.trim() || null,
       wechat: wechat?.trim() || null,
       followers: followers?.trim() || null,
@@ -268,8 +279,8 @@ export async function update(
         duplicateCheck.duplicateType === 'phone'
           ? '手机号'
           : duplicateCheck.duplicateType === 'platformId'
-          ? '平台账号ID'
-          : '手机号和平台账号ID';
+            ? '平台账号ID'
+            : '手机号和平台账号ID';
       throw createConflictError(`达人${typeMsg}已存在`, {
         duplicateType: duplicateCheck.duplicateType,
         existingInfluencer: duplicateCheck.existingInfluencer,
@@ -281,6 +292,8 @@ export async function update(
   if (data.nickname !== undefined) updateData.nickname = data.nickname.trim();
   if (data.platform !== undefined) updateData.platform = data.platform;
   if (data.platformId !== undefined) updateData.platformId = data.platformId.trim();
+  if (data.uid !== undefined) updateData.uid = data.uid?.trim() || null;
+  if (data.homeUrl !== undefined) updateData.homeUrl = data.homeUrl?.trim() || null;
   if (data.phone !== undefined) updateData.phone = data.phone?.trim() || null;
   if (data.wechat !== undefined) updateData.wechat = data.wechat?.trim() || null;
   if (data.followers !== undefined) updateData.followers = data.followers?.trim() || null;
@@ -345,7 +358,7 @@ export async function list(
     });
 
     const permissions = user?.permissions as any;
-    
+
     // 如果没有查看其他商务达人的权限，只显示自己创建的
     if (!permissions?.dataVisibility?.viewOthersInfluencers) {
       where.createdBy = userId;
@@ -538,7 +551,7 @@ export async function getSmartRecommendations(
     if (lastCollab && lastCollab.result) {
       const result = lastCollab.result;
       const roi = result.salesGmv && result.cost ? (result.salesGmv / result.cost - 1) * 100 : 0;
-      
+
       if (roi > 0) {
         recommendations.push({
           ...influencer,
@@ -644,7 +657,7 @@ export async function getSmartRecommendations(
         const daysAgo = Math.floor(
           (Date.now() - new Date(lastCollab.updatedAt).getTime()) / (1000 * 60 * 60 * 24)
         );
-        
+
         recommendations.push({
           ...influencer,
           reason: 'recent',
@@ -752,20 +765,20 @@ export async function getCollaborationHistory(
     return {
       id: collab.id,
       stage: collab.stage,
-      sampleName: collab.dispatches.length > 0 
-        ? collab.dispatches[0].sample.name 
+      sampleName: collab.dispatches.length > 0
+        ? collab.dispatches[0].sample.name
         : '未知样品',
       businessStaffName: collab.businessStaff?.name || '未知商务',
       createdAt: collab.createdAt.toISOString(),
       updatedAt: collab.updatedAt.toISOString(),
       result: collab.result
         ? {
-            salesGmv: collab.result.salesGmv || 0,
-            cost: totalCost,
-            roi: collab.result.salesGmv && totalCost > 0
-              ? ((collab.result.salesGmv / totalCost - 1) * 100)
-              : 0,
-          }
+          salesGmv: collab.result.salesGmv || 0,
+          cost: totalCost,
+          roi: collab.result.salesGmv && totalCost > 0
+            ? ((collab.result.salesGmv / totalCost - 1) * 100)
+            : 0,
+        }
         : undefined,
     };
   });
@@ -839,7 +852,7 @@ export async function getROIStats(
     if (collab.result) {
       const gmv = collab.result.salesGmv || 0;
       const cost = collab.result.totalCollaborationCost || 0;
-      
+
       totalGMV += gmv;
       totalCost += cost;
 
