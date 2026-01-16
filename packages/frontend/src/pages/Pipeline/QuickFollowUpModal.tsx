@@ -124,7 +124,7 @@ const QuickFollowUpModal = ({ visible, collaboration, onClose }: QuickFollowUpMo
   const handleVoiceInput = () => {
     // Check if browser supports speech recognition
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
+
     if (!SpeechRecognition) {
       message.warning('您的浏览器不支持语音输入功能，请使用 Chrome 浏览器');
       return;

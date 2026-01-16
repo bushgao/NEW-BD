@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    background-color: #F8FAFC;
+    background-color: #FFFFFF;
     color: #111827;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
@@ -12,7 +12,7 @@
   }
 
   ::selection {
-    background-color: #6378ff;
+    background-color: #0c8ce9;
     color: #ffffff;
   }
 }
@@ -20,10 +20,9 @@
 @layer components {
   .bento-card {
     background-color: #FFFFFF;
-    border: 1px solid #F1F5F9;
-    border-radius: 1.5rem;
-    /* 24px - 3xl */
-    box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f0f0f0;
+    border-radius: 6px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
     padding: 1.5rem;
     transition-property: all;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
@@ -31,7 +30,7 @@
   }
 
   .bento-card:hover {
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.04);
   }
 
   .text-gradient {
@@ -45,7 +44,7 @@
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
-    background-image: linear-gradient(to right, #6378ff, #3843b0);
+    background-image: linear-gradient(to right, #0c8ce9, #005aa3);
   }
 }
 
@@ -72,18 +71,18 @@
 }
 
 .ant-menu-item {
-  border-radius: 8px !important;
-  margin-inline: 8px !important;
-  margin-block: 4px !important;
-  width: calc(100% - 16px) !important;
+  border-radius: 6px !important;
+  margin-inline: 4px !important;
+  margin-block: 2px !important;
+  width: calc(100% - 8px) !important;
 }
 
 .ant-menu-item-selected {
-  background-color: rgba(99, 120, 255, 0.1) !important;
+  background-color: rgba(12, 140, 233, 0.1) !important;
 }
 
 .ant-menu-item:hover {
-  background-color: rgba(99, 120, 255, 0.05) !important;
+  background-color: rgba(12, 140, 233, 0.05) !important;
 }
 
 /* 修复内容区域左侧间距 - 已移除，避免影响其他页面 */

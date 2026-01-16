@@ -634,7 +634,7 @@ const Dashboard = () => {
 
         <div className="h-full flex flex-col gap-4">
           {/* 紧凑型顶部控制栏 */}
-          <div className="flex flex-row justify-between items-center bg-white/50 backdrop-blur-md sticky top-0 z-10 py-2 px-1 rounded-xl border border-neutral-100/50 shadow-sm">
+          <div className="flex flex-row justify-between items-center bg-white/50 backdrop-blur-md sticky top-0 z-10 py-2 px-1 rounded-lg border border-neutral-100/50 shadow-sm">
             <div className="flex items-center gap-3">
               <h1 className="text-xl font-bold tracking-tight text-neutral-900 m-0 pl-2">
                 下午好, {user?.name}
@@ -706,7 +706,7 @@ const Dashboard = () => {
                   suffix={<span className="text-sm text-neutral-400 font-normal ml-1">个达人</span>}
                   valueStyle={{ fontSize: 36, fontWeight: 700, color: '#111827' }}
                 />
-                <div className="mt-8 flex items-center gap-2 py-2 px-3 bg-neutral-50 rounded-xl w-fit border border-neutral-100">
+                <div className="mt-8 flex items-center gap-2 py-2 px-3 bg-neutral-50 rounded-md w-fit border border-neutral-100">
                   {renderChange(staffDashboard.metrics.periodComparison.contactedChange)}
                   <span className="text-xs text-neutral-400">环比上期</span>
                 </div>
@@ -721,7 +721,7 @@ const Dashboard = () => {
                   suffix={<span className="text-sm text-neutral-400 font-normal ml-1">单成交</span>}
                   valueStyle={{ fontSize: 36, fontWeight: 700, color: '#6378ff' }}
                 />
-                <div className="mt-8 flex items-center gap-2 py-2 px-3 bg-neutral-50 rounded-xl w-fit border border-neutral-100">
+                <div className="mt-8 flex items-center gap-2 py-2 px-3 bg-neutral-50 rounded-md w-fit border border-neutral-100">
                   {renderChange(staffDashboard.metrics.periodComparison.closedChange)}
                   <span className="text-xs text-neutral-400">环比上期</span>
                 </div>
@@ -740,7 +740,7 @@ const Dashboard = () => {
                     color: staffDashboard.metrics.currentPeriod.averageRoi >= 1 ? '#10B981' : '#EF4444'
                   }}
                 />
-                <div className="mt-8 flex items-center gap-2 py-2 px-3 bg-neutral-50 rounded-xl w-fit border border-neutral-100">
+                <div className="mt-8 flex items-center gap-2 py-2 px-3 bg-neutral-50 rounded-md w-fit border border-neutral-100">
                   {renderChange(staffDashboard.metrics.periodComparison.roiChange)}
                   <span className="text-xs text-neutral-400">环比上期</span>
                 </div>
@@ -755,7 +755,7 @@ const Dashboard = () => {
                   precision={2}
                   valueStyle={{ fontSize: 32, fontWeight: 700, color: '#111827' }}
                 />
-                <div className="mt-8 flex items-center gap-2 py-2 px-3 bg-neutral-50 rounded-xl w-fit border border-neutral-100">
+                <div className="mt-8 flex items-center gap-2 py-2 px-3 bg-neutral-50 rounded-md w-fit border border-neutral-100">
                   {renderChange(staffDashboard.metrics.periodComparison.gmvChange)}
                   <span className="text-xs text-neutral-400">环比上期</span>
                 </div>
@@ -1183,72 +1183,51 @@ const Dashboard = () => {
   // Hardcoded Factory Dashboard Layout for Stability
   const renderFactoryDashboard = () => (
     <div className="flex flex-col gap-6 pb-8">
-      <div className="grid grid-cols-1 xl:grid-cols-6 gap-6">
+      {/* Row 1: 资源概览 + KPI 统计卡片（对齐） */}
+      <div className="grid grid-cols-1 xl:grid-cols-6 gap-6 items-stretch">
 
         {/* Left Column (Span 2) */}
         <div className="col-span-1 xl:col-span-2 flex flex-col gap-6">
-          <BentoCard
-            title="资源概览"
-            span={6}
-            className="h-auto"
-            extra={
+          {/* 资源概览卡片 - 使用 bento-card 样式匹配其他卡片 */}
+          <div className="bento-card h-32 flex flex-col justify-between">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-neutral-900 tracking-tight leading-tight">资源概览</h3>
               <Tag color="geekblue" className="mr-0 border-none bg-indigo-50 text-indigo-600 font-bold px-2 rounded-md">
                 {planTypeLabels[planType] || planType}
               </Tag>
-            }
-          >
-            <div className="flex flex-col p-4 gap-4">
-              <div className="grid grid-cols-2 gap-3">
-                {/* Business Account */}
-                <div className="bg-neutral-50 rounded-2xl p-3 border border-neutral-100/50 flex flex-col justify-between gap-3">
-                  <div className="flex justify-between items-start">
-                    <div className="p-1.5 bg-white rounded-lg shadow-sm text-indigo-500 flex items-center justify-center">
-                      <TeamOutlined />
-                    </div>
-                    <div className="flex items-baseline gap-0.5">
-                      <span className="text-xl font-bold text-neutral-800">{staffCount}</span>
-                      <span className="text-[10px] text-neutral-400">/{staffLimit}</span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-neutral-500 font-bold mb-1.5">商务账号</div>
-                    <Progress
-                      percent={Math.round((staffCount / staffLimit) * 100)}
-                      showInfo={false}
-                      size="small"
-                      strokeColor="#6366f1"
-                      trailColor="#e0e7ff"
-                      strokeWidth={4}
-                    />
-                  </div>
-                </div>
+            </div>
 
-                {/* Influencer Resource */}
-                <div className="bg-neutral-50 rounded-2xl p-3 border border-neutral-100/50 flex flex-col justify-between gap-3">
-                  <div className="flex justify-between items-start">
-                    <div className="p-1.5 bg-white rounded-lg shadow-sm text-emerald-500 flex items-center justify-center">
-                      <CrownOutlined />
-                    </div>
-                    <div className="flex items-baseline gap-0.5">
-                      <span className="text-xl font-bold text-neutral-800">{influencerCount}</span>
-                      <span className="text-[10px] text-neutral-400">/{influencerLimit}</span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-neutral-500 font-bold mb-1.5">达人资源</div>
-                    <Progress
-                      percent={Math.round((influencerCount / influencerLimit) * 100)}
-                      showInfo={false}
-                      size="small"
-                      strokeColor="#10b981"
-                      trailColor="#d1fae5"
-                      strokeWidth={4}
-                    />
-                  </div>
+            {/* Content */}
+            <div className="flex items-center justify-around">
+              {/* Business Account */}
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-50 rounded-lg text-indigo-500">
+                  <TeamOutlined className="text-lg" />
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl font-bold text-neutral-800">{staffCount}</span>
+                  <span className="text-xs text-neutral-400">/{staffLimit}</span>
+                  <span className="text-xs text-neutral-500 font-medium">商务账号</span>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="h-8 w-px bg-neutral-200"></div>
+
+              {/* Influencer Resource */}
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-50 rounded-lg text-emerald-500">
+                  <CrownOutlined className="text-lg" />
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl font-bold text-neutral-800">{influencerCount}</span>
+                  <span className="text-xs text-neutral-400">/{influencerLimit}</span>
+                  <span className="text-xs text-neutral-500 font-medium">达人资源</span>
                 </div>
               </div>
             </div>
-          </BentoCard>
+          </div>
 
           <BentoCard title="快捷操作" span={6} className="h-auto">
             <div className="grid grid-cols-2 gap-3">
@@ -1288,7 +1267,7 @@ const Dashboard = () => {
               ].map((item, i) => (
                 <div
                   key={i}
-                  className={`cursor-pointer rounded-xl p-3 flex flex-col justify-between transition-all hover:scale-[1.02] active:scale-95 ${item.bg}`}
+                  className={`cursor-pointer rounded-lg p-3 flex flex-col justify-between transition-all hover:scale-[1.02] active:scale-95 ${item.bg}`}
                   onClick={() => item.path !== '#' && navigate(item.path)}
                   style={{ minHeight: '90px' }}
                 >
@@ -1330,7 +1309,7 @@ const Dashboard = () => {
 
           {/* KPI Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-3xl border border-neutral-100 shadow-sm flex flex-col justify-between h-32">
+            <div className="bg-white p-5 rounded-lg border border-neutral-100 shadow-sm flex flex-col justify-between h-32">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center"><ShoppingOutlined /></div>
                 <span className="text-neutral-500 text-xs font-medium">寄样成本</span>
@@ -1344,7 +1323,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-3xl border border-neutral-100 shadow-sm flex flex-col justify-between h-32">
+            <div className="bg-white p-5 rounded-lg border border-neutral-100 shadow-sm flex flex-col justify-between h-32">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-pink-50 text-pink-500 flex items-center justify-center"><DollarOutlined /></div>
                 <span className="text-neutral-500 text-xs font-medium">合作投入</span>
@@ -1358,7 +1337,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-3xl border border-neutral-100 shadow-sm flex flex-col justify-between h-32">
+            <div className="bg-white p-5 rounded-lg border border-neutral-100 shadow-sm flex flex-col justify-between h-32">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center"><RiseOutlined /></div>
                 <span className="text-neutral-500 text-xs font-medium">成交 GMV</span>
@@ -1372,7 +1351,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-3xl border border-neutral-100 shadow-sm flex flex-col justify-between h-32">
+            <div className="bg-white p-5 rounded-lg border border-neutral-100 shadow-sm flex flex-col justify-between h-32">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center"><TrophyOutlined /></div>
                 <span className="text-neutral-500 text-xs font-medium">总 ROI</span>
@@ -1467,7 +1446,7 @@ const Dashboard = () => {
       }}
     >
       <div className="h-full flex flex-col gap-4">
-        <div className="flex flex-row justify-between items-center bg-white/60 backdrop-blur-xl sticky top-0 z-20 py-2 px-3 rounded-2xl border border-white/60 shadow-sm ring-1 ring-black/5">
+        <div className="flex flex-row justify-between items-center bg-white/60 backdrop-blur-xl sticky top-0 z-20 py-2 px-3 rounded-lg border border-white/60 shadow-sm ring-1 ring-black/5">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-bold tracking-tight text-neutral-900 m-0">
               下午好, {user?.name}

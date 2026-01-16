@@ -189,142 +189,146 @@ const RoiCalculatorPage = () => {
 
     return (
         <div style={{
+            minHeight: '100vh',
+            background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+            position: 'relative',
             padding: '24px',
             margin: '-24px',
-            background: 'linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #24243e 100%)',
-            minHeight: '100vh',
         }}>
-            {/* 页面标题 */}
-            <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
-                <Col>
-                    <Space>
-                        <CalculatorOutlined style={{ fontSize: 28, color: '#fff' }} />
-                        <Title level={3} style={{ margin: 0, color: '#fff' }}>ROI 测算工具</Title>
-                    </Space>
-                    <Paragraph style={{ color: 'rgba(255,255,255,0.65)', marginTop: 8, marginBottom: 0 }}>
-                        输入各项成本，快速预估投资回报率，帮助您做出更明智的合作决策
-                    </Paragraph>
-                </Col>
-                <Col>
-                    <Space>
-                        <Text style={{ color: 'rgba(255,255,255,0.65)' }}>高级选项</Text>
-                        <Switch checked={showAdvanced} onChange={setShowAdvanced} />
-                    </Space>
-                </Col>
-            </Row>
+            {/* 背景装饰元素 */}
+            <div style={{
+                position: 'absolute',
+                top: '10%',
+                left: '5%',
+                width: '400px',
+                height: '400px',
+                background: 'linear-gradient(135deg, rgba(90, 200, 250, 0.08), rgba(191, 90, 242, 0.08))',
+                borderRadius: '50%',
+                filter: 'blur(80px)',
+                pointerEvents: 'none',
+                zIndex: 0,
+            }} />
+            <div style={{
+                position: 'absolute',
+                top: '40%',
+                right: '10%',
+                width: '500px',
+                height: '500px',
+                background: 'linear-gradient(135deg, rgba(12, 140, 233, 0.08), rgba(100, 200, 255, 0.08))',
+                borderRadius: '50%',
+                filter: 'blur(100px)',
+                pointerEvents: 'none',
+                zIndex: 0,
+            }} />
 
-            <Row gutter={[24, 24]}>
-                {/* 左侧：成本输入 */}
-                <Col xs={24} lg={12}>
-                    <Card
-                        title={<span style={{ color: '#fff' }}>💰 成本输入</span>}
-                        style={{
-                            background: 'rgba(255,255,255,0.1)',
-                            backdropFilter: 'blur(10px)',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            borderRadius: 16,
-                        }}
-                        headStyle={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}
-                        bodyStyle={{ padding: '24px' }}
-                    >
-                        {/* 固定成本 */}
-                        <Title level={5} style={{ color: 'rgba(255,255,255,0.85)', marginBottom: 16 }}>
-                            固定成本
-                        </Title>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+                {/* 页面标题 */}
+                <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+                    <Col>
+                        <Space>
+                            <CalculatorOutlined style={{ fontSize: 28, color: '#0c8ce9' }} />
+                            <Title level={3} style={{ margin: 0 }}>ROI 测算工具</Title>
+                        </Space>
+                        <Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
+                            输入各项成本，快速预估投资回报率，帮助您做出更明智的合作决策
+                        </Paragraph>
+                    </Col>
+                    <Col>
+                        <Space>
+                            <Text type="secondary">高级选项</Text>
+                            <Switch checked={showAdvanced} onChange={setShowAdvanced} />
+                        </Space>
+                    </Col>
+                </Row>
 
-                        <Row gutter={[16, 16]}>
-                            <Col span={12}>
-                                <div style={{ marginBottom: 8 }}>
-                                    <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                                        样品成本
-                                        <Tooltip title="提供给达人用于展示的样品价值">
-                                            <QuestionCircleOutlined style={{ marginLeft: 4 }} />
-                                        </Tooltip>
-                                    </Text>
-                                </div>
-                                <InputNumber
-                                    value={inputs.sampleCost}
-                                    onChange={v => updateInput('sampleCost', v)}
-                                    prefix="¥"
-                                    min={0}
-                                    precision={2}
-                                    style={{ width: '100%' }}
-                                    placeholder="0"
-                                />
-                            </Col>
-                            <Col span={12}>
-                                <div style={{ marginBottom: 8 }}>
-                                    <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                                        坑位费
-                                        <Tooltip title="达人收取的固定曝光费用">
-                                            <QuestionCircleOutlined style={{ marginLeft: 4 }} />
-                                        </Tooltip>
-                                    </Text>
-                                </div>
-                                <InputNumber
-                                    value={inputs.pitFee}
-                                    onChange={v => updateInput('pitFee', v)}
-                                    prefix="¥"
-                                    min={0}
-                                    precision={2}
-                                    style={{ width: '100%' }}
-                                    placeholder="0"
-                                />
-                            </Col>
-                            <Col span={12}>
-                                <div style={{ marginBottom: 8 }}>
-                                    <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                                        快递成本
-                                        <Tooltip title="寄送样品的运费">
-                                            <QuestionCircleOutlined style={{ marginLeft: 4 }} />
-                                        </Tooltip>
-                                    </Text>
-                                </div>
-                                <InputNumber
-                                    value={inputs.shippingCost}
-                                    onChange={v => updateInput('shippingCost', v)}
-                                    prefix="¥"
-                                    min={0}
-                                    precision={2}
-                                    style={{ width: '100%' }}
-                                    placeholder="0"
-                                />
-                            </Col>
-                            <Col span={12}>
-                                <div style={{ marginBottom: 8 }}>
-                                    <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                                        包装成本
-                                        <Tooltip title="样品包装费用">
-                                            <QuestionCircleOutlined style={{ marginLeft: 4 }} />
-                                        </Tooltip>
-                                    </Text>
-                                </div>
-                                <InputNumber
-                                    value={inputs.packagingCost}
-                                    onChange={v => updateInput('packagingCost', v)}
-                                    prefix="¥"
-                                    min={0}
-                                    precision={2}
-                                    style={{ width: '100%' }}
-                                    placeholder="0"
-                                />
-                            </Col>
-                        </Row>
+                <Row gutter={[24, 24]}>
+                    {/* 左侧：成本输入 */}
+                    <Col xs={24} lg={12}>
+                        <Card
+                            title="💰 成本输入"
+                            style={{
+                                background: '#fff',
+                                border: '1px solid #f0f0f0',
+                                borderRadius: 6,
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                            }}
+                            bodyStyle={{ padding: '24px' }}
+                        >
+                            {/* 固定成本 */}
+                            <Title level={5} style={{ marginBottom: 16 }}>
+                                固定成本
+                            </Title>
 
-                        {showAdvanced && (
-                            <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-                                <Col span={24}>
+                            <Row gutter={[16, 16]}>
+                                <Col span={12}>
                                     <div style={{ marginBottom: 8 }}>
-                                        <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                                            隐形成本
-                                            <Tooltip title="其他隐藏成本，如人力时间、沟通成本等">
+                                        <Text type="secondary">
+                                            样品成本
+                                            <Tooltip title="提供给达人用于展示的样品价值">
                                                 <QuestionCircleOutlined style={{ marginLeft: 4 }} />
                                             </Tooltip>
                                         </Text>
                                     </div>
                                     <InputNumber
-                                        value={inputs.hiddenCost}
-                                        onChange={v => updateInput('hiddenCost', v)}
+                                        value={inputs.sampleCost}
+                                        onChange={v => updateInput('sampleCost', v)}
+                                        prefix="¥"
+                                        min={0}
+                                        precision={2}
+                                        style={{ width: '100%' }}
+                                        placeholder="0"
+                                    />
+                                </Col>
+                                <Col span={12}>
+                                    <div style={{ marginBottom: 8 }}>
+                                        <Text type="secondary">
+                                            坑位费
+                                            <Tooltip title="达人收取的固定曝光费用">
+                                                <QuestionCircleOutlined style={{ marginLeft: 4 }} />
+                                            </Tooltip>
+                                        </Text>
+                                    </div>
+                                    <InputNumber
+                                        value={inputs.pitFee}
+                                        onChange={v => updateInput('pitFee', v)}
+                                        prefix="¥"
+                                        min={0}
+                                        precision={2}
+                                        style={{ width: '100%' }}
+                                        placeholder="0"
+                                    />
+                                </Col>
+                                <Col span={12}>
+                                    <div style={{ marginBottom: 8 }}>
+                                        <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
+                                            快递成本
+                                            <Tooltip title="寄送样品的运费">
+                                                <QuestionCircleOutlined style={{ marginLeft: 4 }} />
+                                            </Tooltip>
+                                        </Text>
+                                    </div>
+                                    <InputNumber
+                                        value={inputs.shippingCost}
+                                        onChange={v => updateInput('shippingCost', v)}
+                                        prefix="¥"
+                                        min={0}
+                                        precision={2}
+                                        style={{ width: '100%' }}
+                                        placeholder="0"
+                                    />
+                                </Col>
+                                <Col span={12}>
+                                    <div style={{ marginBottom: 8 }}>
+                                        <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
+                                            包装成本
+                                            <Tooltip title="样品包装费用">
+                                                <QuestionCircleOutlined style={{ marginLeft: 4 }} />
+                                            </Tooltip>
+                                        </Text>
+                                    </div>
+                                    <InputNumber
+                                        value={inputs.packagingCost}
+                                        onChange={v => updateInput('packagingCost', v)}
                                         prefix="¥"
                                         min={0}
                                         precision={2}
@@ -333,395 +337,419 @@ const RoiCalculatorPage = () => {
                                     />
                                 </Col>
                             </Row>
-                        )}
 
-                        <Divider style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '24px 0' }} />
+                            {showAdvanced && (
+                                <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+                                    <Col span={24}>
+                                        <div style={{ marginBottom: 8 }}>
+                                            <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
+                                                隐形成本
+                                                <Tooltip title="其他隐藏成本，如人力时间、沟通成本等">
+                                                    <QuestionCircleOutlined style={{ marginLeft: 4 }} />
+                                                </Tooltip>
+                                            </Text>
+                                        </div>
+                                        <InputNumber
+                                            value={inputs.hiddenCost}
+                                            onChange={v => updateInput('hiddenCost', v)}
+                                            prefix="¥"
+                                            min={0}
+                                            precision={2}
+                                            style={{ width: '100%' }}
+                                            placeholder="0"
+                                        />
+                                    </Col>
+                                </Row>
+                            )}
 
-                        {/* 产品信息 */}
-                        <Title level={5} style={{ color: 'rgba(255,255,255,0.85)', marginBottom: 16 }}>
-                            <ShoppingOutlined style={{ marginRight: 8 }} />
-                            产品信息
-                        </Title>
+                            <Divider style={{ margin: '24px 0' }} />
 
-                        {/* 产品选择器 */}
-                        {samples.length > 0 && (
-                            <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-                                <Col span={24}>
+                            {/* 产品信息 */}
+                            <Title level={5} style={{ marginBottom: 16 }}>
+                                <ShoppingOutlined style={{ marginRight: 8 }} />
+                                产品信息
+                            </Title>
+
+                            {/* 产品选择器 */}
+                            {samples.length > 0 && (
+                                <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                                    <Col span={24}>
+                                        <div style={{ marginBottom: 8 }}>
+                                            <Text type="secondary">
+                                                从样品库选择
+                                                <Tooltip title="选择已有产品可自动填充成本和售价">
+                                                    <QuestionCircleOutlined style={{ marginLeft: 4 }} />
+                                                </Tooltip>
+                                            </Text>
+                                        </div>
+                                        <Select
+                                            value={selectedSampleId}
+                                            onChange={handleSelectSample}
+                                            placeholder="选择已有产品（可选）"
+                                            allowClear
+                                            loading={loadingSamples}
+                                            style={{ width: '100%' }}
+                                            options={samples.map(s => ({
+                                                value: s.id,
+                                                label: `${s.name} (${s.sku}) - ¥${(s.retailPrice / 100).toFixed(2)}`,
+                                            }))}
+                                        />
+                                    </Col>
+                                </Row>
+                            )}
+
+                            <Row gutter={[16, 16]}>
+                                <Col span={12}>
                                     <div style={{ marginBottom: 8 }}>
-                                        <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                                            从样品库选择
-                                            <Tooltip title="选择已有产品可自动填充成本和售价">
+                                        <Text type="secondary">
+                                            单品成本
+                                            <Tooltip title="生产或采购一个产品的成本">
                                                 <QuestionCircleOutlined style={{ marginLeft: 4 }} />
                                             </Tooltip>
                                         </Text>
                                     </div>
-                                    <Select
-                                        value={selectedSampleId}
-                                        onChange={handleSelectSample}
-                                        placeholder="选择已有产品（可选）"
-                                        allowClear
-                                        loading={loadingSamples}
+                                    <InputNumber
+                                        value={inputs.unitCost}
+                                        onChange={v => updateInput('unitCost', v)}
+                                        prefix="¥"
+                                        min={0}
+                                        precision={2}
                                         style={{ width: '100%' }}
-                                        options={samples.map(s => ({
-                                            value: s.id,
-                                            label: `${s.name} (${s.sku}) - ¥${(s.retailPrice / 100).toFixed(2)}`,
-                                        }))}
+                                        placeholder="0"
+                                    />
+                                </Col>
+                                <Col span={12}>
+                                    <div style={{ marginBottom: 8 }}>
+                                        <Text type="secondary">
+                                            单品售价
+                                            <Tooltip title="产品的销售价格">
+                                                <QuestionCircleOutlined style={{ marginLeft: 4 }} />
+                                            </Tooltip>
+                                        </Text>
+                                    </div>
+                                    <InputNumber
+                                        value={inputs.unitPrice}
+                                        onChange={v => updateInput('unitPrice', v)}
+                                        prefix="¥"
+                                        min={0}
+                                        precision={2}
+                                        style={{ width: '100%' }}
+                                        placeholder="0"
+                                    />
+                                </Col>
+                                {inputs.unitPrice > 0 && (
+                                    <Col span={24}>
+                                        <Text type="secondary" style={{ fontSize: 12 }}>
+                                            产品成本率：{results.productCostRate.toFixed(1)}%（自动计算）
+                                        </Text>
+                                    </Col>
+                                )}
+                            </Row>
+
+                            <Divider style={{ margin: '24px 0' }} />
+
+                            {/* 比例参数 */}
+                            <Title level={5} style={{ marginBottom: 16 }}>
+                                交易参数
+                            </Title>
+
+                            <Row gutter={[16, 16]}>
+                                <Col span={12}>
+                                    <div style={{ marginBottom: 8 }}>
+                                        <Text type="secondary">
+                                            佣金率
+                                            <Tooltip title="达人抽成比例，一般5%-50%">
+                                                <QuestionCircleOutlined style={{ marginLeft: 4 }} />
+                                            </Tooltip>
+                                        </Text>
+                                    </div>
+                                    <InputNumber
+                                        value={inputs.commissionRate}
+                                        onChange={v => updateInput('commissionRate', v)}
+                                        suffix="%"
+                                        min={0}
+                                        max={100}
+                                        precision={1}
+                                        style={{ width: '100%' }}
+                                        placeholder="20"
+                                    />
+                                </Col>
+                                <Col span={12}>
+                                    <div style={{ marginBottom: 8 }}>
+                                        <Text type="secondary">
+                                            退货率
+                                            <Tooltip title="直播电商通常35%-38%，某些品类更高">
+                                                <QuestionCircleOutlined style={{ marginLeft: 4 }} />
+                                            </Tooltip>
+                                        </Text>
+                                    </div>
+                                    <InputNumber
+                                        value={inputs.returnRate}
+                                        onChange={v => updateInput('returnRate', v)}
+                                        suffix="%"
+                                        min={0}
+                                        max={100}
+                                        precision={1}
+                                        style={{ width: '100%' }}
+                                        placeholder="30"
+                                    />
+                                </Col>
+                                <Col span={12}>
+                                    <div style={{ marginBottom: 8 }}>
+                                        <Text type="secondary">
+                                            平台扣点
+                                            <Tooltip title="平台技术服务费，抖音小店约6%，第三方约10%">
+                                                <QuestionCircleOutlined style={{ marginLeft: 4 }} />
+                                            </Tooltip>
+                                        </Text>
+                                    </div>
+                                    <InputNumber
+                                        value={inputs.platformFeeRate}
+                                        onChange={v => updateInput('platformFeeRate', v)}
+                                        suffix="%"
+                                        min={0}
+                                        max={100}
+                                        precision={1}
+                                        style={{ width: '100%' }}
+                                        placeholder="6"
+                                    />
+                                </Col>
+                                <Col span={12}>
+                                    <div style={{ marginBottom: 8 }}>
+                                        <Text type="secondary">
+                                            税费
+                                            <Tooltip title="销售产生的税费比例">
+                                                <QuestionCircleOutlined style={{ marginLeft: 4 }} />
+                                            </Tooltip>
+                                        </Text>
+                                    </div>
+                                    <InputNumber
+                                        value={inputs.taxRate}
+                                        onChange={v => updateInput('taxRate', v)}
+                                        suffix="%"
+                                        min={0}
+                                        max={100}
+                                        precision={1}
+                                        style={{ width: '100%' }}
+                                        placeholder="0"
                                     />
                                 </Col>
                             </Row>
-                        )}
 
-                        <Row gutter={[16, 16]}>
-                            <Col span={12}>
-                                <div style={{ marginBottom: 8 }}>
-                                    <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                                        单品成本
-                                        <Tooltip title="生产或采购一个产品的成本">
-                                            <QuestionCircleOutlined style={{ marginLeft: 4 }} />
-                                        </Tooltip>
-                                    </Text>
-                                </div>
-                                <InputNumber
-                                    value={inputs.unitCost}
-                                    onChange={v => updateInput('unitCost', v)}
-                                    prefix="¥"
-                                    min={0}
-                                    precision={2}
-                                    style={{ width: '100%' }}
-                                    placeholder="0"
-                                />
-                            </Col>
-                            <Col span={12}>
-                                <div style={{ marginBottom: 8 }}>
-                                    <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                                        单品售价
-                                        <Tooltip title="产品的销售价格">
-                                            <QuestionCircleOutlined style={{ marginLeft: 4 }} />
-                                        </Tooltip>
-                                    </Text>
-                                </div>
-                                <InputNumber
-                                    value={inputs.unitPrice}
-                                    onChange={v => updateInput('unitPrice', v)}
-                                    prefix="¥"
-                                    min={0}
-                                    precision={2}
-                                    style={{ width: '100%' }}
-                                    placeholder="0"
-                                />
-                            </Col>
-                            {inputs.unitPrice > 0 && (
-                                <Col span={24}>
-                                    <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>
-                                        产品成本率：{results.productCostRate.toFixed(1)}%（自动计算）
-                                    </Text>
-                                </Col>
-                            )}
-                        </Row>
+                            <Divider style={{ margin: '24px 0' }} />
 
-                        <Divider style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '24px 0' }} />
+                            {/* 预期销售额 */}
+                            <Title level={5} style={{ marginBottom: 16 }}>
+                                预期销售额（用于计算ROI）
+                            </Title>
+                            <InputNumber
+                                value={inputs.expectedSales}
+                                onChange={v => updateInput('expectedSales', v)}
+                                prefix="¥"
+                                min={0}
+                                precision={2}
+                                style={{ width: '100%', fontSize: 18 }}
+                                placeholder="输入预期GMV"
+                            />
+                        </Card>
+                    </Col>
 
-                        {/* 比例参数 */}
-                        <Title level={5} style={{ color: 'rgba(255,255,255,0.85)', marginBottom: 16 }}>
-                            交易参数
-                        </Title>
-
-                        <Row gutter={[16, 16]}>
-                            <Col span={12}>
-                                <div style={{ marginBottom: 8 }}>
-                                    <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                                        佣金率
-                                        <Tooltip title="达人抽成比例，一般5%-50%">
-                                            <QuestionCircleOutlined style={{ marginLeft: 4 }} />
-                                        </Tooltip>
-                                    </Text>
-                                </div>
-                                <InputNumber
-                                    value={inputs.commissionRate}
-                                    onChange={v => updateInput('commissionRate', v)}
-                                    suffix="%"
-                                    min={0}
-                                    max={100}
-                                    precision={1}
-                                    style={{ width: '100%' }}
-                                    placeholder="20"
-                                />
-                            </Col>
-                            <Col span={12}>
-                                <div style={{ marginBottom: 8 }}>
-                                    <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                                        退货率
-                                        <Tooltip title="直播电商通常35%-38%，某些品类更高">
-                                            <QuestionCircleOutlined style={{ marginLeft: 4 }} />
-                                        </Tooltip>
-                                    </Text>
-                                </div>
-                                <InputNumber
-                                    value={inputs.returnRate}
-                                    onChange={v => updateInput('returnRate', v)}
-                                    suffix="%"
-                                    min={0}
-                                    max={100}
-                                    precision={1}
-                                    style={{ width: '100%' }}
-                                    placeholder="30"
-                                />
-                            </Col>
-                            <Col span={12}>
-                                <div style={{ marginBottom: 8 }}>
-                                    <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                                        平台扣点
-                                        <Tooltip title="平台技术服务费，抖音小店约6%，第三方约10%">
-                                            <QuestionCircleOutlined style={{ marginLeft: 4 }} />
-                                        </Tooltip>
-                                    </Text>
-                                </div>
-                                <InputNumber
-                                    value={inputs.platformFeeRate}
-                                    onChange={v => updateInput('platformFeeRate', v)}
-                                    suffix="%"
-                                    min={0}
-                                    max={100}
-                                    precision={1}
-                                    style={{ width: '100%' }}
-                                    placeholder="6"
-                                />
-                            </Col>
-                            <Col span={12}>
-                                <div style={{ marginBottom: 8 }}>
-                                    <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                                        税费
-                                        <Tooltip title="销售产生的税费比例">
-                                            <QuestionCircleOutlined style={{ marginLeft: 4 }} />
-                                        </Tooltip>
-                                    </Text>
-                                </div>
-                                <InputNumber
-                                    value={inputs.taxRate}
-                                    onChange={v => updateInput('taxRate', v)}
-                                    suffix="%"
-                                    min={0}
-                                    max={100}
-                                    precision={1}
-                                    style={{ width: '100%' }}
-                                    placeholder="0"
-                                />
-                            </Col>
-                        </Row>
-
-                        <Divider style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '24px 0' }} />
-
-                        {/* 预期销售额 */}
-                        <Title level={5} style={{ color: 'rgba(255,255,255,0.85)', marginBottom: 16 }}>
-                            预期销售额（用于计算ROI）
-                        </Title>
-                        <InputNumber
-                            value={inputs.expectedSales}
-                            onChange={v => updateInput('expectedSales', v)}
-                            prefix="¥"
-                            min={0}
-                            precision={2}
-                            style={{ width: '100%', fontSize: 18 }}
-                            placeholder="输入预期GMV"
-                        />
-                    </Card>
-                </Col>
-
-                {/* 右侧：计算结果 */}
-                <Col xs={24} lg={12}>
-                    {/* 核心指标 */}
-                    <Card
-                        style={{
-                            background: 'rgba(255,255,255,0.1)',
-                            backdropFilter: 'blur(10px)',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            borderRadius: 16,
-                            marginBottom: 24,
-                        }}
-                        bodyStyle={{ padding: '24px' }}
-                    >
-                        <Row gutter={[24, 24]}>
-                            <Col span={12}>
-                                <Statistic
-                                    title={<span style={{ color: 'rgba(255,255,255,0.65)' }}>📊 回本销售额</span>}
-                                    value={isFinite(results.breakEvenSales) ? results.breakEvenSales : '-'}
-                                    precision={2}
-                                    prefix="¥"
-                                    valueStyle={{ color: '#1890ff', fontSize: 28 }}
-                                />
-                                <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>
-                                    达到此销售额即可覆盖所有成本
-                                </Text>
-                            </Col>
-                            <Col span={12}>
-                                <Statistic
-                                    title={<span style={{ color: 'rgba(255,255,255,0.65)' }}>💵 固定成本合计</span>}
-                                    value={results.fixedCost}
-                                    precision={2}
-                                    prefix="¥"
-                                    valueStyle={{ color: '#faad14', fontSize: 28 }}
-                                />
-                                <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>
-                                    样品+包装+快递+坑位费
-                                </Text>
-                            </Col>
-                        </Row>
-                    </Card>
-
-                    {/* ROI 结果 */}
-                    {inputs.expectedSales > 0 && (
+                    {/* 右侧：计算结果 */}
+                    <Col xs={24} lg={12}>
+                        {/* 核心指标 */}
                         <Card
                             style={{
-                                background: results.isProfitable
-                                    ? 'linear-gradient(135deg, rgba(82,196,26,0.2) 0%, rgba(82,196,26,0.05) 100%)'
-                                    : 'linear-gradient(135deg, rgba(255,77,79,0.2) 0%, rgba(255,77,79,0.05) 100%)',
-                                backdropFilter: 'blur(10px)',
-                                border: `1px solid ${results.isProfitable ? 'rgba(82,196,26,0.3)' : 'rgba(255,77,79,0.3)'}`,
-                                borderRadius: 16,
+                                background: '#fff',
+                                border: '1px solid #f0f0f0',
+                                borderRadius: 6,
                                 marginBottom: 24,
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
                             }}
                             bodyStyle={{ padding: '24px' }}
                         >
-                            <Row gutter={[24, 24]} align="middle">
+                            <Row gutter={[24, 24]}>
                                 <Col span={12}>
-                                    <div style={{ textAlign: 'center' }}>
-                                        <div style={{ fontSize: 48, fontWeight: 700, color: roiStatus.color }}>
-                                            {roiStatus.icon} {(results.roi * 100).toFixed(1)}%
-                                        </div>
-                                        <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 16 }}>
-                                            投资回报率 (ROI)
-                                        </Text>
-                                        <div style={{ marginTop: 8 }}>
-                                            <Text style={{
-                                                color: roiStatus.color,
-                                                fontSize: 14,
-                                                padding: '4px 12px',
-                                                background: `${roiStatus.color}20`,
-                                                borderRadius: 12,
-                                            }}>
-                                                {roiStatus.text}
-                                            </Text>
-                                        </div>
-                                    </div>
+                                    <Statistic
+                                        title="📊 回本销售额"
+                                        value={isFinite(results.breakEvenSales) ? results.breakEvenSales : '-'}
+                                        precision={2}
+                                        prefix="¥"
+                                        valueStyle={{ color: '#0c8ce9', fontSize: 28 }}
+                                    />
+                                    <Text type="secondary" style={{ fontSize: 12 }}>
+                                        达到此销售额即可覆盖所有成本
+                                    </Text>
                                 </Col>
                                 <Col span={12}>
-                                    <Row gutter={[0, 16]}>
-                                        <Col span={24}>
-                                            <Statistic
-                                                title={<span style={{ color: 'rgba(255,255,255,0.65)' }}>净利润</span>}
-                                                value={results.profit}
-                                                precision={2}
-                                                prefix={results.profit >= 0 ? '+¥' : '¥'}
-                                                valueStyle={{ color: results.profit >= 0 ? '#52c41a' : '#ff4d4f' }}
-                                            />
-                                        </Col>
-                                        <Col span={24}>
-                                            <Statistic
-                                                title={<span style={{ color: 'rgba(255,255,255,0.65)' }}>净销售额</span>}
-                                                value={results.netSales}
-                                                precision={2}
-                                                prefix="¥"
-                                                valueStyle={{ color: 'rgba(255,255,255,0.85)' }}
-                                            />
-                                        </Col>
-                                    </Row>
+                                    <Statistic
+                                        title="💵 固定成本合计"
+                                        value={results.fixedCost}
+                                        precision={2}
+                                        prefix="¥"
+                                        valueStyle={{ color: '#faad14', fontSize: 28 }}
+                                    />
+                                    <Text type="secondary" style={{ fontSize: 12 }}>
+                                        样品+包装+快递+坑位费
+                                    </Text>
                                 </Col>
                             </Row>
                         </Card>
-                    )}
 
-                    {/* 成本明细 */}
-                    {inputs.expectedSales > 0 && (
-                        <Card
-                            title={<span style={{ color: '#fff' }}>📋 成本明细</span>}
-                            style={{
-                                background: 'rgba(255,255,255,0.1)',
-                                backdropFilter: 'blur(10px)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                borderRadius: 16,
-                                marginBottom: 24,
-                            }}
-                            headStyle={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}
-                            bodyStyle={{ padding: '24px' }}
-                        >
-                            <Row gutter={[16, 12]}>
-                                <Col span={16}><Text style={{ color: 'rgba(255,255,255,0.65)' }}>固定成本</Text></Col>
-                                <Col span={8} style={{ textAlign: 'right' }}><Text style={{ color: '#fff' }}>¥{results.fixedCost.toFixed(2)}</Text></Col>
-
-                                <Col span={16}><Text style={{ color: 'rgba(255,255,255,0.65)' }}>佣金支出（{inputs.commissionRate}%）</Text></Col>
-                                <Col span={8} style={{ textAlign: 'right' }}><Text style={{ color: '#fff' }}>¥{(inputs.expectedSales * inputs.commissionRate / 100).toFixed(2)}</Text></Col>
-
-                                <Col span={16}><Text style={{ color: 'rgba(255,255,255,0.65)' }}>平台扣点（{inputs.platformFeeRate}%）</Text></Col>
-                                <Col span={8} style={{ textAlign: 'right' }}><Text style={{ color: '#fff' }}>¥{(inputs.expectedSales * inputs.platformFeeRate / 100).toFixed(2)}</Text></Col>
-
-                                {inputs.taxRate > 0 && (
-                                    <>
-                                        <Col span={16}><Text style={{ color: 'rgba(255,255,255,0.65)' }}>税费（{inputs.taxRate}%）</Text></Col>
-                                        <Col span={8} style={{ textAlign: 'right' }}><Text style={{ color: '#fff' }}>¥{(inputs.expectedSales * inputs.taxRate / 100).toFixed(2)}</Text></Col>
-                                    </>
-                                )}
-
-                                <Col span={16}><Text style={{ color: 'rgba(255,255,255,0.65)' }}>产品成本（{results.productCostRate.toFixed(1)}%）</Text></Col>
-                                <Col span={8} style={{ textAlign: 'right' }}><Text style={{ color: '#fff' }}>¥{results.productCostTotal.toFixed(2)}</Text></Col>
-
-                                <Col span={16}><Text style={{ color: 'rgba(255,255,255,0.65)' }}>退货损失（{inputs.returnRate}%）</Text></Col>
-                                <Col span={8} style={{ textAlign: 'right' }}><Text style={{ color: '#ff4d4f' }}>-¥{(inputs.expectedSales * inputs.returnRate / 100).toFixed(2)}</Text></Col>
-
-                                <Divider style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '12px 0' }} />
-
-                                <Col span={16}><Text strong style={{ color: '#fff' }}>总成本</Text></Col>
-                                <Col span={8} style={{ textAlign: 'right' }}><Text strong style={{ color: '#faad14' }}>¥{results.totalCost.toFixed(2)}</Text></Col>
-                            </Row>
-                        </Card>
-                    )}
-
-                    {/* 提示信息 */}
-                    {results.profitMarginRate <= 0 && (
-                        <Alert
-                            message="成本结构警告"
-                            description="当前佣金率+产品成本率+退货率超过100%，无论销售额多少都无法盈利。建议降低成本比例或提高售价。"
-                            type="error"
-                            showIcon
-                            icon={<WarningOutlined />}
-                            style={{ marginBottom: 24 }}
-                        />
-                    )}
-
-                    {/* 建议场景 */}
-                    {results.bulkScenarios.length > 0 && results.fixedCost > 0 && (
-                        <Card
-                            title={<span style={{ color: '#fff' }}>🎯 销售目标建议</span>}
-                            style={{
-                                background: 'rgba(255,255,255,0.1)',
-                                backdropFilter: 'blur(10px)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                borderRadius: 16,
-                            }}
-                            headStyle={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}
-                            bodyStyle={{ padding: '24px' }}
-                        >
-                            <Row gutter={[16, 16]}>
-                                {results.bulkScenarios.map((scenario, index) => (
-                                    <Col span={8} key={index}>
-                                        <div style={{
-                                            textAlign: 'center',
-                                            padding: '16px',
-                                            background: 'rgba(255,255,255,0.05)',
-                                            borderRadius: 12,
-                                        }}>
-                                            <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>{scenario.label}</Text>
-                                            <div style={{ fontSize: 20, fontWeight: 600, color: '#1890ff', margin: '8px 0' }}>
-                                                ¥{scenario.sales.toFixed(0)}
+                        {/* ROI 结果 */}
+                        {inputs.expectedSales > 0 && (
+                            <Card
+                                style={{
+                                    background: results.isProfitable
+                                        ? 'linear-gradient(135deg, rgba(82,196,26,0.2) 0%, rgba(82,196,26,0.05) 100%)'
+                                        : 'linear-gradient(135deg, rgba(255,77,79,0.2) 0%, rgba(255,77,79,0.05) 100%)',
+                                    backdropFilter: 'blur(10px)',
+                                    border: `1px solid ${results.isProfitable ? 'rgba(82,196,26,0.3)' : 'rgba(255,77,79,0.3)'}`,
+                                    borderRadius: 10,
+                                    marginBottom: 24,
+                                }}
+                                bodyStyle={{ padding: '24px' }}
+                            >
+                                <Row gutter={[24, 24]} align="middle">
+                                    <Col span={12}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 48, fontWeight: 700, color: roiStatus.color }}>
+                                                {roiStatus.icon} {(results.roi * 100).toFixed(1)}%
                                             </div>
-                                            <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>{scenario.description}</Text>
+                                            <Text type="secondary" style={{ fontSize: 16 }}>
+                                                投资回报率 (ROI)
+                                            </Text>
+                                            <div style={{ marginTop: 8 }}>
+                                                <Text style={{
+                                                    color: roiStatus.color,
+                                                    fontSize: 14,
+                                                    padding: '4px 12px',
+                                                    background: `${roiStatus.color}20`,
+                                                    borderRadius: 8,
+                                                }}>
+                                                    {roiStatus.text}
+                                                </Text>
+                                            </div>
                                         </div>
                                     </Col>
-                                ))}
-                            </Row>
-                        </Card>
-                    )}
-                </Col>
-            </Row>
+                                    <Col span={12}>
+                                        <Row gutter={[0, 16]}>
+                                            <Col span={24}>
+                                                <Statistic
+                                                    title={<span style={{ color: 'rgba(255,255,255,0.65)' }}>净利润</span>}
+                                                    value={results.profit}
+                                                    precision={2}
+                                                    prefix={results.profit >= 0 ? '+¥' : '¥'}
+                                                    valueStyle={{ color: results.profit >= 0 ? '#52c41a' : '#ff4d4f' }}
+                                                />
+                                            </Col>
+                                            <Col span={24}>
+                                                <Statistic
+                                                    title={<span style={{ color: 'rgba(255,255,255,0.65)' }}>净销售额</span>}
+                                                    value={results.netSales}
+                                                    precision={2}
+                                                    prefix="¥"
+                                                    valueStyle={{ color: 'rgba(255,255,255,0.85)' }}
+                                                />
+                                            </Col>
+                                        </Row>
+                                    </Col>
+                                </Row>
+                            </Card>
+                        )}
+
+                        {/* 成本明细 */}
+                        {inputs.expectedSales > 0 && (
+                            <Card
+                                title={<span style={{ color: '#fff' }}>📋 成本明细</span>}
+                                style={{
+                                    background: 'rgba(255,255,255,0.1)',
+                                    backdropFilter: 'blur(10px)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: 10,
+                                    marginBottom: 24,
+                                }}
+                                headStyle={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+                                bodyStyle={{ padding: '24px' }}
+                            >
+                                <Row gutter={[16, 12]}>
+                                    <Col span={16}><Text style={{ color: 'rgba(255,255,255,0.65)' }}>固定成本</Text></Col>
+                                    <Col span={8} style={{ textAlign: 'right' }}><Text style={{ color: '#fff' }}>¥{results.fixedCost.toFixed(2)}</Text></Col>
+
+                                    <Col span={16}><Text style={{ color: 'rgba(255,255,255,0.65)' }}>佣金支出（{inputs.commissionRate}%）</Text></Col>
+                                    <Col span={8} style={{ textAlign: 'right' }}><Text style={{ color: '#fff' }}>¥{(inputs.expectedSales * inputs.commissionRate / 100).toFixed(2)}</Text></Col>
+
+                                    <Col span={16}><Text style={{ color: 'rgba(255,255,255,0.65)' }}>平台扣点（{inputs.platformFeeRate}%）</Text></Col>
+                                    <Col span={8} style={{ textAlign: 'right' }}><Text style={{ color: '#fff' }}>¥{(inputs.expectedSales * inputs.platformFeeRate / 100).toFixed(2)}</Text></Col>
+
+                                    {inputs.taxRate > 0 && (
+                                        <>
+                                            <Col span={16}><Text style={{ color: 'rgba(255,255,255,0.65)' }}>税费（{inputs.taxRate}%）</Text></Col>
+                                            <Col span={8} style={{ textAlign: 'right' }}><Text style={{ color: '#fff' }}>¥{(inputs.expectedSales * inputs.taxRate / 100).toFixed(2)}</Text></Col>
+                                        </>
+                                    )}
+
+                                    <Col span={16}><Text style={{ color: 'rgba(255,255,255,0.65)' }}>产品成本（{results.productCostRate.toFixed(1)}%）</Text></Col>
+                                    <Col span={8} style={{ textAlign: 'right' }}><Text style={{ color: '#fff' }}>¥{results.productCostTotal.toFixed(2)}</Text></Col>
+
+                                    <Col span={16}><Text style={{ color: 'rgba(255,255,255,0.65)' }}>退货损失（{inputs.returnRate}%）</Text></Col>
+                                    <Col span={8} style={{ textAlign: 'right' }}><Text style={{ color: '#ff4d4f' }}>-¥{(inputs.expectedSales * inputs.returnRate / 100).toFixed(2)}</Text></Col>
+
+                                    <Divider style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '12px 0' }} />
+
+                                    <Col span={16}><Text strong style={{ color: '#fff' }}>总成本</Text></Col>
+                                    <Col span={8} style={{ textAlign: 'right' }}><Text strong style={{ color: '#faad14' }}>¥{results.totalCost.toFixed(2)}</Text></Col>
+                                </Row>
+                            </Card>
+                        )}
+
+                        {/* 提示信息 */}
+                        {results.profitMarginRate <= 0 && (
+                            <Alert
+                                message="成本结构警告"
+                                description="当前佣金率+产品成本率+退货率超过100%，无论销售额多少都无法盈利。建议降低成本比例或提高售价。"
+                                type="error"
+                                showIcon
+                                icon={<WarningOutlined />}
+                                style={{ marginBottom: 24 }}
+                            />
+                        )}
+
+                        {/* 建议场景 */}
+                        {results.bulkScenarios.length > 0 && results.fixedCost > 0 && (
+                            <Card
+                                title={<span style={{ color: '#fff' }}>🎯 销售目标建议</span>}
+                                style={{
+                                    background: 'rgba(255,255,255,0.1)',
+                                    backdropFilter: 'blur(10px)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: 10,
+                                }}
+                                headStyle={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+                                bodyStyle={{ padding: '24px' }}
+                            >
+                                <Row gutter={[16, 16]}>
+                                    {results.bulkScenarios.map((scenario, index) => (
+                                        <Col span={8} key={index}>
+                                            <div style={{
+                                                textAlign: 'center',
+                                                padding: '16px',
+                                                background: 'rgba(255,255,255,0.05)',
+                                                borderRadius: 8,
+                                            }}>
+                                                <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>{scenario.label}</Text>
+                                                <div style={{ fontSize: 20, fontWeight: 600, color: '#1890ff', margin: '8px 0' }}>
+                                                    ¥{scenario.sales.toFixed(0)}
+                                                </div>
+                                                <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>{scenario.description}</Text>
+                                            </div>
+                                        </Col>
+                                    ))}
+                                </Row>
+                            </Card>
+                        )}
+                    </Col>
+                </Row>
+            </div>
         </div>
     );
 };

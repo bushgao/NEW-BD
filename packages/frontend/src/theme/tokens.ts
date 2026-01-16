@@ -18,7 +18,7 @@ export const colors = {
     800: '#004a86',
     900: '#003d6f',
   },
-  
+
   // 中性色 - 更柔和的灰色
   neutral: {
     50: '#fafbfc',
@@ -32,13 +32,13 @@ export const colors = {
     800: '#2d3843',
     900: '#1a2332',
   },
-  
+
   // 功能色 - 柔和明亮
   success: '#34c759',
   warning: '#ff9f0a',
   error: '#ff3b30',
   info: '#5ac8fa',
-  
+
   // 头像装饰色 - 鲜艳的渐变色
   avatar: {
     blue: '#5ac8fa',
@@ -50,14 +50,14 @@ export const colors = {
     orange: '#ff9f0a',
     teal: '#5fc9c9',
   },
-  
+
   // 背景色 - 浅灰蓝色
   background: {
     primary: '#ffffff',
     secondary: '#f5f7fa',
     tertiary: '#eef2f6',
   },
-  
+
   // 黑色按钮
   button: {
     primary: '#1a1a1a',
@@ -71,7 +71,7 @@ export const typography = {
     sans: ['Inter', 'SF Pro', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'].join(', '),
     mono: ['SF Mono', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace'].join(', '),
   },
-  
+
   fontSize: {
     xs: '0.75rem',    // 12px
     sm: '0.875rem',   // 14px
@@ -82,14 +82,14 @@ export const typography = {
     '3xl': '1.875rem', // 30px
     '4xl': '2.25rem', // 36px
   },
-  
+
   fontWeight: {
     normal: 400,
     medium: 500,
     semibold: 600,
     bold: 700,
   },
-  
+
   lineHeight: {
     tight: 1.25,
     normal: 1.5,
@@ -114,26 +114,26 @@ export const spacing = {
   24: '6rem',    // 96px
 } as const;
 
-// 阴影系统 - 更柔和的阴影
+// 阴影系统 - Ant Design Pro 轻阴影风格
 export const shadows = {
   none: 'none',
-  sm: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
-  base: '0 2px 4px 0 rgba(0, 0, 0, 0.04)',
-  md: '0 4px 8px -2px rgba(0, 0, 0, 0.06)',
-  lg: '0 8px 16px -4px rgba(0, 0, 0, 0.08)',
-  xl: '0 12px 24px -6px rgba(0, 0, 0, 0.1)',
-  '2xl': '0 20px 40px -8px rgba(0, 0, 0, 0.12)',
+  sm: '0 1px 2px 0 rgba(0, 0, 0, 0.02)',
+  base: '0 1px 3px 0 rgba(0, 0, 0, 0.03)',
+  md: '0 2px 4px -1px rgba(0, 0, 0, 0.04)',
+  lg: '0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+  xl: '0 6px 12px -3px rgba(0, 0, 0, 0.06)',
+  '2xl': '0 8px 16px -4px rgba(0, 0, 0, 0.08)',
 } as const;
 
-// 圆角系统 - 更大的圆角
+// 圆角系统 - Ant Design Pro 规整风格（较小圆角）
 export const borderRadius = {
   none: '0',
-  sm: '0.75rem',   // 12px
-  base: '1rem',    // 16px
-  lg: '1.25rem',   // 20px
-  xl: '1.5rem',    // 24px
-  '2xl': '2rem',   // 32px
-  '3xl': '2.5rem', // 40px
+  sm: '4px',     // 4px - 小元素
+  base: '6px',   // 6px - 按钮、输入框
+  lg: '8px',     // 8px - 卡片、容器
+  xl: '10px',    // 10px - 模态框
+  '2xl': '12px', // 12px - 大容器
+  '3xl': '16px', // 16px - 特殊场景
   full: '9999px',  // 完全圆形
 } as const;
 

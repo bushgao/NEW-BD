@@ -168,7 +168,7 @@ const InfluencerSettingsPage = () => {
         minHeight: '100vh',
         background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
         position: 'relative',
-        padding: '40px',
+        padding: '24px',
       }}
     >
       {/* 背景装饰元素 */}

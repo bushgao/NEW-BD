@@ -38,7 +38,7 @@ export default {
           950: '#030712',
         },
         surface: {
-          bg: '#F8FAFC',    // Caleican-style light background
+          bg: '#FFFFFF',    // Pure white background
           card: '#FFFFFF',  // Pure white card
           border: '#F1F5F9', // Subtle border
           // Landing Page 深色主题颜色

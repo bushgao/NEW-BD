@@ -27,36 +27,32 @@ export const Card: React.FC<CardProps> = ({
 }) => {
     const { theme } = useTheme();
 
-    // 根据 variant 获取样式
+    // 根据 variant 获取样式 - Ant Design Pro 简洁风格
     const getVariantStyles = (): CSSProperties => {
         const baseStyles: CSSProperties = {
-            background: 'rgba(255, 255, 255, 0.65)',
-            backdropFilter: 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-            borderRadius: theme.borderRadius.xl,
+            background: '#ffffff',
+            borderRadius: theme.borderRadius.lg,
             transition: `all ${theme.transitions.base}`,
-            border: '1px solid rgba(255, 255, 255, 0.6)',
+            border: '1px solid #f0f0f0',
         };
 
         switch (variant) {
             case 'elevated':
                 return {
                     ...baseStyles,
-                    boxShadow: theme.shadows.lg,
-                    background: 'rgba(255, 255, 255, 0.75)',
+                    boxShadow: theme.shadows.md,
                 };
             case 'outlined':
                 return {
                     ...baseStyles,
                     border: `1px solid ${theme.colors.neutral[200]}`,
                     boxShadow: 'none',
-                    background: 'rgba(255, 255, 255, 0.55)',
                 };
             case 'default':
             default:
                 return {
                     ...baseStyles,
-                    boxShadow: theme.shadows.md,
+                    boxShadow: theme.shadows.sm,
                 };
         }
     };

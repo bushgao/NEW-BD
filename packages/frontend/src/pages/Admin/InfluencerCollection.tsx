@@ -230,7 +230,7 @@ const InfluencerCollectionPage = () => {
                     background: 'rgba(255,255,255,0.1)',
                     backdropFilter: 'blur(10px)',
                     border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 16,
+                    borderRadius: 10,
                     marginBottom: 24,
                 }}
                 bodyStyle={{ padding: 16 }}
@@ -254,7 +254,7 @@ const InfluencerCollectionPage = () => {
                     background: 'rgba(255,255,255,0.1)',
                     backdropFilter: 'blur(10px)',
                     border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 16,
+                    borderRadius: 10,
                 }}
                 bodyStyle={{ padding: 24 }}
             >
@@ -414,7 +414,7 @@ const InfluencerCollectionPage = () => {
                                             textAlign: 'center',
                                             padding: 60,
                                             background: 'rgba(255,255,255,0.05)',
-                                            borderRadius: 8,
+                                            borderRadius: 6,
                                         }}>
                                             <Text style={{ color: 'rgba(255,255,255,0.45)' }}>
                                                 请上传 Excel 或 CSV 文件，或先下载模板填写后上传

@@ -205,7 +205,7 @@ const FollowUpReminder: React.FC<FollowUpReminderProps> = ({ onRemind, onSnooze,
 
   if (isBento) {
     return (
-      <div className="h-full flex flex-col bg-white rounded-3xl border border-neutral-200/60 shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300">
+      <div className="bento-card h-full flex flex-col overflow-hidden hover:shadow-md transition-shadow duration-300">
         <div className="flex justify-between items-center p-4 border-b border-neutral-100">
           <div className="flex items-center gap-3">
             <span className="p-2 bg-brand-50/80 rounded-xl text-brand-600 flex items-center justify-center">
@@ -253,7 +253,7 @@ const FollowUpReminder: React.FC<FollowUpReminderProps> = ({ onRemind, onSnooze,
         </div>
       }
       style={{
-        borderRadius: '12px',
+        borderRadius: 6,
         boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
         height: '100%',
       }}

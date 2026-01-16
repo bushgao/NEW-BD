@@ -9,8 +9,8 @@ const App = () => {
       locale={zhCN}
       theme={{
         token: {
-          colorPrimary: '#6366f1',
-          borderRadius: 12,
+          colorPrimary: '#0c8ce9',
+          borderRadius: 6,
           fontFamily: '"Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
         },
       }}

@@ -78,10 +78,10 @@ const NotificationBadge: React.FC<NotificationBadgeProps> = ({ style }) => {
   // 初始加载和定时刷新
   useEffect(() => {
     loadUnreadCount();
-    
+
     // 每分钟刷新一次未读数量
     const interval = setInterval(loadUnreadCount, 60000);
-    
+
     return () => clearInterval(interval);
   }, [loadUnreadCount]);
 
@@ -156,7 +156,7 @@ const NotificationBadge: React.FC<NotificationBadgeProps> = ({ style }) => {
       style={{
         width: 360,
         backgroundColor: '#fff',
-        borderRadius: 8,
+        borderRadius: 6,
         boxShadow: '0 6px 16px 0 rgba(0, 0, 0, 0.08)',
       }}
     >

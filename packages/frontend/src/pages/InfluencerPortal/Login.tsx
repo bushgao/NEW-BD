@@ -63,7 +63,7 @@ const InfluencerLoginPage = () => {
           width: '100%',
           maxWidth: 420,
           boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-          borderRadius: 12,
+          borderRadius: 8,
         }}
         bodyStyle={{ padding: '40px 32px' }}
       >

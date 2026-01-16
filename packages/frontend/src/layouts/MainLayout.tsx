@@ -217,7 +217,7 @@ const MainLayout = () => {
   ];
 
   return (
-    <Layout className="min-h-screen bg-surface-bg">
+    <Layout className="min-h-screen bg-white">
       <Sider
         trigger={null}
         collapsible
@@ -230,8 +230,8 @@ const MainLayout = () => {
           borderRight: 'none',
         }}
       >
-        <div className="flex h-16 items-center justify-start px-6">
-          <Text className="text-xl font-bold tracking-tight text-neutral-900 border-l-4 border-brand-500 pl-3">
+        <div className="flex h-16 items-center justify-start px-4">
+          <Text className="text-xl font-bold tracking-tight text-neutral-900">
             {collapsed ? 'ICS' : 'NEW BD'}
           </Text>
         </div>
@@ -276,7 +276,7 @@ const MainLayout = () => {
             </Dropdown>
           </div>
         </Header>
-        <Content className="min-h-[280px]">
+        <Content className="min-h-[280px] bg-white p-6">
           <Outlet />
         </Content>
       </Layout>
