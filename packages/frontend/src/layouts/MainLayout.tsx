@@ -38,6 +38,11 @@ const getMenuItems = (role: string): MenuProps['items'] => {
 
   const businessItems = [
     {
+      key: '/app/influencer-square',
+      icon: <ShopOutlined />,
+      label: '达人广场',
+    },
+    {
       key: '/app/influencers',
       icon: <TeamOutlined />,
       label: '达人管理',

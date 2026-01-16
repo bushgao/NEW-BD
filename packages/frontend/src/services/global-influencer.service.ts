@@ -6,21 +6,21 @@
 
 import api from './api';
 
-// 平台枚举（更新后�?
+// 平台枚举
 export type Platform = 'DOUYIN' | 'KUAISHOU' | 'SHIPINHAO' | 'XIAOHONGSHU';
 
 export const PLATFORM_LABELS: Record<Platform, string> = {
     DOUYIN: '抖音',
     KUAISHOU: '快手',
-    SHIPINHAO: '视频�?,
-    XIAOHONGSHU: '小红�?,
+    SHIPINHAO: '视频号',
+    XIAOHONGSHU: '小红书',
 };
 
 export type VerificationStatus = 'UNVERIFIED' | 'VERIFIED' | 'REJECTED';
 
 export const VERIFICATION_STATUS_LABELS: Record<VerificationStatus, string> = {
-    UNVERIFIED: '未认�?,
-    VERIFIED: '已认�?,
+    UNVERIFIED: '未认证',
+    VERIFIED: '已认证',
     REJECTED: '认证拒绝',
 };
 
@@ -30,7 +30,7 @@ export const SOURCE_TYPE_LABELS: Record<InfluencerSourceType, string> = {
     PLATFORM: '平台添加',
     FACTORY: '品牌添加',
     STAFF: '商务添加',
-    SELF_REGISTER: '达人自注�?,
+    SELF_REGISTER: '达人自注册',
 };
 
 // 平台账号信息
@@ -52,8 +52,8 @@ export interface GlobalInfluencer {
     verificationStatus: VerificationStatus;
     verifiedAt: string | null;
     createdAt: string;
-    brandCount?: number;      // 合作品牌数（付费功能�?
-    totalCollabs?: number;    // 总合作次数（付费功能�?
+    brandCount?: number;
+    totalCollabs?: number;
 }
 
 // 搜索参数
@@ -101,7 +101,7 @@ export async function getGlobalInfluencer(id: string): Promise<GlobalInfluencer>
 }
 
 /**
- * 创建全局达人（平台管理员�?
+ * 创建全局达人（平台管理员）
  */
 export async function createGlobalInfluencer(
     data: CreateGlobalInfluencerInput
@@ -124,7 +124,7 @@ export async function getPendingVerificationList(
 }
 
 /**
- * 认证达人（平台管理员�?
+ * 认证达人（平台管理员）
  */
 export async function verifyInfluencer(
     id: string,
@@ -133,4 +133,17 @@ export async function verifyInfluencer(
 ): Promise<GlobalInfluencer> {
     const response = await api.post(`/global-influencers/${id}/verify`, { status, note });
     return response.data.data;
+}
+
+/**
+ * 获取全局达人列表（平台管理员）
+ */
+export async function getGlobalInfluencerList(
+    params: { keyword?: string; page?: number; pageSize?: number; createdAfter?: string } = {}
+): Promise<{ data: GlobalInfluencer[]; total: number }> {
+    const response = await api.get('/global-influencers', { params });
+    return {
+        data: response.data.data,
+        total: response.data.pagination?.total || 0,
+    };
 }

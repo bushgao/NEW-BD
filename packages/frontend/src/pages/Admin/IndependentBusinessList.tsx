@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Input, Tag, Space, message, Modal, Select } from 'antd';
+import { Table, Button, Input, Tag, Space, message, Modal, Select, Typography } from 'antd';
 import { SearchOutlined, TeamOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import { useTheme } from '../../theme/ThemeProvider';
 import * as platformService from '../../services/platform.service';
+
+const { Title } = Typography;
 
 interface IndependentUser {
     id: string;
@@ -20,6 +23,7 @@ interface BrandOption {
 }
 
 export default function IndependentBusinessList() {
+    const { theme } = useTheme();
     const [loading, setLoading] = useState(false);
     const [users, setUsers] = useState<IndependentUser[]>([]);
     const [total, setTotal] = useState(0);
@@ -191,83 +195,97 @@ export default function IndependentBusinessList() {
     ];
 
     return (
-        <div>
-            <div style={{ marginBottom: 16 }}>
-                <Space wrap>
-                    <Input
-                        placeholder="搜索姓名/邮箱/手机号"
-                        prefix={<SearchOutlined />}
-                        value={keyword}
-                        onChange={(e) => setKeyword(e.target.value)}
-                        onPressEnter={handleSearch}
-                        style={{ width: 220 }}
-                        allowClear
-                    />
-                    <Button type="primary" onClick={handleSearch}>
-                        搜索
-                    </Button>
-                </Space>
-            </div>
-
-            <Table
-                columns={columns}
-                dataSource={users}
-                loading={loading}
-                rowKey="id"
-                scroll={{ x: 1000 }}
-                pagination={{
-                    current: page,
-                    pageSize,
-                    total,
-                    showSizeChanger: true,
-                    showQuickJumper: true,
-                    showTotal: (total) => `共 ${total} 条`,
-                    onChange: (p, ps) => {
-                        setPage(p);
-                        setPageSize(ps);
-                    },
-                }}
-            />
-
-            {/* 划归品牌弹窗 */}
-            <Modal
-                title="划归品牌"
-                open={assignModalOpen}
-                onOk={confirmAssign}
-                onCancel={() => setAssignModalOpen(false)}
-                confirmLoading={assigning}
-                okText="确认划归"
-            >
-                {selectedUser && (
-                    <div style={{ marginBottom: 16 }}>
-                        <p><strong>商务姓名：</strong>{selectedUser.name}</p>
-                        <p><strong>邮箱：</strong>{selectedUser.email}</p>
-                    </div>
-                )}
-                <div>
-                    <p style={{ marginBottom: 8 }}><strong>选择目标品牌：</strong></p>
-                    <Select
-                        placeholder="请选择品牌"
-                        style={{ width: '100%' }}
-                        value={selectedBrandId || undefined}
-                        onChange={setSelectedBrandId}
-                        showSearch
-                        optionFilterProp="children"
-                        filterOption={(input, option) =>
-                            (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
-                        }
-                    >
-                        {brands.map((brand) => (
-                            <Select.Option key={brand.id} value={brand.id}>
-                                {brand.name}
-                            </Select.Option>
-                        ))}
-                    </Select>
+        <div
+            style={{
+                minHeight: '100vh',
+                background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
+                position: 'relative',
+                padding: '24px',
+                margin: '-24px',
+            }}
+        >
+            <div style={{ position: 'relative', zIndex: 1 }}>
+                <Title level={4} style={{ marginBottom: 24 }}>
+                    独立商务
+                </Title>
+                <div style={{ marginBottom: 16 }}>
+                    <Space wrap>
+                        <Input
+                            placeholder="搜索姓名/邮箱/手机号"
+                            prefix={<SearchOutlined />}
+                            value={keyword}
+                            onChange={(e) => setKeyword(e.target.value)}
+                            onPressEnter={handleSearch}
+                            style={{ width: 220 }}
+                            allowClear
+                        />
+                        <Button type="primary" onClick={handleSearch}>
+                            搜索
+                        </Button>
+                    </Space>
                 </div>
-                <p style={{ color: '#999', fontSize: 12, marginTop: 12 }}>
-                    划归后，该商务将隶属于所选品牌，不再显示在独立商务列表中。
-                </p>
-            </Modal>
+
+                <Table
+                    columns={columns}
+                    dataSource={users}
+                    loading={loading}
+                    rowKey="id"
+                    scroll={{ x: 1000 }}
+                    pagination={{
+                        current: page,
+                        pageSize,
+                        total,
+                        showSizeChanger: true,
+                        showQuickJumper: true,
+                        showTotal: (total) => `共 ${total} 条`,
+                        onChange: (p, ps) => {
+                            setPage(p);
+                            setPageSize(ps);
+                        },
+                    }}
+                />
+
+                {/* 划归品牌弹窗 */}
+                <Modal
+                    title="划归品牌"
+                    open={assignModalOpen}
+                    onOk={confirmAssign}
+                    onCancel={() => setAssignModalOpen(false)}
+                    confirmLoading={assigning}
+                    okText="确认划归"
+                >
+                    {selectedUser && (
+                        <div style={{ marginBottom: 16 }}>
+                            <p><strong>商务姓名：</strong>{selectedUser.name}</p>
+                            <p><strong>邮箱：</strong>{selectedUser.email}</p>
+                        </div>
+                    )}
+                    <div>
+                        <p style={{ marginBottom: 8 }}><strong>选择目标品牌：</strong></p>
+                        <Select
+                            placeholder="请选择品牌"
+                            style={{ width: '100%' }}
+                            value={selectedBrandId || undefined}
+                            onChange={setSelectedBrandId}
+                            showSearch
+                            optionFilterProp="children"
+                            filterOption={(input, option) =>
+                                (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
+                            }
+                        >
+                            {brands.map((brand) => (
+                                <Select.Option key={brand.id} value={brand.id}>
+                                    {brand.name}
+                                </Select.Option>
+                            ))}
+                        </Select>
+                    </div>
+                    <p style={{ color: '#999', fontSize: 12, marginTop: 12 }}>
+                        划归后，该商务将隶属于所选品牌，不再显示在独立商务列表中。
+                    </p>
+                </Modal>
+            </div>
         </div>
     );
 }
+

@@ -632,7 +632,7 @@ const InfluencersPage = () => {
             style={{
               height: '100%',
               overflow: 'hidden',
-              borderRadius: '24px',
+              borderRadius: '6px',
               border: '1px solid rgba(0,0,0,0.05)',
               boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
             }}
@@ -651,7 +651,7 @@ const InfluencersPage = () => {
           <div style={{
             background: 'rgba(255, 255, 255, 0.7)',
             backdropFilter: 'blur(20px)',
-            borderRadius: '24px',
+            borderRadius: '6px',
             padding: '20px 24px',
             marginBottom: '20px',
             border: '1px solid rgba(255, 255, 255, 0.4)',

@@ -298,6 +298,50 @@ router.get(
 );
 
 /**
+ * @route POST /api/influencers/from-global
+ * @desc 从全局达人池拉入达人到品牌库
+ * @access Private (Factory Member)
+ */
+router.post(
+  '/from-global',
+  requireFactoryMember,
+  [
+    body('globalInfluencerId').isUUID().withMessage('无效的全局达人ID'),
+    body('nickname').trim().notEmpty().withMessage('请输入达人昵称'),
+    body('phone').optional().trim(),
+    body('wechat').optional().trim(),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const brandId = req.user!.brandId;
+      if (!brandId) {
+        throw createBadRequestError('用户未关联工厂');
+      }
+
+      const { globalInfluencerId, nickname, phone, wechat } = req.body;
+
+      // 创建品牌达人记录，关联全局达人
+      const influencer = await influencerService.createFromGlobalPool({
+        brandId,
+        globalInfluencerId,
+        nickname,
+        phone,
+        wechat,
+        userId: req.user!.userId,
+      });
+
+      res.status(201).json({
+        success: true,
+        data: influencer,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
  * @route POST /api/influencers
  * @desc Create a new influencer
  * @access Private (Factory Member)

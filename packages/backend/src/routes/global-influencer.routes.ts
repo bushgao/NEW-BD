@@ -1,56 +1,143 @@
-/**
- * 全局达人路由 (Global Influencer Routes)
- * 
- * 主要用于�?
- * - 平台管理员：认证达人、查看所有达�?
- * - 品牌/商务：搜索达人（用于添加�?
- */
-
 import { Router, Request, Response, NextFunction } from 'express';
-import { body, query, param, validationResult } from 'express-validator';
+import { body, param, validationResult } from 'express-validator';
 import { authenticate, requirePlatformAdmin } from '../middleware/auth.middleware';
-import { createBadRequestError } from '../middleware/errorHandler';
-import * as globalInfluencerService from '../services/global-influencer.service';
+import { PrismaClient } from '@prisma/client';
 
+const prisma = new PrismaClient();
 const router = Router();
 
-// 验证中间�?
-const handleValidationErrors = (req: Request, _res: Response, next: NextFunction) => {
+// 验证错误处理中间件
+const handleValidationErrors = (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        const errorMessages = errors.array().map(err => err.msg).join(', ');
-        throw createBadRequestError(errorMessages, errors.array());
+        return res.status(400).json({
+            success: false,
+            error: {
+                code: 'VALIDATION_ERROR',
+                message: '请求参数验证失败',
+                details: errors.array(),
+            },
+        });
     }
     next();
 };
 
-// ============================================
-// 平台管理员路�?
-// ============================================
+/**
+ * 创建全局达人（平台管理员入库到达人池）
+ * POST /global-influencers
+ * 
+ * 使用 InfluencerAccount 模型作为全局达人池
+ */
+router.post(
+    '/',
+    authenticate,
+    requirePlatformAdmin,
+    [
+        body('nickname').isString().trim().notEmpty().withMessage('昵称不能为空'),
+        body('phone').optional().matches(/^1[3-9]\d{9}$/).withMessage('手机号格式错误'),
+        body('wechat').optional().isString().trim(),
+        body('platformAccounts').isArray({ min: 1 }).withMessage('至少需要一个平台账号'),
+        body('platformAccounts.*.platform').isIn(['DOUYIN', 'KUAISHOU', 'SHIPINHAO', 'XIAOHONGSHU']).withMessage('平台格式错误'),
+        body('platformAccounts.*.platformId').isString().trim().notEmpty().withMessage('平台账号ID不能为空'),
+    ],
+    handleValidationErrors,
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { nickname, phone, wechat, platformAccounts } = req.body;
+
+            // 使用 InfluencerAccount 存储全局达人
+            // InfluencerAccount 只需要 primaryPhone，其他信息存储在 nickname 和 wechatId
+            const influencerAccount = await prisma.influencerAccount.create({
+                data: {
+                    primaryPhone: phone || `temp_${Date.now()}`, // 如果没有手机号，使用临时标识
+                    nickname: nickname,
+                    wechatId: wechat,
+                },
+            });
+
+            // 返回创建的全局达人信息
+            res.status(201).json({
+                success: true,
+                data: {
+                    id: influencerAccount.id,
+                    nickname: influencerAccount.nickname,
+                    phone: influencerAccount.primaryPhone,
+                    wechat: influencerAccount.wechatId,
+                    platformAccounts: platformAccounts, // 前端传入的平台信息（暂存，后续可扩展）
+                    createdAt: influencerAccount.createdAt,
+                },
+                message: '达人入库成功',
+            });
+        } catch (error: any) {
+            // 处理唯一约束冲突
+            if (error.code === 'P2002') {
+                return res.status(400).json({
+                    success: false,
+                    error: { message: '该手机号或微信号已存在' },
+                });
+            }
+            next(error);
+        }
+    }
+);
 
 /**
- * 获取待认证达人列�?
- * GET /global-influencers/pending-verification
+ * 获取全局达人列表
+ * GET /global-influencers
  */
 router.get(
-    '/pending-verification',
+    '/',
     authenticate,
     requirePlatformAdmin,
     async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const page = Number(req.query.page) || 1;
-            const pageSize = Number(req.query.pageSize) || 20;
+            const { keyword, page = '1', pageSize = '20', createdAfter } = req.query;
+            const skip = (Number(page) - 1) * Number(pageSize);
 
-            const result = await globalInfluencerService.getPendingVerificationList({ page, pageSize });
+            const where: any = {};
+            if (keyword) {
+                where.OR = [
+                    { nickname: { contains: keyword, mode: 'insensitive' } },
+                    { primaryPhone: { contains: keyword } },
+                    { wechatId: { contains: keyword, mode: 'insensitive' } },
+                ];
+            }
+
+            // 时间筛选
+            if (createdAfter) {
+                where.createdAt = { gte: new Date(createdAfter as string) };
+            }
+
+            const [total, accounts] = await Promise.all([
+                prisma.influencerAccount.count({ where }),
+                prisma.influencerAccount.findMany({
+                    where,
+                    skip,
+                    take: Number(pageSize),
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                        _count: {
+                            select: { claimedInfluencers: true },
+                        },
+                    },
+                }),
+            ]);
 
             res.json({
                 success: true,
-                data: result.data,
+                data: accounts.map(acc => ({
+                    id: acc.id,
+                    nickname: acc.nickname,
+                    phone: acc.primaryPhone,
+                    wechat: acc.wechatId,
+                    brandCount: acc._count.claimedInfluencers,
+                    createdAt: acc.createdAt,
+                })),
                 pagination: {
-                    page,
-                    pageSize,
-                    total: result.total,
-                    totalPages: Math.ceil(result.total / pageSize),
+                    page: Number(page),
+                    pageSize: Number(pageSize),
+                    total,
+                    totalPages: Math.ceil(total / Number(pageSize)),
                 },
             });
         } catch (error) {
@@ -60,40 +147,7 @@ router.get(
 );
 
 /**
- * 认证达人（通过/拒绝�?
- * POST /global-influencers/:id/verify
- */
-router.post(
-    '/:id/verify',
-    authenticate,
-    requirePlatformAdmin,
-    [
-        param('id').isUUID().withMessage('无效的ID'),
-        body('status').isIn(['VERIFIED', 'REJECTED']).withMessage('无效的状�?),
-        body('note').optional().isString().trim(),
-    ],
-    handleValidationErrors,
-    async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const { id } = req.params;
-            const { status, note } = req.body;
-            const userId = req.user!.userId;
-
-            const result = await globalInfluencerService.verifyInfluencer(id, userId, status, note);
-
-            res.json({
-                success: true,
-                data: result,
-                message: status === 'VERIFIED' ? '认证成功' : '已拒绝认�?,
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
-);
-
-/**
- * 搜索全局达人
+ * 搜索全局达人（供品牌选择添加）
  * GET /global-influencers/search
  */
 router.get(
@@ -101,30 +155,34 @@ router.get(
     authenticate,
     async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const { keyword, phone, platform, platformId, verificationStatus } = req.query;
-            const page = Number(req.query.page) || 1;
-            const pageSize = Number(req.query.pageSize) || 20;
+            const { keyword, phone } = req.query;
 
-            const result = await globalInfluencerService.searchGlobalInfluencers(
-                {
-                    keyword: keyword as string,
-                    phone: phone as string,
-                    platform: platform as any,
-                    platformId: platformId as string,
-                    verificationStatus: verificationStatus as any,
-                },
-                { page, pageSize }
-            );
+            const where: any = {};
+            if (phone) {
+                where.primaryPhone = { contains: phone };
+            } else if (keyword) {
+                where.OR = [
+                    { nickname: { contains: keyword, mode: 'insensitive' } },
+                    { primaryPhone: { contains: keyword } },
+                    { wechatId: { contains: keyword, mode: 'insensitive' } },
+                ];
+            }
+
+            const accounts = await prisma.influencerAccount.findMany({
+                where,
+                take: 20,
+                orderBy: { createdAt: 'desc' },
+            });
 
             res.json({
                 success: true,
-                data: result.data,
-                pagination: {
-                    page,
-                    pageSize,
-                    total: result.total,
-                    totalPages: Math.ceil(result.total / pageSize),
-                },
+                data: accounts.map(acc => ({
+                    id: acc.id,
+                    nickname: acc.nickname,
+                    phone: acc.primaryPhone,
+                    wechat: acc.wechatId,
+                    createdAt: acc.createdAt,
+                })),
             });
         } catch (error) {
             next(error);
@@ -139,145 +197,48 @@ router.get(
 router.get(
     '/:id',
     authenticate,
-    [param('id').isUUID().withMessage('无效的ID')],
-    handleValidationErrors,
-    async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const { id } = req.params;
-            const result = await globalInfluencerService.getGlobalInfluencerById(id);
-
-            res.json({
-                success: true,
-                data: result,
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
-);
-
-/**
- * 创建全局达人（平台管理员�?
- * POST /global-influencers
- */
-router.post(
-    '/',
-    authenticate,
-    requirePlatformAdmin,
-    [
-        body('nickname').isString().trim().notEmpty().withMessage('昵称不能为空'),
-        body('phone').optional().matches(/^1[3-9]\d{9}$/).withMessage('手机号格式不正确'),
-        body('wechat').optional().isString().trim(),
-        body('platformAccounts').isArray({ min: 1 }).withMessage('至少需要一个平台账�?),
-        body('platformAccounts.*.platform').isIn(['DOUYIN', 'KUAISHOU', 'SHIPINHAO', 'XIAOHONGSHU']).withMessage('无效的平�?),
-        body('platformAccounts.*.platformId').isString().trim().notEmpty().withMessage('平台账号ID不能为空'),
-    ],
-    handleValidationErrors,
-    async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const { nickname, phone, wechat, platformAccounts } = req.body;
-            const userId = req.user!.userId;
-
-            const result = await globalInfluencerService.createGlobalInfluencer({
-                nickname,
-                phone,
-                wechat,
-                platformAccounts,
-                sourceType: 'PLATFORM',
-                createdBy: userId,
-            });
-
-            res.status(201).json({
-                success: true,
-                data: result,
-                message: '达人创建成功',
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
-);
-
-// ============================================
-// 账号绑定相关路由（平台管理员�?
-// ============================================
-
-/**
- * 通过手机号搜索达人账�?
- * GET /global-influencers/search-account?phone=xxx
- */
-router.get(
-    '/search-account',
-    authenticate,
-    requirePlatformAdmin,
-    [query('phone').matches(/^1[3-9]\d{9}$/).withMessage('手机号格式不正确')],
-    handleValidationErrors,
-    async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const phone = req.query.phone as string;
-            const account = await globalInfluencerService.searchInfluencerAccount(phone);
-
-            res.json({
-                success: true,
-                data: account,
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
-);
-
-/**
- * 绑定达人账号
- * PUT /global-influencers/:id/bind-account
- */
-router.put(
-    '/:id/bind-account',
-    authenticate,
-    requirePlatformAdmin,
-    [
-        param('id').isUUID().withMessage('无效的达人ID'),
-        body('accountId').isUUID().withMessage('无效的账号ID'),
-    ],
-    handleValidationErrors,
-    async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const { id } = req.params;
-            const { accountId } = req.body;
-
-            const result = await globalInfluencerService.bindInfluencerAccount(id, accountId);
-
-            res.json({
-                success: true,
-                data: result,
-                message: '账号绑定成功',
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
-);
-
-/**
- * 解绑达人账号
- * PUT /global-influencers/:id/unbind-account
- */
-router.put(
-    '/:id/unbind-account',
-    authenticate,
-    requirePlatformAdmin,
-    [param('id').isUUID().withMessage('无效的达人ID')],
+    [param('id').isUUID().withMessage('ID格式错误')],
     handleValidationErrors,
     async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { id } = req.params;
 
-            const result = await globalInfluencerService.unbindInfluencerAccount(id);
+            const account = await prisma.influencerAccount.findUnique({
+                where: { id },
+                include: {
+                    claimedInfluencers: {
+                        include: {
+                            brand: {
+                                select: { id: true, name: true },
+                            },
+                        },
+                    },
+                },
+            });
+
+            if (!account) {
+                return res.status(404).json({
+                    success: false,
+                    error: { message: '达人不存在' },
+                });
+            }
 
             res.json({
                 success: true,
-                data: result,
-                message: '账号解绑成功',
+                data: {
+                    id: account.id,
+                    nickname: account.nickname,
+                    phone: account.primaryPhone,
+                    wechat: account.wechatId,
+                    createdAt: account.createdAt,
+                    brandInfluencers: account.claimedInfluencers.map(inf => ({
+                        id: inf.id,
+                        brandId: inf.brandId,
+                        brandName: inf.brand.name,
+                        platform: inf.platform,
+                        platformId: inf.platformId,
+                    })),
+                },
             });
         } catch (error) {
             next(error);

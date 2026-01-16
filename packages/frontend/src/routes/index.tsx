@@ -29,6 +29,7 @@ const UIShowcase = lazy(() => import('../pages/UIShowcase'));
 const TeamPage = lazy(() => import('../pages/Team'));
 const RoiCalculatorPage = lazy(() => import('../pages/RoiCalculator'));
 const AdminInfluencerCollection = lazy(() => import('../pages/Admin/InfluencerCollection'));
+const InfluencerSquarePage = lazy(() => import('../pages/InfluencerSquare'));
 
 // 平台管理员登录页面
 const AdminLoginPage = lazy(() => import('../pages/AdminLogin'));
@@ -190,6 +191,16 @@ const AppRoutes = () => {
             element={
               <RoleRoute allowedRoles={['PLATFORM_ADMIN', 'BRAND', 'BUSINESS']}>
                 <Dashboard />
+              </RoleRoute>
+            }
+          />
+
+          {/* Influencer Square - Browse and pull from global pool */}
+          <Route
+            path="influencer-square"
+            element={
+              <RoleRoute allowedRoles={['BRAND', 'BUSINESS']}>
+                <InfluencerSquarePage />
               </RoleRoute>
             }
           />

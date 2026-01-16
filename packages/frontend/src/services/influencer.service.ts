@@ -282,3 +282,18 @@ export async function getInfluencerROIStats(influencerId: string): Promise<any> 
   const response = await api.get(`/influencers/${influencerId}/roi-stats`);
   return response.data.data;
 }
+
+/**
+ * 从全局达人池拉入达人到品牌库
+ */
+export interface AddToRosterInput {
+  globalInfluencerId: string;
+  nickname: string;
+  phone?: string;
+  wechat?: string;
+}
+
+export async function addInfluencerToRoster(data: AddToRosterInput): Promise<Influencer> {
+  const response = await api.post('/influencers/from-global', data);
+  return response.data.data;
+}

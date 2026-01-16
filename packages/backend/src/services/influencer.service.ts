@@ -233,6 +233,73 @@ export async function create(data: CreateInfluencerInput): Promise<Influencer> {
 }
 
 /**
+ * 从全局达人池拉入达人到品牌库
+ */
+export interface CreateFromGlobalPoolInput {
+  brandId: string;
+  globalInfluencerId: string;
+  nickname: string;
+  phone?: string;
+  wechat?: string;
+  userId: string;
+}
+
+export async function createFromGlobalPool(data: CreateFromGlobalPoolInput): Promise<Influencer> {
+  const { brandId, globalInfluencerId, nickname, phone, wechat, userId } = data;
+
+  // 验证全局达人存在
+  const globalInfluencer = await prisma.influencerAccount.findUnique({
+    where: { id: globalInfluencerId },
+  });
+
+  if (!globalInfluencer) {
+    throw createNotFoundError('全局达人不存在');
+  }
+
+  // 检查是否已经拉入
+  const existingLink = await prisma.influencer.findFirst({
+    where: {
+      brandId,
+      accountId: globalInfluencerId,
+    },
+  });
+
+  if (existingLink) {
+    throw createConflictError('该达人已在您的库中');
+  }
+
+  // 检查配额
+  await checkInfluencerQuota(brandId);
+
+  // 获取用户角色确定来源类型
+  let sourceType: 'PLATFORM' | 'FACTORY' | 'STAFF' = 'STAFF';
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+  if (user) {
+    sourceType = determineSourceType(user.role);
+  }
+
+  // 创建品牌达人记录，关联全局达人
+  const influencer = await prisma.influencer.create({
+    data: {
+      brandId,
+      nickname: nickname.trim(),
+      platform: 'OTHER', // 默认平台，后续可完善
+      platformId: `global_${globalInfluencerId.slice(0, 8)}`, // 临时平台ID
+      phone: phone?.trim() || globalInfluencer.primaryPhone,
+      wechat: wechat?.trim() || globalInfluencer.wechatId,
+      accountId: globalInfluencerId, // 关键：关联全局达人
+      createdBy: userId,
+      sourceType,
+    },
+  });
+
+  return influencer as Influencer;
+}
+
+/**
  * Get influencer by ID
  */
 export async function getById(id: string, brandId: string): Promise<Influencer> {

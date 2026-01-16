@@ -22,79 +22,107 @@ import {
     CheckCircleOutlined,
 } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
-import api from '../../services/api';
+import { useTheme } from '../../theme/ThemeProvider';
+import { createGlobalInfluencer, getGlobalInfluencerList, type Platform, type GlobalInfluencer, PLATFORM_LABELS } from '../../services/global-influencer.service';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
 interface InfluencerFormData {
     nickname: string;
-    platform: string;
+    platform: Platform;
     platformId: string;
     uid?: string;
     followers?: string;
     phone?: string;
     wechat?: string;
     homeUrl?: string;
-    tags?: string[];
     notes?: string;
 }
 
-interface ImportRow extends InfluencerFormData {
+interface ImportRow {
     key: string;
+    nickname: string;
+    platform: Platform;
+    platformId: string;
+    uid?: string;
+    followers?: string;
     status?: 'pending' | 'success' | 'error';
     errorMsg?: string;
 }
 
-const platformOptions = [
-    { label: '抖音', value: 'DOUYIN' },
-    { label: '小红书', value: 'XIAOHONGSHU' },
-    { label: '快手', value: 'KUAISHOU' },
-    { label: '视频号', value: 'SHIPINHAO' },
-    { label: '微博', value: 'WEIBO' },
-    { label: 'B站', value: 'BILIBILI' },
-    { label: '淘宝', value: 'TAOBAO' },
-    { label: '其他', value: 'OTHER' },
-];
+const platformOptions = Object.entries(PLATFORM_LABELS).map(([value, label]) => ({
+    label,
+    value,
+}));
 
 const InfluencerCollectionPage = () => {
+    const { theme } = useTheme();
     const [form] = Form.useForm();
     const [activeTab, setActiveTab] = useState('single');
     const [loading, setLoading] = useState(false);
     const [importData, setImportData] = useState<ImportRow[]>([]);
     const [importing, setImporting] = useState(false);
-    const [brands, setBrands] = useState<{ id: string; name: string }[]>([]);
-    const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
 
-    // 加载品牌列表
-    useEffect(() => {
-        const loadBrands = async () => {
-            try {
-                const response = await api.get('/platform/factories');
-                setBrands(response.data.data?.data || []);
-            } catch (error) {
-                console.error('Failed to load brands:', error);
+    // 最近入库记录状态
+    const [influencerList, setInfluencerList] = useState<GlobalInfluencer[]>([]);
+    const [listLoading, setListLoading] = useState(false);
+    const [total, setTotal] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [timeFilter, setTimeFilter] = useState<'session' | '1h' | '24h' | 'all'>('session');
+    const [sessionStartTime] = useState(new Date()); // 本次会话开始时间
+
+    // 加载最近入库记录
+    const loadInfluencerList = async (page = 1, filter = timeFilter) => {
+        setListLoading(true);
+        try {
+            // 根据时间筛选计算 createdAfter 参数
+            let createdAfter: string | undefined;
+            const now = new Date();
+            if (filter === 'session') {
+                createdAfter = sessionStartTime.toISOString();
+            } else if (filter === '1h') {
+                createdAfter = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+            } else if (filter === '24h') {
+                createdAfter = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
             }
-        };
-        loadBrands();
+            // filter === 'all' 时不传 createdAfter
+
+            const result = await getGlobalInfluencerList({ page, pageSize: 10, createdAfter });
+            setInfluencerList(result.data);
+            setTotal(result.total);
+            setCurrentPage(page);
+        } catch (error) {
+            message.error('加载达人列表失败');
+        } finally {
+            setListLoading(false);
+        }
+    };
+
+    // 页面加载时获取列表
+    useEffect(() => {
+        loadInfluencerList();
     }, []);
 
-    // 单独添加达人
+    // 单独添加达人到全局达人池
     const handleAddSingle = async (values: InfluencerFormData) => {
-        if (!selectedBrandId) {
-            message.error('请先选择品牌');
-            return;
-        }
-
         setLoading(true);
         try {
-            await api.post('/platform/influencers', {
-                ...values,
-                brandId: selectedBrandId,
-                sourceType: 'PLATFORM',
+            await createGlobalInfluencer({
+                nickname: values.nickname,
+                phone: values.phone,
+                wechat: values.wechat,
+                platformAccounts: [{
+                    platform: values.platform,
+                    platformId: values.platformId,
+                    followers: values.followers,
+                    profileUrl: values.homeUrl,
+                }],
             });
-            message.success('添加成功');
+            message.success('达人已添加到全局达人池');
             form.resetFields();
+            // 刷新列表
+            loadInfluencerList();
         } catch (error: any) {
             message.error(error.response?.data?.message || '添加失败');
         } finally {
@@ -104,10 +132,7 @@ const InfluencerCollectionPage = () => {
 
     // 解析 Excel 数据（模拟）
     const handleUpload = (_file: UploadFile) => {
-        // TODO: 实际项目中使用 xlsx 库解析
         message.info('Excel 解析功能待实现，请使用模板格式');
-
-        // 模拟导入数据
         const mockData: ImportRow[] = [
             {
                 key: '1',
@@ -120,14 +145,13 @@ const InfluencerCollectionPage = () => {
             },
         ];
         setImportData(mockData);
-        return false; // 阻止自动上传
+        return false;
     };
 
     // 下载模板
     const handleDownloadTemplate = () => {
-        // 创建 CSV 模板
-        const headers = ['昵称', '平台', '账号ID', 'UID', '粉丝数', '手机号', '微信号', '主页', '标签', '备注'];
-        const exampleRow = ['示例达人', 'DOUYIN', 'example123', 'uid001', '10000', '13800138000', 'wx123', 'https://...', '美妆;护肤', '备注内容'];
+        const headers = ['昵称', '平台', '账号ID', 'UID', '粉丝数', '手机号', '微信号', '主页', '备注'];
+        const exampleRow = ['示例达人', 'DOUYIN', 'example123', 'uid001', '10000', '13800138000', 'wx123', 'https://...', '备注内容'];
         const csvContent = [headers.join(','), exampleRow.join(',')].join('\n');
 
         const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8' });
@@ -141,11 +165,6 @@ const InfluencerCollectionPage = () => {
 
     // 批量导入
     const handleBatchImport = async () => {
-        if (!selectedBrandId) {
-            message.error('请先选择品牌');
-            return;
-        }
-
         if (importData.length === 0) {
             message.warning('没有待导入的数据');
             return;
@@ -157,10 +176,13 @@ const InfluencerCollectionPage = () => {
 
         for (const row of importData) {
             try {
-                await api.post('/platform/influencers', {
-                    ...row,
-                    brandId: selectedBrandId,
-                    sourceType: 'PLATFORM',
+                await createGlobalInfluencer({
+                    nickname: row.nickname,
+                    platformAccounts: [{
+                        platform: row.platform,
+                        platformId: row.platformId,
+                        followers: row.followers,
+                    }],
                 });
                 row.status = 'success';
                 successCount++;
@@ -176,14 +198,13 @@ const InfluencerCollectionPage = () => {
         message.info(`导入完成：成功 ${successCount} 条，失败 ${failCount} 条`);
     };
 
-    // 删除导入行
     const handleRemoveRow = (key: string) => {
         setImportData(importData.filter(row => row.key !== key));
     };
 
     const importColumns = [
         { title: '昵称', dataIndex: 'nickname', key: 'nickname' },
-        { title: '平台', dataIndex: 'platform', key: 'platform', render: (v: string) => platformOptions.find(p => p.value === v)?.label || v },
+        { title: '平台', dataIndex: 'platform', key: 'platform', render: (v: Platform) => PLATFORM_LABELS[v] || v },
         { title: '账号ID', dataIndex: 'platformId', key: 'platformId' },
         { title: 'UID', dataIndex: 'uid', key: 'uid' },
         { title: '粉丝数', dataIndex: 'followers', key: 'followers' },
@@ -212,221 +233,267 @@ const InfluencerCollectionPage = () => {
         <div style={{
             padding: '24px',
             margin: '-24px',
-            background: 'linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #24243e 100%)',
+            background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
             minHeight: '100vh',
         }}>
-            <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
-                <Col>
-                    <Title level={3} style={{ margin: 0, color: '#fff' }}>🎯 达人入库</Title>
-                    <Paragraph style={{ color: 'rgba(255,255,255,0.65)', marginTop: 8, marginBottom: 0 }}>
-                        平台统一管理达人资源，支持单独添加或批量导入
-                    </Paragraph>
-                </Col>
-            </Row>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+                <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+                    <Col>
+                        <Title level={4} style={{ margin: 0 }}>🎯 达人入库</Title>
+                        <Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
+                            将达人添加到全局达人池，品牌可从达人池中选择达人进行合作
+                        </Paragraph>
+                    </Col>
+                </Row>
 
-            {/* 品牌选择 */}
-            <Card
-                style={{
-                    background: 'rgba(255,255,255,0.1)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 10,
-                    marginBottom: 24,
-                }}
-                bodyStyle={{ padding: 16 }}
-            >
-                <Space size="middle" align="center">
-                    <Text style={{ color: 'rgba(255,255,255,0.85)' }}>目标品牌：</Text>
-                    <Select
-                        value={selectedBrandId}
-                        onChange={setSelectedBrandId}
-                        placeholder="选择要入库的品牌"
-                        style={{ width: 300 }}
-                        options={brands.map(b => ({ label: b.name, value: b.id }))}
-                        showSearch
-                        optionFilterProp="label"
-                    />
-                </Space>
-            </Card>
-
-            <Card
-                style={{
-                    background: 'rgba(255,255,255,0.1)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 10,
-                }}
-                bodyStyle={{ padding: 24 }}
-            >
-                <Tabs
-                    activeKey={activeTab}
-                    onChange={setActiveTab}
-                    items={[
-                        {
-                            key: 'single',
-                            label: '✏️ 单独添加',
-                            children: (
-                                <Form
-                                    form={form}
-                                    layout="vertical"
-                                    onFinish={handleAddSingle}
-                                    style={{ maxWidth: 600 }}
-                                >
-                                    <Row gutter={16}>
-                                        <Col span={12}>
-                                            <Form.Item
-                                                name="nickname"
-                                                label={<Text style={{ color: 'rgba(255,255,255,0.85)' }}>达人昵称</Text>}
-                                                rules={[{ required: true, message: '请输入达人昵称' }]}
-                                            >
-                                                <Input placeholder="请输入达人昵称" />
-                                            </Form.Item>
-                                        </Col>
-                                        <Col span={12}>
-                                            <Form.Item
-                                                name="platform"
-                                                label={<Text style={{ color: 'rgba(255,255,255,0.85)' }}>平台</Text>}
-                                                rules={[{ required: true, message: '请选择平台' }]}
-                                            >
-                                                <Select placeholder="选择平台" options={platformOptions} />
-                                            </Form.Item>
-                                        </Col>
-                                    </Row>
-
-                                    <Row gutter={16}>
-                                        <Col span={12}>
-                                            <Form.Item
-                                                name="platformId"
-                                                label={<Text style={{ color: 'rgba(255,255,255,0.85)' }}>平台账号ID</Text>}
-                                                rules={[{ required: true, message: '请输入账号ID' }]}
-                                            >
-                                                <Input placeholder="请输入平台账号ID" />
-                                            </Form.Item>
-                                        </Col>
-                                        <Col span={12}>
-                                            <Form.Item
-                                                name="uid"
-                                                label={<Text style={{ color: 'rgba(255,255,255,0.85)' }}>UID</Text>}
-                                            >
-                                                <Input placeholder="请输入达人UID（可选）" />
-                                            </Form.Item>
-                                        </Col>
-                                    </Row>
-
-                                    <Row gutter={16}>
-                                        <Col span={12}>
-                                            <Form.Item
-                                                name="followers"
-                                                label={<Text style={{ color: 'rgba(255,255,255,0.85)' }}>粉丝数</Text>}
-                                            >
-                                                <Input placeholder="如：100000" />
-                                            </Form.Item>
-                                        </Col>
-                                        <Col span={12}>
-                                            <Form.Item
-                                                name="phone"
-                                                label={<Text style={{ color: 'rgba(255,255,255,0.85)' }}>手机号</Text>}
-                                            >
-                                                <Input placeholder="请输入手机号" />
-                                            </Form.Item>
-                                        </Col>
-                                    </Row>
-
-                                    <Row gutter={16}>
-                                        <Col span={12}>
-                                            <Form.Item
-                                                name="wechat"
-                                                label={<Text style={{ color: 'rgba(255,255,255,0.85)' }}>微信号</Text>}
-                                            >
-                                                <Input placeholder="请输入微信号" />
-                                            </Form.Item>
-                                        </Col>
-                                        <Col span={12}>
-                                            <Form.Item
-                                                name="homeUrl"
-                                                label={<Text style={{ color: 'rgba(255,255,255,0.85)' }}>主页链接</Text>}
-                                            >
-                                                <Input placeholder="请输入主页链接" />
-                                            </Form.Item>
-                                        </Col>
-                                    </Row>
-
-                                    <Form.Item
-                                        name="tags"
-                                        label={<Text style={{ color: 'rgba(255,255,255,0.85)' }}>标签</Text>}
+                <Card
+                    style={{
+                        background: '#fff',
+                        border: '1px solid #f0f0f0',
+                        borderRadius: 6,
+                    }}
+                    bodyStyle={{ padding: 24 }}
+                >
+                    <Tabs
+                        activeKey={activeTab}
+                        onChange={setActiveTab}
+                        items={[
+                            {
+                                key: 'single',
+                                label: '✏️ 单独添加',
+                                children: (
+                                    <Form
+                                        form={form}
+                                        layout="vertical"
+                                        onFinish={handleAddSingle}
+                                        style={{ maxWidth: 600 }}
                                     >
-                                        <Select mode="tags" placeholder="输入标签后回车" />
-                                    </Form.Item>
+                                        <Row gutter={16}>
+                                            <Col span={12}>
+                                                <Form.Item
+                                                    name="nickname"
+                                                    label="达人昵称"
+                                                    rules={[{ required: true, message: '请输入达人昵称' }]}
+                                                >
+                                                    <Input placeholder="请输入达人昵称" />
+                                                </Form.Item>
+                                            </Col>
+                                            <Col span={12}>
+                                                <Form.Item
+                                                    name="platform"
+                                                    label="平台"
+                                                    rules={[{ required: true, message: '请选择平台' }]}
+                                                >
+                                                    <Select placeholder="选择平台" options={platformOptions} />
+                                                </Form.Item>
+                                            </Col>
+                                        </Row>
 
-                                    <Form.Item
-                                        name="notes"
-                                        label={<Text style={{ color: 'rgba(255,255,255,0.85)' }}>备注</Text>}
-                                    >
-                                        <TextArea rows={3} placeholder="请输入备注" />
-                                    </Form.Item>
+                                        <Row gutter={16}>
+                                            <Col span={12}>
+                                                <Form.Item
+                                                    name="platformId"
+                                                    label="平台账号ID"
+                                                    rules={[{ required: true, message: '请输入账号ID' }]}
+                                                >
+                                                    <Input placeholder="请输入平台账号ID" />
+                                                </Form.Item>
+                                            </Col>
+                                            <Col span={12}>
+                                                <Form.Item
+                                                    name="followers"
+                                                    label="粉丝数"
+                                                >
+                                                    <Input placeholder="如：100000" />
+                                                </Form.Item>
+                                            </Col>
+                                        </Row>
 
-                                    <Form.Item>
-                                        <Button type="primary" htmlType="submit" loading={loading} icon={<PlusOutlined />}>
-                                            添加达人
-                                        </Button>
-                                    </Form.Item>
-                                </Form>
-                            ),
-                        },
-                        {
-                            key: 'import',
-                            label: '📥 Excel导入',
-                            children: (
-                                <div>
-                                    <Space style={{ marginBottom: 16 }}>
-                                        <Upload
-                                            accept=".xlsx,.xls,.csv"
-                                            beforeUpload={handleUpload}
-                                            showUploadList={false}
+                                        <Row gutter={16}>
+                                            <Col span={12}>
+                                                <Form.Item
+                                                    name="phone"
+                                                    label="手机号"
+                                                >
+                                                    <Input placeholder="请输入手机号" />
+                                                </Form.Item>
+                                            </Col>
+                                            <Col span={12}>
+                                                <Form.Item
+                                                    name="wechat"
+                                                    label="微信号"
+                                                >
+                                                    <Input placeholder="请输入微信号" />
+                                                </Form.Item>
+                                            </Col>
+                                        </Row>
+
+                                        <Form.Item
+                                            name="homeUrl"
+                                            label="主页链接"
                                         >
-                                            <Button icon={<UploadOutlined />}>选择文件</Button>
-                                        </Upload>
-                                        <Button icon={<DownloadOutlined />} onClick={handleDownloadTemplate}>
-                                            下载模板
-                                        </Button>
-                                        {importData.length > 0 && (
-                                            <Button
-                                                type="primary"
-                                                icon={<CheckCircleOutlined />}
-                                                onClick={handleBatchImport}
-                                                loading={importing}
-                                            >
-                                                确认导入 ({importData.length} 条)
-                                            </Button>
-                                        )}
-                                    </Space>
+                                            <Input placeholder="请输入主页链接" />
+                                        </Form.Item>
 
-                                    {importData.length > 0 ? (
-                                        <Table
-                                            columns={importColumns}
-                                            dataSource={importData}
-                                            size="small"
-                                            pagination={false}
-                                            scroll={{ x: true }}
-                                        />
-                                    ) : (
-                                        <div style={{
-                                            textAlign: 'center',
-                                            padding: 60,
-                                            background: 'rgba(255,255,255,0.05)',
-                                            borderRadius: 6,
-                                        }}>
-                                            <Text style={{ color: 'rgba(255,255,255,0.45)' }}>
-                                                请上传 Excel 或 CSV 文件，或先下载模板填写后上传
-                                            </Text>
-                                        </div>
-                                    )}
-                                </div>
-                            ),
-                        },
-                    ]}
-                />
-            </Card>
+                                        <Form.Item
+                                            name="notes"
+                                            label="备注"
+                                        >
+                                            <TextArea rows={3} placeholder="请输入备注" />
+                                        </Form.Item>
+
+                                        <Form.Item>
+                                            <Button type="primary" htmlType="submit" loading={loading} icon={<PlusOutlined />}>
+                                                添加到达人池
+                                            </Button>
+                                        </Form.Item>
+                                    </Form>
+                                ),
+                            },
+                            {
+                                key: 'import',
+                                label: '📥 Excel导入',
+                                children: (
+                                    <div>
+                                        <Space style={{ marginBottom: 16 }}>
+                                            <Upload
+                                                accept=".xlsx,.xls,.csv"
+                                                beforeUpload={handleUpload}
+                                                showUploadList={false}
+                                            >
+                                                <Button icon={<UploadOutlined />}>选择文件</Button>
+                                            </Upload>
+                                            <Button icon={<DownloadOutlined />} onClick={handleDownloadTemplate}>
+                                                下载模板
+                                            </Button>
+                                            {importData.length > 0 && (
+                                                <Button
+                                                    type="primary"
+                                                    icon={<CheckCircleOutlined />}
+                                                    onClick={handleBatchImport}
+                                                    loading={importing}
+                                                >
+                                                    确认导入 ({importData.length} 条)
+                                                </Button>
+                                            )}
+                                        </Space>
+
+                                        {importData.length > 0 ? (
+                                            <Table
+                                                columns={importColumns}
+                                                dataSource={importData}
+                                                size="small"
+                                                pagination={false}
+                                                scroll={{ x: true }}
+                                            />
+                                        ) : (
+                                            <div style={{
+                                                textAlign: 'center',
+                                                padding: 60,
+                                                background: '#fafafa',
+                                                borderRadius: 6,
+                                            }}>
+                                                <Text type="secondary">
+                                                    请上传 Excel 或 CSV 文件，或先下载模板填写后上传
+                                                </Text>
+                                            </div>
+                                        )}
+                                    </div>
+                                ),
+                            },
+                        ]}
+                    />
+                </Card>
+
+                {/* 最近入库记录 */}
+                <Card
+                    style={{
+                        background: '#fff',
+                        border: '1px solid #f0f0f0',
+                        borderRadius: 6,
+                        marginTop: 24,
+                    }}
+                    bodyStyle={{ padding: 24 }}
+                >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                        <Title level={5} style={{ margin: 0 }}>📋 最近入库记录</Title>
+                        <Space>
+                            <Button
+                                type={timeFilter === 'session' ? 'primary' : 'default'}
+                                size="small"
+                                onClick={() => { setTimeFilter('session'); loadInfluencerList(1, 'session'); }}
+                            >
+                                本次
+                            </Button>
+                            <Button
+                                type={timeFilter === '1h' ? 'primary' : 'default'}
+                                size="small"
+                                onClick={() => { setTimeFilter('1h'); loadInfluencerList(1, '1h'); }}
+                            >
+                                1小时内
+                            </Button>
+                            <Button
+                                type={timeFilter === '24h' ? 'primary' : 'default'}
+                                size="small"
+                                onClick={() => { setTimeFilter('24h'); loadInfluencerList(1, '24h'); }}
+                            >
+                                24小时内
+                            </Button>
+                            <Button
+                                type={timeFilter === 'all' ? 'primary' : 'default'}
+                                size="small"
+                                onClick={() => { setTimeFilter('all'); loadInfluencerList(1, 'all'); }}
+                            >
+                                全部
+                            </Button>
+                        </Space>
+                    </div>
+                    <Table
+                        loading={listLoading}
+                        dataSource={influencerList}
+                        rowKey="id"
+                        size="small"
+                        pagination={{
+                            current: currentPage,
+                            total: total,
+                            pageSize: 10,
+                            onChange: (page) => loadInfluencerList(page),
+                            showTotal: (t) => `共 ${t} 条`,
+                        }}
+                        columns={[
+                            {
+                                title: '昵称',
+                                dataIndex: 'nickname',
+                                key: 'nickname',
+                            },
+                            {
+                                title: '手机号',
+                                dataIndex: 'phone',
+                                key: 'phone',
+                                render: (v: string) => v || '-',
+                            },
+                            {
+                                title: '微信号',
+                                dataIndex: 'wechat',
+                                key: 'wechat',
+                                render: (v: string) => v || '-',
+                            },
+                            {
+                                title: '合作品牌数',
+                                dataIndex: 'brandCount',
+                                key: 'brandCount',
+                                render: (v: number) => v || 0,
+                            },
+                            {
+                                title: '入库时间',
+                                dataIndex: 'createdAt',
+                                key: 'createdAt',
+                                render: (v: string) => v ? new Date(v).toLocaleDateString() : '-',
+                            },
+                        ]}
+                    />
+                </Card>
+            </div>
         </div>
     );
 };

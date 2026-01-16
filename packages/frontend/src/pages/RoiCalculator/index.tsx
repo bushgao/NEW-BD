@@ -223,7 +223,7 @@ const RoiCalculatorPage = () => {
 
             <div style={{ position: 'relative', zIndex: 1 }}>
                 {/* 页面标题 */}
-                <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+                <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
                     <Col>
                         <Space>
                             <CalculatorOutlined style={{ fontSize: 28, color: '#0c8ce9' }} />
@@ -241,7 +241,7 @@ const RoiCalculatorPage = () => {
                     </Col>
                 </Row>
 
-                <Row gutter={[24, 24]}>
+                <Row gutter={[16, 12]}>
                     {/* 左侧：成本输入 */}
                     <Col xs={24} lg={12}>
                         <Card
@@ -252,16 +252,16 @@ const RoiCalculatorPage = () => {
                                 borderRadius: 6,
                                 boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
                             }}
-                            bodyStyle={{ padding: '24px' }}
+                            bodyStyle={{ padding: '16px' }}
                         >
                             {/* 固定成本 */}
-                            <Title level={5} style={{ marginBottom: 16 }}>
+                            <Title level={5} style={{ marginBottom: 8 }}>
                                 固定成本
                             </Title>
 
-                            <Row gutter={[16, 16]}>
+                            <Row gutter={[12, 12]}>
                                 <Col span={12}>
-                                    <div style={{ marginBottom: 8 }}>
+                                    <div style={{ marginBottom: 4 }}>
                                         <Text type="secondary">
                                             样品成本
                                             <Tooltip title="提供给达人用于展示的样品价值">
@@ -280,7 +280,7 @@ const RoiCalculatorPage = () => {
                                     />
                                 </Col>
                                 <Col span={12}>
-                                    <div style={{ marginBottom: 8 }}>
+                                    <div style={{ marginBottom: 4 }}>
                                         <Text type="secondary">
                                             坑位费
                                             <Tooltip title="达人收取的固定曝光费用">
@@ -299,8 +299,8 @@ const RoiCalculatorPage = () => {
                                     />
                                 </Col>
                                 <Col span={12}>
-                                    <div style={{ marginBottom: 8 }}>
-                                        <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
+                                    <div style={{ marginBottom: 4 }}>
+                                        <Text type="secondary">
                                             快递成本
                                             <Tooltip title="寄送样品的运费">
                                                 <QuestionCircleOutlined style={{ marginLeft: 4 }} />
@@ -318,8 +318,8 @@ const RoiCalculatorPage = () => {
                                     />
                                 </Col>
                                 <Col span={12}>
-                                    <div style={{ marginBottom: 8 }}>
-                                        <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
+                                    <div style={{ marginBottom: 4 }}>
+                                        <Text type="secondary">
                                             包装成本
                                             <Tooltip title="样品包装费用">
                                                 <QuestionCircleOutlined style={{ marginLeft: 4 }} />
@@ -339,10 +339,10 @@ const RoiCalculatorPage = () => {
                             </Row>
 
                             {showAdvanced && (
-                                <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+                                <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
                                     <Col span={24}>
-                                        <div style={{ marginBottom: 8 }}>
-                                            <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
+                                        <div style={{ marginBottom: 4 }}>
+                                            <Text type="secondary">
                                                 隐形成本
                                                 <Tooltip title="其他隐藏成本，如人力时间、沟通成本等">
                                                     <QuestionCircleOutlined style={{ marginLeft: 4 }} />
@@ -362,10 +362,10 @@ const RoiCalculatorPage = () => {
                                 </Row>
                             )}
 
-                            <Divider style={{ margin: '24px 0' }} />
+                            <Divider style={{ margin: '12px 0' }} />
 
                             {/* 产品信息 */}
-                            <Title level={5} style={{ marginBottom: 16 }}>
+                            <Title level={5} style={{ marginBottom: 8 }}>
                                 <ShoppingOutlined style={{ marginRight: 8 }} />
                                 产品信息
                             </Title>
@@ -374,7 +374,7 @@ const RoiCalculatorPage = () => {
                             {samples.length > 0 && (
                                 <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
                                     <Col span={24}>
-                                        <div style={{ marginBottom: 8 }}>
+                                        <div style={{ marginBottom: 4 }}>
                                             <Text type="secondary">
                                                 从样品库选择
                                                 <Tooltip title="选择已有产品可自动填充成本和售价">
@@ -398,9 +398,9 @@ const RoiCalculatorPage = () => {
                                 </Row>
                             )}
 
-                            <Row gutter={[16, 16]}>
+                            <Row gutter={[12, 12]}>
                                 <Col span={12}>
-                                    <div style={{ marginBottom: 8 }}>
+                                    <div style={{ marginBottom: 4 }}>
                                         <Text type="secondary">
                                             单品成本
                                             <Tooltip title="生产或采购一个产品的成本">
@@ -419,7 +419,7 @@ const RoiCalculatorPage = () => {
                                     />
                                 </Col>
                                 <Col span={12}>
-                                    <div style={{ marginBottom: 8 }}>
+                                    <div style={{ marginBottom: 4 }}>
                                         <Text type="secondary">
                                             单品售价
                                             <Tooltip title="产品的销售价格">
@@ -446,16 +446,16 @@ const RoiCalculatorPage = () => {
                                 )}
                             </Row>
 
-                            <Divider style={{ margin: '24px 0' }} />
+                            <Divider style={{ margin: '12px 0' }} />
 
                             {/* 比例参数 */}
-                            <Title level={5} style={{ marginBottom: 16 }}>
+                            <Title level={5} style={{ marginBottom: 8 }}>
                                 交易参数
                             </Title>
 
-                            <Row gutter={[16, 16]}>
+                            <Row gutter={[12, 12]}>
                                 <Col span={12}>
-                                    <div style={{ marginBottom: 8 }}>
+                                    <div style={{ marginBottom: 4 }}>
                                         <Text type="secondary">
                                             佣金率
                                             <Tooltip title="达人抽成比例，一般5%-50%">
@@ -475,7 +475,7 @@ const RoiCalculatorPage = () => {
                                     />
                                 </Col>
                                 <Col span={12}>
-                                    <div style={{ marginBottom: 8 }}>
+                                    <div style={{ marginBottom: 4 }}>
                                         <Text type="secondary">
                                             退货率
                                             <Tooltip title="直播电商通常35%-38%，某些品类更高">
@@ -495,7 +495,7 @@ const RoiCalculatorPage = () => {
                                     />
                                 </Col>
                                 <Col span={12}>
-                                    <div style={{ marginBottom: 8 }}>
+                                    <div style={{ marginBottom: 4 }}>
                                         <Text type="secondary">
                                             平台扣点
                                             <Tooltip title="平台技术服务费，抖音小店约6%，第三方约10%">

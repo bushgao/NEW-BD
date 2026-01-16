@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Table, Input, Select, Button, Tag, Space, message, Modal } from 'antd';
-import { Card, CardContent } from '../../components/ui/Card';
 import { useTheme } from '../../theme/ThemeProvider';
 import { SearchOutlined, EyeOutlined, StopOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
@@ -249,26 +248,24 @@ const Users = () => {
             </Select>
           </Space>
 
-          <Card variant="elevated">
-            <Table
-              columns={columns}
-              dataSource={users}
-              rowKey="id"
-              loading={loading}
-              scroll={{ x: 1200 }}
-              pagination={{
-                current: currentPage,
-                pageSize,
-                total,
-                showSizeChanger: true,
-                showTotal: (total) => `共 ${total} 个用户`,
-                onChange: (page, size) => {
-                  setCurrentPage(page);
-                  setPageSize(size);
-                },
-              }}
-            />
-          </Card>
+          <Table
+            columns={columns}
+            dataSource={users}
+            rowKey="id"
+            loading={loading}
+            scroll={{ x: 1200 }}
+            pagination={{
+              current: currentPage,
+              pageSize,
+              total,
+              showSizeChanger: true,
+              showTotal: (total) => `共 ${total} 个用户`,
+              onChange: (page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+              },
+            }}
+          />
         </Space>
 
         {selectedUser && (
