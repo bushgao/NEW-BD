@@ -137,6 +137,29 @@ export interface CreateCollaborationInput {
   quotedPrice?: number;
   deadline?: string;
   notes?: string;
+  forceCreate?: boolean; // 强制创建，忽略冲突警告
+}
+
+/**
+ * 合作冲突信息
+ * 当尝试创建合作记录时，如果该达人已被其他商务跟进，返回此信息
+ */
+export interface CollaborationConflict {
+  id: string;
+  staffId: string;
+  staffName: string;
+  stage: PipelineStage;
+  stageName: string;
+  createdAt: string;
+}
+
+/**
+ * 创建合作记录的结果
+ */
+export interface CreateCollaborationResult {
+  success: boolean;
+  collaboration?: Collaboration;
+  conflicts?: CollaborationConflict[]; // 冲突的商务列表
 }
 
 // Stage display names
@@ -250,12 +273,29 @@ export async function getCollaboration(id: string): Promise<Collaboration> {
 
 /**
  * 创建合作记录
+ * @param data 合作记录数据
+ * @returns 创建结果，如果有冲突返回 conflict 信息
  */
 export async function createCollaboration(
   data: CreateCollaborationInput
-): Promise<Collaboration> {
-  const response = await api.post('/collaborations', data);
-  return response.data.data.collaboration;
+): Promise<CreateCollaborationResult> {
+  try {
+    const response = await api.post('/collaborations', data);
+    return {
+      success: true,
+      collaboration: response.data.data.collaboration,
+    };
+  } catch (error: any) {
+    // 处理 409 冲突错误
+    if (error.response?.status === 409) {
+      return {
+        success: false,
+        conflicts: error.response.data.data?.conflicts,
+      };
+    }
+    // 其他错误继续抛出
+    throw error;
+  }
 }
 
 /**

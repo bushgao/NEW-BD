@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Tabs,
-  Row,
-  Col,
-  Statistic,
+  Tag,
   message,
   Spin,
   Typography,
@@ -25,7 +23,7 @@ import {
   getPlatformStats,
   type PlatformStats,
 } from '../../services/platform.service';
-import { Card, CardContent } from '../../components/ui/Card';
+import { BentoGrid, BentoCard } from '../../components/ui/Bento';
 import { useTheme } from '../../theme/ThemeProvider';
 
 const { Title } = Typography;
@@ -120,145 +118,133 @@ const AdminPage = () => {
         }} />
 
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <Title level={4} style={{ marginBottom: 24 }}>
-            平台管理
-          </Title>
+          <div className="mb-4 flex items-center justify-between">
+            <Title level={4} style={{ margin: 0 }}>
+              平台管理
+            </Title>
+            <Tag color="geekblue">{new Date().toLocaleDateString()}</Tag>
+          </div>
 
-          {/* 统计卡片 */}
-          <Row gutter={16} style={{ marginBottom: 24 }}>
-            <Col xs={24} sm={12} md={8} lg={4}>
-              <Card variant="elevated" hoverable>
-                <CardContent>
-                  <Statistic
-                    title="品牌总数"
-                    value={stats?.totalFactories || 0}
-                    prefix={<ShopOutlined />}
-                  />
-                </CardContent>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={4}>
-              <Card variant="elevated" hoverable>
-                <CardContent>
-                  <Statistic
-                    title="待审核"
-                    value={stats?.pendingFactories || 0}
-                    prefix={<ClockCircleOutlined />}
-                    valueStyle={{ color: '#faad14' }}
-                  />
-                </CardContent>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={4}>
-              <Card variant="elevated" hoverable>
-                <CardContent>
-                  <Statistic
-                    title="已通过"
-                    value={stats?.approvedFactories || 0}
-                    prefix={<CheckCircleOutlined />}
-                    valueStyle={{ color: '#52c41a' }}
-                  />
-                </CardContent>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={4}>
-              <Card variant="elevated" hoverable>
-                <CardContent>
-                  <Statistic
-                    title="用户总数"
-                    value={stats?.totalUsers || 0}
-                    prefix={<UserOutlined />}
-                  />
-                </CardContent>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={4}>
-              <Card variant="elevated" hoverable>
-                <CardContent>
-                  <Statistic
-                    title="达人总数"
-                    value={stats?.totalInfluencers || 0}
-                    prefix={<TeamOutlined />}
-                  />
-                </CardContent>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={4}>
-              <Card variant="elevated" hoverable>
-                <CardContent>
-                  <Statistic
-                    title="合作总数"
-                    value={stats?.totalCollaborations || 0}
-                    prefix={<ProjectOutlined />}
-                  />
-                </CardContent>
-              </Card>
-            </Col>
-          </Row>
+          <BentoGrid>
+            {/* 统计卡片 - 带彩色图标背景 */}
+            <BentoCard span={1} className="h-full">
+              <div className="flex flex-col h-full justify-between gap-4">
+                <div className="flex justify-between items-start">
+                  <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg shadow-sm">
+                    <ShopOutlined />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-neutral-500 text-xs font-bold uppercase tracking-wider mb-1">品牌总数</div>
+                  <div className="text-2xl font-bold text-neutral-800">{stats?.totalFactories || 0}</div>
+                </div>
+              </div>
+            </BentoCard>
+            <BentoCard span={1} className="h-full">
+              <div className="flex flex-col h-full justify-between gap-4">
+                <div className="flex justify-between items-start">
+                  <div className="p-2.5 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center text-lg shadow-sm">
+                    <ClockCircleOutlined />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-neutral-500 text-xs font-bold uppercase tracking-wider mb-1">待审核</div>
+                  <div className="text-2xl font-bold text-amber-500">{stats?.pendingFactories || 0}</div>
+                </div>
+              </div>
+            </BentoCard>
+            <BentoCard span={1} className="h-full">
+              <div className="flex flex-col h-full justify-between gap-4">
+                <div className="flex justify-between items-start">
+                  <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-lg shadow-sm">
+                    <CheckCircleOutlined />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-neutral-500 text-xs font-bold uppercase tracking-wider mb-1">已通过</div>
+                  <div className="text-2xl font-bold text-emerald-500">{stats?.approvedFactories || 0}</div>
+                </div>
+              </div>
+            </BentoCard>
+            <BentoCard span={1} className="h-full">
+              <div className="flex flex-col h-full justify-between gap-4">
+                <div className="flex justify-between items-start">
+                  <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center text-lg shadow-sm">
+                    <UserOutlined />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-neutral-500 text-xs font-bold uppercase tracking-wider mb-1">用户总数</div>
+                  <div className="text-2xl font-bold text-neutral-800">{stats?.totalUsers || 0}</div>
+                </div>
+              </div>
+            </BentoCard>
+            <BentoCard span={1} className="h-full">
+              <div className="flex flex-col h-full justify-between gap-4">
+                <div className="flex justify-between items-start">
+                  <div className="p-2.5 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center text-lg shadow-sm">
+                    <TeamOutlined />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-neutral-500 text-xs font-bold uppercase tracking-wider mb-1">达人总数</div>
+                  <div className="text-2xl font-bold text-neutral-800">{stats?.totalInfluencers || 0}</div>
+                </div>
+              </div>
+            </BentoCard>
+            <BentoCard span={1} className="h-full">
+              <div className="flex flex-col h-full justify-between gap-4">
+                <div className="flex justify-between items-start">
+                  <div className="p-2.5 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center text-lg shadow-sm">
+                    <ProjectOutlined />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-neutral-500 text-xs font-bold uppercase tracking-wider mb-1">合作总数</div>
+                  <div className="text-2xl font-bold text-neutral-800">{stats?.totalCollaborations || 0}</div>
+                </div>
+              </div>
+            </BentoCard>
 
-          {/* 套餐分布 */}
-          {stats && (
-            <Row gutter={16} style={{ marginBottom: 24 }}>
-              <Col xs={24} sm={12} md={6}>
-                <Card variant="elevated" hoverable>
-                  <CardContent>
-                    <Statistic
-                      title="免费版品牌"
-                      value={stats.factoriesByPlan.FREE || 0}
-                      suffix="家"
-                    />
-                  </CardContent>
-                </Card>
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Card variant="elevated" hoverable>
-                  <CardContent>
-                    <Statistic
-                      title="专业版品牌"
-                      value={stats.factoriesByPlan.PROFESSIONAL || 0}
-                      suffix="家"
-                      valueStyle={{ color: '#1890ff' }}
-                    />
-                  </CardContent>
-                </Card>
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Card variant="elevated" hoverable>
-                  <CardContent>
-                    <Statistic
-                      title="企业版品牌"
-                      value={stats.factoriesByPlan.ENTERPRISE || 0}
-                      suffix="家"
-                      valueStyle={{ color: '#faad14' }}
-                    />
-                  </CardContent>
-                </Card>
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Card variant="elevated" hoverable>
-                  <CardContent>
-                    <Statistic
-                      title="独立商务"
-                      value={stats.independentBusinessUsers || 0}
-                      suffix="人"
-                      valueStyle={{ color: '#722ed1' }}
-                    />
-                  </CardContent>
-                </Card>
-              </Col>
-            </Row>
-          )}
+            {/* 套餐分布 */}
+            {stats && (
+              <>
+                <BentoCard title="免费版品牌" span={2}>
+                  <div className="flex items-end gap-2 mt-2">
+                    <span className="text-4xl font-bold text-neutral-800">{stats.factoriesByPlan.FREE || 0}</span>
+                    <span className="text-neutral-400 mb-1.5">家</span>
+                  </div>
+                </BentoCard>
+                <BentoCard title="专业版品牌" span={2}>
+                  <div className="flex items-end gap-2 mt-2">
+                    <span className="text-4xl font-bold text-blue-600">{stats.factoriesByPlan.PROFESSIONAL || 0}</span>
+                    <span className="text-neutral-400 mb-1.5">家</span>
+                  </div>
+                </BentoCard>
+                <BentoCard title="企业版品牌" span={1}>
+                  <div className="flex items-end gap-2 mt-2">
+                    <span className="text-4xl font-bold text-amber-500">{stats.factoriesByPlan.ENTERPRISE || 0}</span>
+                    <span className="text-neutral-400 mb-1.5">家</span>
+                  </div>
+                </BentoCard>
+                <BentoCard title="独立商务" span={1}>
+                  <div className="flex items-end gap-2 mt-2">
+                    <span className="text-4xl font-bold text-purple-600">{stats.independentBusinessUsers || 0}</span>
+                    <span className="text-neutral-400 mb-1.5">人</span>
+                  </div>
+                </BentoCard>
+              </>
+            )}
 
-          {/* 管理标签页 */}
-          <Card variant="elevated">
-            <CardContent>
+            {/* 管理标签页 */}
+            <BentoCard span={6}>
               <Tabs
                 activeKey={activeTab}
                 onChange={setActiveTab}
                 items={tabItems}
               />
-            </CardContent>
-          </Card>
+            </BentoCard>
+          </BentoGrid>
         </div>
       </div>
     </Spin>

@@ -600,10 +600,9 @@ const RoiCalculatorPage = () => {
                             <Card
                                 style={{
                                     background: results.isProfitable
-                                        ? 'linear-gradient(135deg, rgba(82,196,26,0.2) 0%, rgba(82,196,26,0.05) 100%)'
-                                        : 'linear-gradient(135deg, rgba(255,77,79,0.2) 0%, rgba(255,77,79,0.05) 100%)',
-                                    backdropFilter: 'blur(10px)',
-                                    border: `1px solid ${results.isProfitable ? 'rgba(82,196,26,0.3)' : 'rgba(255,77,79,0.3)'}`,
+                                        ? 'linear-gradient(135deg, rgba(82,196,26,0.15) 0%, rgba(82,196,26,0.05) 100%)'
+                                        : 'linear-gradient(135deg, rgba(255,77,79,0.15) 0%, rgba(255,77,79,0.05) 100%)',
+                                    border: `1px solid ${results.isProfitable ? 'rgba(82,196,26,0.4)' : 'rgba(255,77,79,0.4)'}`,
                                     borderRadius: 10,
                                     marginBottom: 24,
                                 }}
@@ -615,7 +614,7 @@ const RoiCalculatorPage = () => {
                                             <div style={{ fontSize: 48, fontWeight: 700, color: roiStatus.color }}>
                                                 {roiStatus.icon} {(results.roi * 100).toFixed(1)}%
                                             </div>
-                                            <Text type="secondary" style={{ fontSize: 16 }}>
+                                            <Text style={{ fontSize: 16, color: 'rgba(0,0,0,0.65)' }}>
                                                 投资回报率 (ROI)
                                             </Text>
                                             <div style={{ marginTop: 8 }}>
@@ -635,7 +634,7 @@ const RoiCalculatorPage = () => {
                                         <Row gutter={[0, 16]}>
                                             <Col span={24}>
                                                 <Statistic
-                                                    title={<span style={{ color: 'rgba(255,255,255,0.65)' }}>净利润</span>}
+                                                    title={<span style={{ color: 'rgba(0,0,0,0.65)' }}>净利润</span>}
                                                     value={results.profit}
                                                     precision={2}
                                                     prefix={results.profit >= 0 ? '+¥' : '¥'}
@@ -644,11 +643,11 @@ const RoiCalculatorPage = () => {
                                             </Col>
                                             <Col span={24}>
                                                 <Statistic
-                                                    title={<span style={{ color: 'rgba(255,255,255,0.65)' }}>净销售额</span>}
+                                                    title={<span style={{ color: 'rgba(0,0,0,0.65)' }}>净销售额</span>}
                                                     value={results.netSales}
                                                     precision={2}
                                                     prefix="¥"
-                                                    valueStyle={{ color: 'rgba(255,255,255,0.85)' }}
+                                                    valueStyle={{ color: 'rgba(0,0,0,0.85)' }}
                                                 />
                                             </Col>
                                         </Row>
@@ -660,43 +659,43 @@ const RoiCalculatorPage = () => {
                         {/* 成本明细 */}
                         {inputs.expectedSales > 0 && (
                             <Card
-                                title={<span style={{ color: '#fff' }}>📋 成本明细</span>}
+                                title="📋 成本明细"
                                 style={{
-                                    background: 'rgba(255,255,255,0.1)',
-                                    backdropFilter: 'blur(10px)',
-                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    background: '#fff',
+                                    border: '1px solid #f0f0f0',
                                     borderRadius: 10,
                                     marginBottom: 24,
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
                                 }}
-                                headStyle={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+                                headStyle={{ borderBottom: '1px solid #f0f0f0' }}
                                 bodyStyle={{ padding: '24px' }}
                             >
                                 <Row gutter={[16, 12]}>
-                                    <Col span={16}><Text style={{ color: 'rgba(255,255,255,0.65)' }}>固定成本</Text></Col>
-                                    <Col span={8} style={{ textAlign: 'right' }}><Text style={{ color: '#fff' }}>¥{results.fixedCost.toFixed(2)}</Text></Col>
+                                    <Col span={16}><Text type="secondary">固定成本</Text></Col>
+                                    <Col span={8} style={{ textAlign: 'right' }}><Text>¥{results.fixedCost.toFixed(2)}</Text></Col>
 
-                                    <Col span={16}><Text style={{ color: 'rgba(255,255,255,0.65)' }}>佣金支出（{inputs.commissionRate}%）</Text></Col>
-                                    <Col span={8} style={{ textAlign: 'right' }}><Text style={{ color: '#fff' }}>¥{(inputs.expectedSales * inputs.commissionRate / 100).toFixed(2)}</Text></Col>
+                                    <Col span={16}><Text type="secondary">佣金支出（{inputs.commissionRate}%）</Text></Col>
+                                    <Col span={8} style={{ textAlign: 'right' }}><Text>¥{(inputs.expectedSales * inputs.commissionRate / 100).toFixed(2)}</Text></Col>
 
-                                    <Col span={16}><Text style={{ color: 'rgba(255,255,255,0.65)' }}>平台扣点（{inputs.platformFeeRate}%）</Text></Col>
-                                    <Col span={8} style={{ textAlign: 'right' }}><Text style={{ color: '#fff' }}>¥{(inputs.expectedSales * inputs.platformFeeRate / 100).toFixed(2)}</Text></Col>
+                                    <Col span={16}><Text type="secondary">平台扣点（{inputs.platformFeeRate}%）</Text></Col>
+                                    <Col span={8} style={{ textAlign: 'right' }}><Text>¥{(inputs.expectedSales * inputs.platformFeeRate / 100).toFixed(2)}</Text></Col>
 
                                     {inputs.taxRate > 0 && (
                                         <>
-                                            <Col span={16}><Text style={{ color: 'rgba(255,255,255,0.65)' }}>税费（{inputs.taxRate}%）</Text></Col>
-                                            <Col span={8} style={{ textAlign: 'right' }}><Text style={{ color: '#fff' }}>¥{(inputs.expectedSales * inputs.taxRate / 100).toFixed(2)}</Text></Col>
+                                            <Col span={16}><Text type="secondary">税费（{inputs.taxRate}%）</Text></Col>
+                                            <Col span={8} style={{ textAlign: 'right' }}><Text>¥{(inputs.expectedSales * inputs.taxRate / 100).toFixed(2)}</Text></Col>
                                         </>
                                     )}
 
-                                    <Col span={16}><Text style={{ color: 'rgba(255,255,255,0.65)' }}>产品成本（{results.productCostRate.toFixed(1)}%）</Text></Col>
-                                    <Col span={8} style={{ textAlign: 'right' }}><Text style={{ color: '#fff' }}>¥{results.productCostTotal.toFixed(2)}</Text></Col>
+                                    <Col span={16}><Text type="secondary">产品成本（{results.productCostRate.toFixed(1)}%）</Text></Col>
+                                    <Col span={8} style={{ textAlign: 'right' }}><Text>¥{results.productCostTotal.toFixed(2)}</Text></Col>
 
-                                    <Col span={16}><Text style={{ color: 'rgba(255,255,255,0.65)' }}>退货损失（{inputs.returnRate}%）</Text></Col>
+                                    <Col span={16}><Text type="secondary">退货损失（{inputs.returnRate}%）</Text></Col>
                                     <Col span={8} style={{ textAlign: 'right' }}><Text style={{ color: '#ff4d4f' }}>-¥{(inputs.expectedSales * inputs.returnRate / 100).toFixed(2)}</Text></Col>
 
-                                    <Divider style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '12px 0' }} />
+                                    <Divider style={{ margin: '12px 0' }} />
 
-                                    <Col span={16}><Text strong style={{ color: '#fff' }}>总成本</Text></Col>
+                                    <Col span={16}><Text strong>总成本</Text></Col>
                                     <Col span={8} style={{ textAlign: 'right' }}><Text strong style={{ color: '#faad14' }}>¥{results.totalCost.toFixed(2)}</Text></Col>
                                 </Row>
                             </Card>
@@ -717,14 +716,14 @@ const RoiCalculatorPage = () => {
                         {/* 建议场景 */}
                         {results.bulkScenarios.length > 0 && results.fixedCost > 0 && (
                             <Card
-                                title={<span style={{ color: '#fff' }}>🎯 销售目标建议</span>}
+                                title="🎯 销售目标建议"
                                 style={{
-                                    background: 'rgba(255,255,255,0.1)',
-                                    backdropFilter: 'blur(10px)',
-                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    background: '#fff',
+                                    border: '1px solid #f0f0f0',
                                     borderRadius: 10,
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
                                 }}
-                                headStyle={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+                                headStyle={{ borderBottom: '1px solid #f0f0f0' }}
                                 bodyStyle={{ padding: '24px' }}
                             >
                                 <Row gutter={[16, 16]}>
@@ -733,14 +732,14 @@ const RoiCalculatorPage = () => {
                                             <div style={{
                                                 textAlign: 'center',
                                                 padding: '16px',
-                                                background: 'rgba(255,255,255,0.05)',
+                                                background: '#f5f5f5',
                                                 borderRadius: 8,
                                             }}>
-                                                <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>{scenario.label}</Text>
+                                                <Text type="secondary" style={{ fontSize: 12 }}>{scenario.label}</Text>
                                                 <div style={{ fontSize: 20, fontWeight: 600, color: '#1890ff', margin: '8px 0' }}>
                                                     ¥{scenario.sales.toFixed(0)}
                                                 </div>
-                                                <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>{scenario.description}</Text>
+                                                <Text type="secondary" style={{ fontSize: 11 }}>{scenario.description}</Text>
                                             </div>
                                         </Col>
                                     ))}

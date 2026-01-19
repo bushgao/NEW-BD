@@ -82,6 +82,44 @@ export function requireRoles(...allowedRoles: UserRole[]) {
 }
 
 /**
+ * Middleware factory to check if user has required role(s) OR is an independent business
+ * This allows independent business users to access owner-only features within their own workspace
+ * @param allowedRoles - Array of roles that can access the route
+ */
+export function requireRolesOrIndependent(...allowedRoles: UserRole[]) {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user) {
+        throw createUnauthorizedError('未授权访问');
+      }
+
+      const userRole = req.user.role;
+
+      // 检查角色是否在允许列表中
+      if (allowedRoles.includes(userRole)) {
+        return next();
+      }
+
+      // 如果是 BUSINESS 角色，检查是否为独立商务
+      if (userRole === 'BUSINESS') {
+        const userRecord = await prisma.user.findUnique({
+          where: { id: req.user.userId },
+          select: { isIndependent: true },
+        });
+
+        if (userRecord?.isIndependent) {
+          return next(); // 独立商务享有完整权限
+        }
+      }
+
+      throw createForbiddenError('您没有权限执行此操作');
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+
+/**
  * Middleware to check if user belongs to the specified factory
  * Used for factory-scoped resources
  */

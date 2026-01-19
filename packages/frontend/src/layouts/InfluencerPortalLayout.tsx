@@ -14,6 +14,7 @@ import {
   UserOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  ChromeOutlined,
 } from '@ant-design/icons';
 import { useInfluencerPortalStore, getContactTypeName } from '../stores/influencerPortalStore';
 
@@ -49,6 +50,11 @@ const InfluencerPortalLayout = () => {
       key: '/influencer-portal/settings',
       icon: <SettingOutlined />,
       label: '账号设置',
+    },
+    {
+      key: '/influencer-portal/plugin',
+      icon: <ChromeOutlined />,
+      label: '插件使用',
     },
   ];
 

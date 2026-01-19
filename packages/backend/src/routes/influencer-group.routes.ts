@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import * as groupService from '../services/influencer-group.service';
-import { authenticate, requireFactoryMember } from '../middleware/auth.middleware';
+import { authenticate, requireFactoryMember, enrichUserData } from '../middleware/auth.middleware';
 
 const router = Router();
+
+// Apply enrichUserData middleware to all routes to ensure brandId is available
+router.use(enrichUserData);
 
 /**
  * @route   POST /api/influencers/groups

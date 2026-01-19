@@ -79,6 +79,7 @@ import QuickActions from '../../components/dashboard/QuickActions';
 import InfluencerModal from '../Influencers/InfluencerModal';
 import CreateCollaborationModal from '../Pipeline/CreateCollaborationModal';
 import type { Influencer } from '../../services/influencer.service';
+import SubscriptionBanner from '../../components/SubscriptionBanner';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
@@ -631,6 +632,8 @@ const Dashboard = () => {
           padding: '24px',
         }}
       >
+        {/* 套餐到期提醒横幅 */}
+        <SubscriptionBanner />
 
         <div className="h-full flex flex-col gap-4">
           {/* 紧凑型顶部控制栏 */}
@@ -668,374 +671,392 @@ const Dashboard = () => {
           </div>
 
 
-          <BentoGrid>
-            {/* 今日待办 & 快捷操作 - 左侧大卡片 */}
-            <BentoCard span={2} title="今日任务清单" subtitle="需要优先处理的跟进和事项">
-              <div className="space-y-6">
-                {todayTodos && (
-                  <TodayTodoList
-                    todos={todayTodos.todos.map(todo => ({
-                      ...todo,
-                      dueTime: todo.dueTime ? new Date(todo.dueTime) : undefined,
-                      snoozedUntil: todo.snoozedUntil ? new Date(todo.snoozedUntil) : undefined,
-                    }))}
-                    goals={todayTodos.goals}
-                    onComplete={handleCompleteTodo}
-                    onSnooze={handleSnoozeTodo}
-                    loading={todayTodosLoading}
-                  />
-                )}
-                <div className="pt-6 mt-6 border-t border-neutral-100">
-                  <p className="text-xs font-bold text-neutral-400 mb-4 uppercase tracking-widest">快捷办公</p>
-                  <QuickActions
-                    onAddInfluencer={handleAddInfluencer}
-                    onCreateCollaboration={handleCreateCollaboration}
-                    onDispatchSample={handleDispatchSample}
-                    onQuickFollowUp={handleQuickFollowUp}
-                  />
-                </div>
-              </div>
-            </BentoCard>
+          {/* 商务端仪表盘 - 参照品牌端布局 */}
+          <div className="flex flex-col gap-4">
+            {/* Row 1: 左侧任务清单 + 右侧指标卡片 */}
+            <div className="grid grid-cols-1 xl:grid-cols-6 gap-4 items-stretch">
 
-            {/* 关键指标 - 右侧四个小卡片 */}
-            <BentoCard span={1} title="建联概览">
-              <div className="flex flex-col justify-between h-full">
-                <Statistic
-                  value={staffDashboard.metrics.currentPeriod.contactedCount}
-                  prefix={<UserOutlined className="text-neutral-300 mr-2" />}
-                  suffix={<span className="text-sm text-neutral-400 font-normal ml-1">个达人</span>}
-                  valueStyle={{ fontSize: 36, fontWeight: 700, color: '#111827' }}
-                />
-                <div className="mt-8 flex items-center gap-2 py-2 px-3 bg-neutral-50 rounded-md w-fit border border-neutral-100">
-                  {renderChange(staffDashboard.metrics.periodComparison.contactedChange)}
-                  <span className="text-xs text-neutral-400">环比上期</span>
-                </div>
-              </div>
-            </BentoCard>
-
-            <BentoCard span={1} title="成交转化">
-              <div className="flex flex-col justify-between h-full">
-                <Statistic
-                  value={staffDashboard.metrics.currentPeriod.closedCount}
-                  prefix={<CheckCircleOutlined className="text-brand-500 mr-2" />}
-                  suffix={<span className="text-sm text-neutral-400 font-normal ml-1">单成交</span>}
-                  valueStyle={{ fontSize: 36, fontWeight: 700, color: '#6378ff' }}
-                />
-                <div className="mt-8 flex items-center gap-2 py-2 px-3 bg-neutral-50 rounded-md w-fit border border-neutral-100">
-                  {renderChange(staffDashboard.metrics.periodComparison.closedChange)}
-                  <span className="text-xs text-neutral-400">环比上期</span>
-                </div>
-              </div>
-            </BentoCard>
-
-            <BentoCard span={1} title="ROI 效率">
-              <div className="flex flex-col justify-between h-full">
-                <Statistic
-                  value={staffDashboard.metrics.currentPeriod.averageRoi}
-                  prefix={<RiseOutlined className="text-neutral-300 mr-2" />}
-                  precision={2}
-                  valueStyle={{
-                    fontSize: 36,
-                    fontWeight: 700,
-                    color: staffDashboard.metrics.currentPeriod.averageRoi >= 1 ? '#10B981' : '#EF4444'
-                  }}
-                />
-                <div className="mt-8 flex items-center gap-2 py-2 px-3 bg-neutral-50 rounded-md w-fit border border-neutral-100">
-                  {renderChange(staffDashboard.metrics.periodComparison.roiChange)}
-                  <span className="text-xs text-neutral-400">环比上期</span>
-                </div>
-              </div>
-            </BentoCard>
-
-            <BentoCard span={1} title="GMV 内容贡献">
-              <div className="flex flex-col justify-between h-full">
-                <Statistic
-                  value={Number(formatMoney(staffDashboard.metrics.currentPeriod.totalGmv))}
-                  prefix={<span className="text-lg text-neutral-300 mr-1 font-normal">¥</span>}
-                  precision={2}
-                  valueStyle={{ fontSize: 32, fontWeight: 700, color: '#111827' }}
-                />
-                <div className="mt-8 flex items-center gap-2 py-2 px-3 bg-neutral-50 rounded-md w-fit border border-neutral-100">
-                  {renderChange(staffDashboard.metrics.periodComparison.gmvChange)}
-                  <span className="text-xs text-neutral-400">环比上期</span>
-                </div>
-              </div>
-            </BentoCard>
-
-
-            {/* 寄样统计 - 这一组也可以放在同一个 Grid */}
-            <BentoCard span={1} title="寄样规模">
-              <div className="flex flex-col justify-between h-full">
-                <Statistic
-                  value={staffDashboard.metrics.currentPeriod.dispatchCount}
-                  prefix={<ShoppingOutlined className="text-neutral-300 mr-2" />}
-                  suffix={<span className="text-sm text-neutral-400 font-normal ml-1">次寄样</span>}
-                  valueStyle={{ fontSize: 32, fontWeight: 700, color: '#111827' }}
-                />
-                <div className="mt-4 pt-4 border-t border-neutral-50">
-                  <Text type="secondary" className="text-xs">本周期寄样频率正常</Text>
-                </div>
-              </div>
-            </BentoCard>
-
-            <BentoCard span={1} title="寄样投入">
-              <div className="flex flex-col justify-between h-full">
-                <Statistic
-                  value={Number(formatMoney(staffDashboard.metrics.currentPeriod.dispatchCost))}
-                  prefix={<span className="text-lg text-neutral-300 mr-1 font-normal">¥</span>}
-                  precision={2}
-                  valueStyle={{ fontSize: 32, fontWeight: 700, color: '#111827' }}
-                />
-                <div className="mt-4 pt-4 border-t border-neutral-50">
-                  <Text type="secondary" className="text-xs">样品投入回报率良好</Text>
-                </div>
-              </div>
-            </BentoCard>
-
-            <BentoCard span={1} title="流程进展">
-              <div className="flex flex-col justify-between h-full">
-                <Statistic
-                  value={staffDashboard.metrics.currentPeriod.progressedCount}
-                  prefix={<SyncOutlined spin={false} className="text-brand-400 mr-2" />}
-                  suffix={<span className="text-sm text-neutral-400 font-normal ml-1">步推进</span>}
-                  valueStyle={{ fontSize: 32, fontWeight: 700, color: '#111827' }}
-                />
-                <div className="mt-4 pt-4 border-t border-neutral-50">
-                  <Text type="secondary" className="text-xs">管道流转效率提升</Text>
-                </div>
-              </div>
-            </BentoCard>
-
-            <BentoCard span={1} title="团队竞争力">
-              <div className="flex flex-col justify-between h-full">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-brand-600 font-bold text-xl">
-                    {staffDashboard.ranking.myRank}
+              {/* Left Column (Span 2) - 今日任务清单 */}
+              <div className="col-span-1 xl:col-span-2 flex flex-col">
+                {/* 今日任务清单 - flex-1拉伸填满高度 */}
+                <div className="bento-card flex flex-col flex-1">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-neutral-900">今日任务清单</h3>
+                    <span className="text-xs text-neutral-400">需要优先处理的跟进和事项</span>
                   </div>
-                  <div>
-                    <div className="text-2xl font-bold text-neutral-900">
+                  {todayTodos && (
+                    <TodayTodoList
+                      todos={todayTodos.todos.map(todo => ({
+                        ...todo,
+                        dueTime: todo.dueTime ? new Date(todo.dueTime) : undefined,
+                        snoozedUntil: todo.snoozedUntil ? new Date(todo.snoozedUntil) : undefined,
+                      }))}
+                      goals={todayTodos.goals}
+                      onComplete={handleCompleteTodo}
+                      onSnooze={handleSnoozeTodo}
+                      loading={todayTodosLoading}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column (Span 4) - 指标卡片 */}
+              <div className="col-span-1 xl:col-span-4 flex flex-col gap-4">
+                {/* KPI Grid - 第一行 */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-white p-5 rounded-lg border border-neutral-100 shadow-sm flex flex-col justify-between h-32">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center"><UserOutlined /></div>
+                      <span className="text-neutral-500 text-xs font-medium">建联达人</span>
+                    </div>
+                    <div className="text-2xl font-bold text-neutral-800">
+                      {staffDashboard.metrics.currentPeriod.contactedCount}
+                    </div>
+                    <div className="text-[10px] text-neutral-400 flex items-center justify-between">
+                      <span>环比</span>
+                      {renderChange(staffDashboard.metrics.periodComparison.contactedChange)}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-lg border border-neutral-100 shadow-sm flex flex-col justify-between h-32">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center"><CheckCircleOutlined /></div>
+                      <span className="text-neutral-500 text-xs font-medium">成交转化</span>
+                    </div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {staffDashboard.metrics.currentPeriod.closedCount}
+                    </div>
+                    <div className="text-[10px] text-neutral-400 flex items-center justify-between">
+                      <span>环比</span>
+                      {renderChange(staffDashboard.metrics.periodComparison.closedChange)}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-lg border border-neutral-100 shadow-sm flex flex-col justify-between h-32">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center"><RiseOutlined /></div>
+                      <span className="text-neutral-500 text-xs font-medium">ROI 效率</span>
+                    </div>
+                    <div className={`text-2xl font-bold ${staffDashboard.metrics.currentPeriod.averageRoi >= 1 ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {staffDashboard.metrics.currentPeriod.averageRoi.toFixed(2)}
+                    </div>
+                    <div className="text-[10px] text-neutral-400 flex items-center justify-between">
+                      <span>环比</span>
+                      {renderChange(staffDashboard.metrics.periodComparison.roiChange)}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-lg border border-neutral-100 shadow-sm flex flex-col justify-between h-32">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center"><DollarOutlined /></div>
+                      <span className="text-neutral-500 text-xs font-medium">GMV 贡献</span>
+                    </div>
+                    <div className="text-2xl font-bold text-neutral-800">
+                      ¥{formatMoney(staffDashboard.metrics.currentPeriod.totalGmv)}
+                    </div>
+                    <div className="text-[10px] text-neutral-400 flex items-center justify-between">
+                      <span>环比</span>
+                      {renderChange(staffDashboard.metrics.periodComparison.gmvChange)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* KPI Grid - 第二行 */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-white p-5 rounded-lg border border-neutral-100 shadow-sm flex flex-col justify-between h-32">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-pink-50 text-pink-500 flex items-center justify-center"><ShoppingOutlined /></div>
+                      <span className="text-neutral-500 text-xs font-medium">寄样次数</span>
+                    </div>
+                    <div className="text-2xl font-bold text-neutral-800">
+                      {staffDashboard.metrics.currentPeriod.dispatchCount}
+                    </div>
+                    <div className="text-[10px] text-neutral-400">本周期寄样</div>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-lg border border-neutral-100 shadow-sm flex flex-col justify-between h-32">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center"><DollarOutlined /></div>
+                      <span className="text-neutral-500 text-xs font-medium">寄样成本</span>
+                    </div>
+                    <div className="text-2xl font-bold text-neutral-800">
+                      ¥{formatMoney(staffDashboard.metrics.currentPeriod.dispatchCost)}
+                    </div>
+                    <div className="text-[10px] text-neutral-400">投入金额</div>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-lg border border-neutral-100 shadow-sm flex flex-col justify-between h-32">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-cyan-50 text-cyan-500 flex items-center justify-center"><SyncOutlined /></div>
+                      <span className="text-neutral-500 text-xs font-medium">管道推进</span>
+                    </div>
+                    <div className="text-2xl font-bold text-neutral-800">
+                      {staffDashboard.metrics.currentPeriod.progressedCount}
+                    </div>
+                    <div className="text-[10px] text-neutral-400">阶段推进</div>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-lg border border-neutral-100 shadow-sm flex flex-col justify-between h-32">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center"><TrophyOutlined /></div>
+                      <span className="text-neutral-500 text-xs font-medium">我的排名</span>
+                    </div>
+                    <div className="text-2xl font-bold text-purple-600">
                       第 {staffDashboard.ranking.myRank} 名
                     </div>
-                    <div className="text-xs text-neutral-400">全公司共 {staffDashboard.ranking.totalStaff} 位成员</div>
+                    <div className="text-[10px] text-neutral-400">共 {staffDashboard.ranking.totalStaff} 人</div>
                   </div>
                 </div>
-                <div className="mt-4 pt-4 border-t border-neutral-50 flex items-center gap-1">
-                  <TrophyOutlined className="text-amber-400" />
-                  <Text type="secondary" className="text-xs font-medium">继续加油！距离上一名仅一步之遥</Text>
-                </div>
-              </div>
-            </BentoCard>
-          </BentoGrid>
 
-          {/* 管道分布和待办事项 */}
-          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-            {/* 我的管道分布 */}
-            <Col xs={24} lg={12}>
-              <Card
-                variant="elevated"
-              >
-                <CardContent>
-                  <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text strong style={{ fontSize: 16 }}>我的合作管道</Text>
-                    <Text type="secondary">
-                      共{' '}
-                      {Object.values(staffDashboard.myPipelineDistribution).reduce((a, b) => a + b, 0)}{' '}
-                      个合作
-                    </Text>
-                  </div>
-                  <Row gutter={[8, 16]}>
-                    {(
-                      Object.entries(staffDashboard.myPipelineDistribution) as [PipelineStage, number][]
-                    ).map(([stage, count]) => {
-                      const total = Object.values(staffDashboard.myPipelineDistribution).reduce(
-                        (a, b) => a + b,
-                        0
-                      );
-                      return (
-                        <Col xs={12} sm={8} md={6} key={stage}>
-                          <div style={{ textAlign: 'center' }}>
-                            <Progress
-                              type="circle"
-                              percent={total > 0 ? (count / total) * 100 : 0}
-                              format={() => count}
-                              strokeColor={STAGE_COLORS[stage]}
-                              size={60}
-                              strokeWidth={8}
-                            />
-                            <div style={{ marginTop: 6, fontSize: 11 }}>
-                              <Badge color={STAGE_COLORS[stage]} text={STAGE_LABELS[stage]} />
+
+                {/* 管道分布和待办事项 - 放在KPI卡片下方，flex-1拉伸对齐 */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1">
+                  {/* 我的合作管道 */}
+                  <div className="bg-white p-5 rounded-lg border border-neutral-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-base font-bold text-neutral-900">我的合作管道</span>
+                      <span className="text-xs text-neutral-400">
+                        共 {Object.values(staffDashboard.myPipelineDistribution).reduce((a, b) => a + b, 0)} 个合作
+                      </span>
+                    </div>
+                    <Row gutter={[8, 16]}>
+                      {(
+                        Object.entries(staffDashboard.myPipelineDistribution) as [PipelineStage, number][]
+                      ).map(([stage, count]) => {
+                        const total = Object.values(staffDashboard.myPipelineDistribution).reduce(
+                          (a, b) => a + b,
+                          0
+                        );
+                        return (
+                          <Col xs={8} sm={6} md={4} key={stage}>
+                            <div style={{ textAlign: 'center' }}>
+                              <Progress
+                                type="circle"
+                                percent={total > 0 ? (count / total) * 100 : 0}
+                                format={() => count}
+                                strokeColor={STAGE_COLORS[stage]}
+                                size={50}
+                                strokeWidth={6}
+                              />
+                              <div style={{ marginTop: 4, fontSize: 10 }}>
+                                <Badge color={STAGE_COLORS[stage]} text={STAGE_LABELS[stage]} />
+                              </div>
                             </div>
-                          </div>
-                        </Col>
-                      );
-                    })}
-                  </Row>
-                </CardContent>
-              </Card>
-            </Col>
-
-            {/* 待办事项 */}
-            <Col xs={24} lg={12}>
-              <Card variant="elevated">
-                <CardContent>
-                  <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>待办事项</Text>
-                  <List
-                    dataSource={[
-                      {
-                        icon: <WarningOutlined style={{ color: '#ff4d4f' }} />,
-                        title: '超期合作',
-                        count: staffDashboard.pendingItems.overdueCollaborations,
-                        path: '/pipeline',
-                        color: '#ff4d4f',
-                      },
-                      {
-                        icon: <MessageOutlined style={{ color: '#faad14' }} />,
-                        title: '需要跟进',
-                        count: staffDashboard.pendingItems.needFollowUp,
-                        path: '/pipeline',
-                        color: '#faad14',
-                      },
-                      {
-                        icon: <ClockCircleOutlined style={{ color: '#1890ff' }} />,
-                        title: '待签收样品',
-                        count: staffDashboard.pendingItems.pendingReceipts,
-                        path: '/samples',
-                        color: '#1890ff',
-                      },
-                      {
-                        icon: <FileTextOutlined style={{ color: '#722ed1' }} />,
-                        title: '待录入结果',
-                        count: staffDashboard.pendingItems.pendingResults,
-                        path: '/results',
-                        color: '#722ed1',
-                      },
-                    ]}
-                    renderItem={(item) => (
-                      <List.Item
-                        actions={[
-                          <Button
-                            type="link"
-                            size="small"
-                            onClick={() => navigate(item.path)}
-                            disabled={item.count === 0}
-                          >
-                            查看
-                          </Button>,
-                        ]}
-                      >
-                        <List.Item.Meta
-                          avatar={item.icon}
-                          title={item.title}
-                          description={
-                            <Badge
-                              count={item.count}
-                              showZero
-                              style={{ backgroundColor: item.count > 0 ? item.color : '#d9d9d9' }}
-                            />
-                          }
-                        />
-                      </List.Item>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-            </Col>
-          </Row>
-
-          {/* 样品使用统计和最近动态 */}
-          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-            {/* 样品使用统计 */}
-            <Col xs={24} lg={12}>
-              <Card variant="elevated">
-                <CardContent>
-                  <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text strong style={{ fontSize: 16 }}>样品使用统计</Text>
-                    <Button type="link" onClick={() => navigate('/samples')}>
-                      查看详情
-                    </Button>
+                          </Col>
+                        );
+                      })}
+                    </Row>
                   </div>
-                  {staffDashboard.sampleUsage.length > 0 ? (
-                    <Table
-                      dataSource={staffDashboard.sampleUsage.slice(0, 5)}
-                      rowKey="sampleId"
-                      pagination={false}
+
+                  {/* 待办事项 */}
+                  <div className="bg-white p-5 rounded-lg border border-neutral-100 shadow-sm">
+                    <span className="text-base font-bold text-neutral-900 block mb-4">待办事项</span>
+                    <List
                       size="small"
-                      columns={[
+                      dataSource={[
                         {
-                          title: '样品名称',
-                          dataIndex: 'sampleName',
-                          key: 'sampleName',
-                          render: (text: string, record) => (
-                            <div>
-                              <Text strong>{text}</Text>
-                              <br />
-                              <Text type="secondary" style={{ fontSize: 12 }}>
-                                {record.sku}
-                              </Text>
-                            </div>
-                          ),
+                          icon: <WarningOutlined style={{ color: '#ff4d4f' }} />,
+                          title: '超期合作',
+                          count: staffDashboard.pendingItems.overdueCollaborations,
+                          path: '/pipeline',
+                          color: '#ff4d4f',
                         },
                         {
-                          title: '寄样次数',
-                          dataIndex: 'dispatchCount',
-                          key: 'dispatchCount',
-                          align: 'center',
-                          width: 80,
+                          icon: <MessageOutlined style={{ color: '#faad14' }} />,
+                          title: '需要跟进',
+                          count: staffDashboard.pendingItems.needFollowUp,
+                          path: '/pipeline',
+                          color: '#faad14',
                         },
                         {
-                          title: '上车率',
-                          dataIndex: 'onboardRate',
-                          key: 'onboardRate',
-                          align: 'center',
-                          width: 80,
-                          render: (rate: number) => (
-                            <Tag color={rate >= 0.5 ? 'success' : rate >= 0.3 ? 'warning' : 'default'}>
-                              {(rate * 100).toFixed(0)}%
-                            </Tag>
-                          ),
+                          icon: <ClockCircleOutlined style={{ color: '#1890ff' }} />,
+                          title: '待签收样品',
+                          count: staffDashboard.pendingItems.pendingReceipts,
+                          path: '/samples',
+                          color: '#1890ff',
+                        },
+                        {
+                          icon: <FileTextOutlined style={{ color: '#722ed1' }} />,
+                          title: '待录入结果',
+                          count: staffDashboard.pendingItems.pendingResults,
+                          path: '/results',
+                          color: '#722ed1',
                         },
                       ]}
+                      renderItem={(item) => (
+                        <List.Item
+                          actions={[
+                            <Button
+                              type="link"
+                              size="small"
+                              onClick={() => navigate(item.path)}
+                              disabled={item.count === 0}
+                            >
+                              查看
+                            </Button>,
+                          ]}
+                        >
+                          <List.Item.Meta
+                            avatar={item.icon}
+                            title={<span className="text-sm">{item.title}</span>}
+                            description={
+                              <Badge
+                                count={item.count}
+                                showZero
+                                style={{ backgroundColor: item.count > 0 ? item.color : '#d9d9d9' }}
+                              />
+                            }
+                          />
+                        </List.Item>
+                      )}
                     />
-                  ) : (
-                    <Empty description="暂无寄样记录" />
-                  )}
-                </CardContent>
-              </Card>
-            </Col>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-            {/* 最近动态 */}
-            <Col xs={24} lg={12}>
-              <Card variant="elevated">
-                <CardContent>
-                  <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>最近动态</Text>
-                  {staffDashboard.recentActivities.length > 0 ? (
-                    <Timeline
-                      items={staffDashboard.recentActivities.map((activity) => ({
-                        dot: activityIcons[activity.type],
-                        children: (
+          {/* 快捷操作 + 样品使用统计 + 最近动态 - Triple-Slot Secondary Row (规范) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* 快捷操作 */}
+            <Card variant="elevated" style={{ minHeight: 280 }}>
+              <CardContent>
+                <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>快捷操作</Text>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    {
+                      icon: <UserOutlined className="text-lg" />,
+                      label: '添加达人',
+                      color: 'text-emerald-500',
+                      bg: 'bg-emerald-50 hover:bg-emerald-100',
+                      onClick: handleAddInfluencer
+                    },
+                    {
+                      icon: <FileTextOutlined className="text-lg" />,
+                      label: '创建合作',
+                      color: 'text-blue-500',
+                      bg: 'bg-blue-50 hover:bg-blue-100',
+                      onClick: handleCreateCollaboration
+                    },
+                    {
+                      icon: <ShoppingOutlined className="text-lg" />,
+                      label: '寄样',
+                      color: 'text-orange-500',
+                      bg: 'bg-orange-50 hover:bg-orange-100',
+                      onClick: handleDispatchSample
+                    },
+                    {
+                      icon: <MessageOutlined className="text-lg" />,
+                      label: '快速跟进',
+                      color: 'text-purple-500',
+                      bg: 'bg-purple-50 hover:bg-purple-100',
+                      onClick: handleQuickFollowUp
+                    }
+                  ].map((item, i) => (
+                    <div
+                      key={i}
+                      className={`cursor-pointer rounded-lg p-3 flex flex-col justify-between transition-all hover:scale-[1.02] active:scale-95 ${item.bg}`}
+                      onClick={item.onClick}
+                      style={{ minHeight: '80px' }}
+                    >
+                      <div className={`w-8 h-8 rounded-lg bg-white flex items-center justify-center ${item.color} shadow-sm`}>
+                        {item.icon}
+                      </div>
+                      <span className="text-xs font-bold text-neutral-800 mt-2">{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 样品使用统计 */}
+            <Card variant="elevated" style={{ minHeight: 280 }}>
+              <CardContent>
+                <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text strong style={{ fontSize: 16 }}>样品使用统计</Text>
+                  <Button type="link" size="small" onClick={() => navigate('/samples')}>
+                    查看详情
+                  </Button>
+                </div>
+                {staffDashboard.sampleUsage.length > 0 ? (
+                  <Table
+                    dataSource={staffDashboard.sampleUsage.slice(0, 5)}
+                    rowKey="sampleId"
+                    pagination={false}
+                    size="small"
+                    columns={[
+                      {
+                        title: '样品名称',
+                        dataIndex: 'sampleName',
+                        key: 'sampleName',
+                        render: (text: string, record) => (
                           <div>
-                            <Text strong>{activity.influencerName}</Text>
+                            <Text strong style={{ fontSize: 12 }}>{text}</Text>
                             <br />
-                            <Text style={{ fontSize: 12 }}>{activity.content}</Text>
-                            <br />
-                            <Text type="secondary" style={{ fontSize: 12 }}>
-                              {dayjs(activity.createdAt).fromNow()}
+                            <Text type="secondary" style={{ fontSize: 10 }}>
+                              {record.sku}
                             </Text>
                           </div>
                         ),
-                      }))}
-                    />
-                  ) : (
-                    <Empty description="暂无动态" />
-                  )}
-                </CardContent>
-              </Card>
-            </Col>
-          </Row>
+                      },
+                      {
+                        title: '寄样',
+                        dataIndex: 'dispatchCount',
+                        key: 'dispatchCount',
+                        align: 'center',
+                        width: 50,
+                      },
+                      {
+                        title: '上车率',
+                        dataIndex: 'onboardRate',
+                        key: 'onboardRate',
+                        align: 'center',
+                        width: 60,
+                        render: (rate: number) => (
+                          <Tag color={rate >= 0.5 ? 'success' : rate >= 0.3 ? 'warning' : 'default'}>
+                            {(rate * 100).toFixed(0)}%
+                          </Tag>
+                        ),
+                      },
+                    ]}
+                  />
+                ) : (
+                  <Empty description="暂无寄样记录" />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* 最近动态 */}
+            <Card variant="elevated" style={{ minHeight: 280 }}>
+              <CardContent>
+                <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>最近动态</Text>
+                {staffDashboard.recentActivities.length > 0 ? (
+                  <Timeline
+                    items={staffDashboard.recentActivities.slice(0, 5).map((activity) => ({
+                      dot: activityIcons[activity.type],
+                      children: (
+                        <div>
+                          <Text strong style={{ fontSize: 12 }}>{activity.influencerName}</Text>
+                          <br />
+                          <Text style={{ fontSize: 11 }}>{activity.content}</Text>
+                          <br />
+                          <Text type="secondary" style={{ fontSize: 10 }}>
+                            {dayjs(activity.createdAt).fromNow()}
+                          </Text>
+                        </div>
+                      ),
+                    }))}
+                  />
+                ) : (
+                  <Empty description="暂无动态" />
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           {/* 排名信息 */}
           {staffDashboard.ranking.topPerformer && (
-            <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+            <Row gutter={[16, 16]}>
               <Col xs={24}>
                 <Card variant="elevated">
                   <CardContent>
@@ -1088,7 +1109,7 @@ const Dashboard = () => {
           )}
 
           {/* 工作统计 */}
-          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+          <Row gutter={[16, 16]}>
             <Col xs={24}>
               <WorkStats period={period} showTrend={true} />
             </Col>
@@ -1171,31 +1192,61 @@ const Dashboard = () => {
   const staffLimit = user?.brand?.staffLimit || 0;
   const influencerCount = user?.brand?._count?.influencers || 0;
   const influencerLimit = user?.brand?.influencerLimit || 0;
-  const planTypeLabels = {
+  const planTypeLabels: Record<string, string> = {
     FREE: '免费版',
+    PERSONAL: '个人版',
     PROFESSIONAL: '专业版',
     ENTERPRISE: '企业版',
   };
   const planType = user?.brand?.planType || 'FREE';
 
+  // 计算剩余天数
+  const getDaysRemaining = () => {
+    const expiresAt = user?.brand?.planExpiresAt;
+    if (!expiresAt) return null;
+    const days = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    return days;
+  };
+  const daysRemaining = getDaysRemaining();
+
+  // 剩余天数标签颜色
+  const getDaysRemainingColor = (days: number | null) => {
+    if (days === null) return { bg: '#f0f0f0', text: '#999' };
+    if (days <= 0) return { bg: '#fff2f0', text: '#ff4d4f' };
+    if (days <= 5) return { bg: '#fff7e6', text: '#fa8c16' };
+    if (days <= 30) return { bg: '#fffbe6', text: '#faad14' };
+    return { bg: '#f6ffed', text: '#52c41a' };
+  };
+  const daysColor = getDaysRemainingColor(daysRemaining);
+
 
 
   // Hardcoded Factory Dashboard Layout for Stability
   const renderFactoryDashboard = () => (
-    <div className="flex flex-col gap-6 pb-8">
+    <div className="flex flex-col gap-4">
       {/* Row 1: 资源概览 + KPI 统计卡片（对齐） */}
-      <div className="grid grid-cols-1 xl:grid-cols-6 gap-6 items-stretch">
+      <div className="grid grid-cols-1 xl:grid-cols-6 gap-4 items-stretch">
 
         {/* Left Column (Span 2) */}
-        <div className="col-span-1 xl:col-span-2 flex flex-col gap-6">
+        <div className="col-span-1 xl:col-span-2 flex flex-col gap-4">
           {/* 资源概览卡片 - 使用 bento-card 样式匹配其他卡片 */}
           <div className="bento-card h-32 flex flex-col justify-between">
             {/* Header */}
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-neutral-900 tracking-tight leading-tight">资源概览</h3>
-              <Tag color="geekblue" className="mr-0 border-none bg-indigo-50 text-indigo-600 font-bold px-2 rounded-md">
-                {planTypeLabels[planType] || planType}
-              </Tag>
+              <div className="flex items-center gap-2">
+                <Tag color="geekblue" className="mr-0 border-none bg-indigo-50 text-indigo-600 font-bold px-2 rounded-md">
+                  {planTypeLabels[planType] || planType}
+                </Tag>
+                {daysRemaining !== null && (
+                  <Tag
+                    className="mr-0 border-none font-bold px-2 rounded-md"
+                    style={{ backgroundColor: daysColor.bg, color: daysColor.text }}
+                  >
+                    {daysRemaining <= 0 ? '已到期' : `剩余 ${daysRemaining} 天`}
+                  </Tag>
+                )}
+              </div>
             </div>
 
             {/* Content */}
@@ -1305,7 +1356,7 @@ const Dashboard = () => {
         </div>
 
         {/* Right Column (Span 4) */}
-        <div className="col-span-1 xl:col-span-4 flex flex-col gap-6">
+        <div className="col-span-1 xl:col-span-4 flex flex-col gap-4">
 
           {/* KPI Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1368,7 +1419,7 @@ const Dashboard = () => {
 
           {/* Trend Charts */}
           <BentoCard title="趋势洞察指挥舱" span={6}>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-64 lg:h-80">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-64 lg:h-80">
               <TrendChart
                 title="GMV"
                 dataType="gmv"
@@ -1406,7 +1457,7 @@ const Dashboard = () => {
           </BentoCard>
 
           {/* Smart Assistant */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <SmartNotifications brandId={user?.brandId} isBento={true} />
             <FollowUpReminder
               onRemind={(collaborationId) => {

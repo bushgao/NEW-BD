@@ -9,6 +9,8 @@ export interface User {
   brandId?: string;
   createdAt: string;
   updatedAt: string;
+  isIndependent?: boolean;
+  permissions?: any; // 商务权限
 }
 
 export interface LoginInput {
@@ -17,13 +19,14 @@ export interface LoginInput {
 }
 
 export interface RegisterInput {
-  email: string;
+  email?: string;
   password: string;
   name: string;
   role: UserRole;
   phone?: string;
   wechat?: string;
   brandName?: string;
+  invitationCode?: string;  // 邀请码（通过邀请链接注册时使用）
 }
 
 export interface AuthResponse {
@@ -32,9 +35,16 @@ export interface AuthResponse {
 }
 
 /**
- * Login user
+ * Login user by email (for admin users)
  */
 export async function login(data: LoginInput) {
+  return request<AuthResponse>('post', '/auth/login/email', data);
+}
+
+/**
+ * Login user by phone number
+ */
+export async function loginByPhone(data: { phone: string; password: string }) {
   return request<AuthResponse>('post', '/auth/login', data);
 }
 

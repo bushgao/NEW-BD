@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Input, Tag, Space, message, Modal, Select, Typography } from 'antd';
-import { SearchOutlined, TeamOutlined } from '@ant-design/icons';
+import { Table, Button, Input, Tag, Space, message, Modal, Select, Typography, Switch, DatePicker } from 'antd';
+import { SearchOutlined, TeamOutlined, LockOutlined, UnlockOutlined, EditOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useTheme } from '../../theme/ThemeProvider';
 import * as platformService from '../../services/platform.service';
+import dayjs from 'dayjs';
 
 const { Title } = Typography;
 
@@ -15,6 +16,15 @@ interface IndependentUser {
     isActive: boolean;
     createdAt: string;
     lastLoginAt: string | null;
+    brandId?: string;
+    brand?: {
+        id: string;
+        name: string;
+        planType: string;
+        planExpiresAt?: string;
+        isPaid?: boolean;
+        isLocked?: boolean;
+    };
 }
 
 interface BrandOption {
@@ -37,6 +47,13 @@ export default function IndependentBusinessList() {
     const [brands, setBrands] = useState<BrandOption[]>([]);
     const [selectedBrandId, setSelectedBrandId] = useState<string>('');
     const [assigning, setAssigning] = useState(false);
+
+    // 订阅编辑弹窗
+    const [subModalOpen, setSubModalOpen] = useState(false);
+    const [subUser, setSubUser] = useState<IndependentUser | null>(null);
+    const [subExpiresAt, setSubExpiresAt] = useState<dayjs.Dayjs | null>(null);
+    const [subIsPaid, setSubIsPaid] = useState(false);
+    const [savingSub, setSavingSub] = useState(false);
 
     useEffect(() => {
         loadUsers();
@@ -121,6 +138,48 @@ export default function IndependentBusinessList() {
         });
     };
 
+    // 打开订阅编辑弹窗
+    const handleEditSubscription = (user: IndependentUser) => {
+        setSubUser(user);
+        if (user.brand?.planExpiresAt) {
+            setSubExpiresAt(dayjs(user.brand.planExpiresAt));
+        } else {
+            setSubExpiresAt(null);
+        }
+        setSubIsPaid(user.brand?.isPaid || false);
+        setSubModalOpen(true);
+    };
+
+    // 保存订阅设置
+    const saveSubscription = async () => {
+        if (!subUser?.brand?.id) {
+            message.error('用户没有关联的工作区');
+            return;
+        }
+
+        setSavingSub(true);
+        try {
+            await platformService.updateFactory(subUser.brand.id, {
+                planExpiresAt: subExpiresAt ? subExpiresAt.toISOString() : undefined,
+                isPaid: subIsPaid,
+            } as any);
+            message.success('订阅设置保存成功');
+            setSubModalOpen(false);
+            loadUsers();
+        } catch (error: any) {
+            message.error(error.message || '保存失败');
+        } finally {
+            setSavingSub(false);
+        }
+    };
+
+    // 计算剩余天数
+    const getDaysRemaining = (expiresAt?: string) => {
+        if (!expiresAt) return null;
+        const days = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        return days;
+    };
+
     const columns: ColumnsType<IndependentUser> = [
         {
             title: '姓名',
@@ -132,7 +191,8 @@ export default function IndependentBusinessList() {
             title: '邮箱',
             dataIndex: 'email',
             key: 'email',
-            width: 200,
+            width: 180,
+            render: (email: string) => email?.includes('@phone.local') ? '-' : email,
         },
         {
             title: '手机号',
@@ -153,6 +213,51 @@ export default function IndependentBusinessList() {
             ),
         },
         {
+            title: '剩余天数',
+            key: 'daysRemaining',
+            width: 100,
+            render: (_, record) => {
+                const days = getDaysRemaining(record.brand?.planExpiresAt);
+                if (days === null) {
+                    return <span style={{ color: '#999' }}>未设置</span>;
+                }
+                if (days <= 0) {
+                    return <Tag color="red">已到期</Tag>;
+                }
+                if (days <= 5) {
+                    return <Tag color="orange">{days} 天</Tag>;
+                }
+                if (days <= 30) {
+                    return <Tag color="gold">{days} 天</Tag>;
+                }
+                return <span style={{ color: '#52c41a' }}>{days} 天</span>;
+            },
+        },
+        {
+            title: '锁定状态',
+            key: 'isLocked',
+            width: 100,
+            render: (_, record) => (
+                record.brand?.isLocked ? (
+                    <Tag color="red" icon={<LockOutlined />}>已锁定</Tag>
+                ) : (
+                    <Tag color="green" icon={<UnlockOutlined />}>正常</Tag>
+                )
+            ),
+        },
+        {
+            title: '付费状态',
+            key: 'isPaid',
+            width: 100,
+            render: (_, record) => (
+                record.brand?.isPaid ? (
+                    <Tag color="blue">已付费</Tag>
+                ) : (
+                    <Tag color="default">试用中</Tag>
+                )
+            ),
+        },
+        {
             title: '注册时间',
             dataIndex: 'createdAt',
             key: 'createdAt',
@@ -169,10 +274,18 @@ export default function IndependentBusinessList() {
         {
             title: '操作',
             key: 'actions',
-            width: 200,
+            width: 280,
             fixed: 'right',
             render: (_, record) => (
                 <Space>
+                    <Button
+                        type="link"
+                        size="small"
+                        icon={<EditOutlined />}
+                        onClick={() => handleEditSubscription(record)}
+                    >
+                        订阅设置
+                    </Button>
                     <Button
                         type="link"
                         size="small"
@@ -230,7 +343,7 @@ export default function IndependentBusinessList() {
                     dataSource={users}
                     loading={loading}
                     rowKey="id"
-                    scroll={{ x: 1000 }}
+                    scroll={{ x: 1400 }}
                     pagination={{
                         current: page,
                         pageSize,
@@ -284,8 +397,40 @@ export default function IndependentBusinessList() {
                         划归后，该商务将隶属于所选品牌，不再显示在独立商务列表中。
                     </p>
                 </Modal>
+
+                {/* 订阅设置弹窗 */}
+                <Modal
+                    title={`订阅设置 - ${subUser?.name || ''}`}
+                    open={subModalOpen}
+                    onOk={saveSubscription}
+                    onCancel={() => setSubModalOpen(false)}
+                    confirmLoading={savingSub}
+                    okText="保存"
+                >
+                    <div style={{ marginBottom: 16 }}>
+                        <p style={{ marginBottom: 8 }}><strong>套餐到期时间：</strong></p>
+                        <DatePicker
+                            value={subExpiresAt}
+                            onChange={setSubExpiresAt}
+                            style={{ width: '100%' }}
+                            placeholder="留空表示永不过期"
+                            allowClear
+                        />
+                        <p style={{ color: '#999', fontSize: 12, marginTop: 4 }}>
+                            个人版默认30天试用期，付费后延长至365天
+                        </p>
+                    </div>
+                    <div>
+                        <p style={{ marginBottom: 8 }}><strong>付费状态：</strong></p>
+                        <Switch
+                            checked={subIsPaid}
+                            onChange={setSubIsPaid}
+                            checkedChildren="已付费"
+                            unCheckedChildren="试用中"
+                        />
+                    </div>
+                </Modal>
             </div>
         </div>
     );
 }
-

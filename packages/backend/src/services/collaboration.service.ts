@@ -86,24 +86,86 @@ export const STAGE_ORDER: PipelineStage[] = [
 ];
 
 
-// ==================== 合作记录 CRUD ====================
+/**
+ * 冲突信息类型
+ */
+export interface CollaborationConflictInfo {
+  id: string;
+  staffId: string;
+  staffName: string;
+  stage: PipelineStage;
+  stageName: string;
+  createdAt: Date;
+}
+
+/**
+ * 检查达人是否已被其他商务跟进
+ * 返回所有冲突的商务列表
+ */
+export async function checkInfluencerConflict(
+  influencerId: string,
+  brandId: string,
+  currentStaffId: string
+): Promise<{
+  hasConflict: boolean;
+  conflicts: CollaborationConflictInfo[];
+}> {
+  // 查找该达人在该品牌下所有其他商务的合作记录
+  // 按创建时间升序排列（最早开始跟进的在前）
+  const existingCollabs = await prisma.collaboration.findMany({
+    where: {
+      influencerId,
+      brandId,
+      businessStaffId: { not: currentStaffId },
+      // 排除已完成的合作记录，只检查进行中的
+      stage: { not: 'REVIEWED' },
+    },
+    include: {
+      businessStaff: {
+        select: { id: true, name: true },
+      },
+    },
+    orderBy: { createdAt: 'asc' }, // 最早开始跟进的优先
+  });
+
+  if (existingCollabs.length > 0) {
+    return {
+      hasConflict: true,
+      conflicts: existingCollabs.map(collab => ({
+        id: collab.id,
+        staffId: collab.businessStaff.id,
+        staffName: collab.businessStaff.name,
+        stage: collab.stage,
+        stageName: STAGE_NAMES[collab.stage],
+        createdAt: collab.createdAt,
+      })),
+    };
+  }
+
+  return { hasConflict: false, conflicts: [] };
+}
 
 /**
  * 创建合作记录
+ * @param data 合作记录数据
+ * @param forceCreate 是否强制创建（忽略冲突警告）
  */
-export async function createCollaboration(data: CreateCollaborationInput) {
+export async function createCollaboration(
+  data: CreateCollaborationInput,
+  forceCreate: boolean = false
+) {
   const { influencerId, brandId, businessStaffId, stage, sampleId, quotedPrice, deadline, notes } = data;
 
-  // 验证达人存在且属于该工厂
+  // 验证达人是否存在于品牌的达人库中
   const influencer = await prisma.influencer.findFirst({
     where: { id: influencerId, brandId },
   });
 
   if (!influencer) {
-    throw createNotFoundError('达人不存在或不属于该工厂');
+    throw createNotFoundError('达人不存在于该品牌的达人库中');
   }
 
-  // 验证商务人员存在且属于该工厂
+  // 验证商务人员存在且属于该品牌
   const staff = await prisma.user.findFirst({
     where: {
       id: businessStaffId,
@@ -115,7 +177,28 @@ export async function createCollaboration(data: CreateCollaborationInput) {
   });
 
   if (!staff) {
-    throw createNotFoundError('商务人员不存在或不属于该工厂');
+    throw createNotFoundError('商务人员不存在或不属于该品牌');
+  }
+
+  // 检查是否有其他商务已在跟进该达人
+  if (!forceCreate) {
+    const conflictCheck = await checkInfluencerConflict(influencerId, brandId, businessStaffId);
+
+    if (conflictCheck.hasConflict && conflictCheck.conflicts.length > 0) {
+      // 生成所有冲突商务的描述
+      const conflictDescriptions = conflictCheck.conflicts
+        .map(c => `「${c.staffName}」(${c.stageName})`)
+        .join('、');
+
+      throw Object.assign(
+        new Error(`该达人已被 ${conflictDescriptions} 跟进`),
+        {
+          name: 'CollaborationConflict',
+          statusCode: 409,
+          conflicts: conflictCheck.conflicts,
+        }
+      );
+    }
   }
 
   const initialStage = stage || 'LEAD';

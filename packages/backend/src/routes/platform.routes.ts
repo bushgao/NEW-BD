@@ -32,7 +32,7 @@ router.get(
     query('page').optional().isInt({ min: 1 }).withMessage('页码必须为正整数'),
     query('pageSize').optional().isInt({ min: 1, max: 100 }).withMessage('每页数量必须在1-100之间'),
     query('status').optional().isIn(['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED']).withMessage('无效的状态'),
-    query('planType').optional().isIn(['FREE', 'PROFESSIONAL', 'ENTERPRISE']).withMessage('无效的套餐类型'),
+    query('planType').optional().isIn(['FREE', 'PERSONAL', 'PROFESSIONAL', 'ENTERPRISE']).withMessage('无效的套餐类型'),
     query('keyword').optional().isString(),
   ],
   handleValidationErrors,
@@ -132,19 +132,30 @@ router.put(
   [
     param('brandId').isUUID().withMessage('无效的工厂ID'),
     body('status').optional().isIn(['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED']).withMessage('无效的状态'),
-    body('planType').optional().isIn(['FREE', 'PROFESSIONAL', 'ENTERPRISE']).withMessage('无效的套餐类型'),
+    body('planType').optional().isIn(['FREE', 'PERSONAL', 'PROFESSIONAL', 'ENTERPRISE']).withMessage('无效的套餐类型'),
     body('staffLimit').optional().isInt({ min: 1 }).withMessage('商务账号上限必须为正整数'),
     body('influencerLimit').optional().isInt({ min: 1 }).withMessage('达人上限必须为正整数'),
+    body('planExpiresAt').optional().isISO8601().withMessage('到期时间格式无效'),
+    body('isPaid').optional().isBoolean().withMessage('付费状态必须为布尔值'),
+    // 赠送额度字段
+    body('bonusStaff').optional().isInt({ min: 0 }).withMessage('赠送商务账号必须为非负整数'),
+    body('bonusInfluencer').optional().isInt({ min: 0 }).withMessage('赠送达人数量必须为非负整数'),
+    body('bonusDays').optional().isInt({ min: 0 }).withMessage('赠送天数必须为非负整数'),
   ],
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const { status, planType, staffLimit, influencerLimit } = req.body;
+      const { status, planType, staffLimit, influencerLimit, planExpiresAt, isPaid, bonusStaff, bonusInfluencer, bonusDays } = req.body;
       const factory = await platformService.updateFactory(req.params.brandId, {
         status,
         planType,
         staffLimit,
         influencerLimit,
+        planExpiresAt: planExpiresAt ? new Date(planExpiresAt) : undefined,
+        isPaid,
+        bonusStaff,
+        bonusInfluencer,
+        bonusDays,
       });
 
       res.json({
@@ -156,6 +167,7 @@ router.put(
     }
   }
 );
+
 
 /**
  * @route POST /api/platform/factories/:brandId/toggle-status
@@ -251,7 +263,7 @@ router.get(
   authenticate,
   requirePlatformAdmin,
   [
-    param('planType').isIn(['FREE', 'PROFESSIONAL', 'ENTERPRISE']).withMessage('无效的套餐类型'),
+    param('planType').isIn(['FREE', 'PERSONAL', 'PROFESSIONAL', 'ENTERPRISE']).withMessage('无效的套餐类型'),
   ],
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
@@ -278,7 +290,7 @@ router.post(
   authenticate,
   requirePlatformAdmin,
   [
-    body('planType').isIn(['FREE', 'PROFESSIONAL', 'ENTERPRISE']).withMessage('无效的套餐类型'),
+    body('planType').isIn(['FREE', 'PERSONAL', 'PROFESSIONAL', 'ENTERPRISE']).withMessage('无效的套餐类型'),
     body('name').trim().notEmpty().withMessage('套餐名称不能为空'),
     body('staffLimit').isInt({ min: 1 }).withMessage('商务账号上限必须为正整数'),
     body('influencerLimit').isInt({ min: 1 }).withMessage('达人上限必须为正整数'),
@@ -311,7 +323,7 @@ router.put(
   authenticate,
   requirePlatformAdmin,
   [
-    param('planType').isIn(['FREE', 'PROFESSIONAL', 'ENTERPRISE']).withMessage('无效的套餐类型'),
+    param('planType').isIn(['FREE', 'PERSONAL', 'PROFESSIONAL', 'ENTERPRISE']).withMessage('无效的套餐类型'),
     body('name').optional().trim().notEmpty().withMessage('套餐名称不能为空'),
     body('staffLimit').optional().isInt({ min: 1 }).withMessage('商务账号上限必须为正整数'),
     body('influencerLimit').optional().isInt({ min: 1 }).withMessage('达人上限必须为正整数'),
@@ -347,7 +359,7 @@ router.delete(
   authenticate,
   requirePlatformAdmin,
   [
-    param('planType').isIn(['FREE', 'PROFESSIONAL', 'ENTERPRISE']).withMessage('无效的套餐类型'),
+    param('planType').isIn(['FREE', 'PERSONAL', 'PROFESSIONAL', 'ENTERPRISE']).withMessage('无效的套餐类型'),
   ],
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
@@ -1047,5 +1059,4 @@ router.delete(
 );
 
 export default router;
-
 

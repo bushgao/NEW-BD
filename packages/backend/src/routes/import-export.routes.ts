@@ -5,7 +5,7 @@ import * as importService from '../services/import.service';
 import * as exportService from '../services/export.service';
 import * as reportService from '../services/report.service';
 import * as templateService from '../services/template.service';
-import { authenticate, requireFactoryMember } from '../middleware/auth.middleware';
+import { authenticate, requireFactoryMember, enrichUserData } from '../middleware/auth.middleware';
 import { createBadRequestError } from '../middleware/errorHandler';
 import type { ApiResponse } from '@ics/shared';
 
@@ -31,6 +31,9 @@ const upload = multer({
 });
 
 const router = Router();
+
+// Apply enrichUserData middleware to all routes to ensure brandId is available
+router.use(enrichUserData);
 
 // Validation middleware
 const handleValidationErrors = (req: Request, _res: Response, next: NextFunction) => {
@@ -62,7 +65,7 @@ router.post(
 
       const importType = req.body.type || 'influencers';
       const { headers } = importService.parseFile(req.file.buffer);
-      
+
       let suggestedMapping: any;
       if (importType === 'samples') {
         suggestedMapping = importService.suggestSampleMapping(headers);

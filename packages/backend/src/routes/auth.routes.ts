@@ -45,10 +45,9 @@ const registerValidation = [
 ];
 
 const loginValidation = [
-  body('email')
-    .isEmail()
-    .withMessage('请输入有效的邮箱地址')
-    .normalizeEmail(),
+  body('phone')
+    .notEmpty()
+    .withMessage('请输入手机号'),
   body('password')
     .notEmpty()
     .withMessage('请输入密码'),
@@ -100,12 +99,44 @@ router.post(
 
 /**
  * @route POST /api/auth/login
- * @desc Login user
+ * @desc Login user by phone
  * @access Public
  */
 router.post(
   '/login',
   loginValidation,
+  handleValidationErrors,
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
+    try {
+      const { phone, password } = req.body;
+
+      const result = await authService.loginByPhone({ phone, password });
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @route POST /api/auth/login/email
+ * @desc Login user by email (for admin users)
+ * @access Public
+ */
+router.post(
+  '/login/email',
+  [
+    body('email')
+      .isEmail()
+      .withMessage('请输入有效的邮箱地址'),
+    body('password')
+      .notEmpty()
+      .withMessage('请输入密码'),
+  ],
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {

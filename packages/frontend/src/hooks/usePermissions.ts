@@ -85,6 +85,19 @@ export function usePermissions(): UsePermissionsReturn {
     };
   }
 
+  // 独立商务拥有所有权限（相当于自己品牌的老板）
+  if (user?.role === 'BUSINESS' && (user as any)?.isIndependent === true) {
+    return {
+      hasPermission: () => true,
+      permissions: null,
+      isLoading: false,
+      canViewOthersData: true,
+      canManageSamples: true,
+      canDeleteCollaborations: true,
+      canViewCostData: true,
+    };
+  }
+
   // 商务人员权限检查
   const permissions = (user as any)?.permissions as StaffPermissions | undefined;
 

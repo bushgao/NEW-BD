@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { query, validationResult } from 'express-validator';
-import { authenticate, requireRoles, enrichUserData } from '../middleware/auth.middleware';
+import { authenticate, requireRoles, requireRolesOrIndependent, enrichUserData } from '../middleware/auth.middleware';
 import { checkPermission, checkStaffDataAccess } from '../middleware/permission.middleware';
 import * as reportService from '../services/report.service';
 import * as trendService from '../services/trend.service';
@@ -35,10 +35,11 @@ router.use(enrichUserData);
  * GET /api/reports/staff-performance
  * 获取商务绩效报表
  * Requirements: 6.1, 6.2, 6.3, 6.4
+ * Access: BRAND owners, PLATFORM_ADMIN, independent BUSINESS, or BUSINESS with viewCostData permission
  */
 router.get(
   '/staff-performance',
-  requireRoles('BRAND', 'PLATFORM_ADMIN'),
+  requireRoles('BRAND', 'PLATFORM_ADMIN', 'BUSINESS'),
   [
     query('startDate').optional().isISO8601().withMessage('开始日期格式无效'),
     query('endDate').optional().isISO8601().withMessage('结束日期格式无效'),
@@ -53,6 +54,30 @@ router.get(
           error: { code: 'NO_FACTORY', message: '用户未关联工厂' },
         });
         return;
+      }
+
+      // BUSINESS role needs permission check (unless independent)
+      if (req.user!.role === 'BUSINESS') {
+        const userWithPermissions = await prisma.user.findUnique({
+          where: { id: req.user!.userId },
+          select: { permissions: true, isIndependent: true },
+        });
+
+        const isIndependent = userWithPermissions?.isIndependent === true;
+        const permissions = userWithPermissions?.permissions as any;
+        const hasViewCostData = permissions?.advanced?.viewCostData === true;
+
+        if (!isIndependent && !hasViewCostData) {
+          res.status(403).json({
+            success: false,
+            error: {
+              code: 'PERMISSION_DENIED',
+              message: '您没有权限查看商务绩效报表',
+              details: { permission: 'advanced.viewCostData' }
+            },
+          });
+          return;
+        }
       }
 
       const dateRange = req.query.startDate && req.query.endDate
@@ -74,6 +99,7 @@ router.get(
   }
 );
 
+
 // ==================== 趋势数据 ====================
 
 /**
@@ -83,7 +109,7 @@ router.get(
  */
 router.get(
   '/dashboard/trends',
-  requireRoles('BRAND', 'PLATFORM_ADMIN'),
+  requireRolesOrIndependent('BRAND', 'PLATFORM_ADMIN'),
   [
     query('period').isIn(['week', 'month', 'quarter']).withMessage('周期参数无效'),
     query('dataType').isIn(['gmv', 'cost', 'roi']).withMessage('数据类型参数无效'),
@@ -145,7 +171,7 @@ router.get(
  */
 router.get(
   '/dashboard',
-  requireRoles('BRAND', 'PLATFORM_ADMIN'),
+  requireRolesOrIndependent('BRAND', 'PLATFORM_ADMIN'),
   [
     query('period').optional().isIn(['week', 'month']).withMessage('周期参数无效'),
   ],
@@ -220,7 +246,7 @@ router.get(
  */
 router.get(
   '/export/staff-performance',
-  requireRoles('BRAND', 'PLATFORM_ADMIN'),
+  requireRolesOrIndependent('BRAND', 'PLATFORM_ADMIN'),
   [
     query('startDate').optional().isISO8601().withMessage('开始日期格式无效'),
     query('endDate').optional().isISO8601().withMessage('结束日期格式无效'),
@@ -262,7 +288,7 @@ router.get(
  */
 router.get(
   '/export/roi',
-  requireRoles('BRAND', 'PLATFORM_ADMIN'),
+  requireRolesOrIndependent('BRAND', 'PLATFORM_ADMIN'),
   [
     query('groupBy').isIn(['influencer', 'sample', 'staff', 'month']).withMessage('分组参数无效'),
     query('startDate').optional().isISO8601().withMessage('开始日期格式无效'),

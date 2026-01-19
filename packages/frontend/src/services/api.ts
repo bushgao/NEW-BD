@@ -242,7 +242,9 @@ api.interceptors.response.use(
       return { data: (error as any).mockData, status: 200, statusText: 'OK', headers: {}, config: {} as any };
     }
 
-    if (error.response?.status === 401 || error.response?.status === 403) {
+    // 401 = 认证失败（未登录或 token 过期），需要重新登录
+    // 403 = 权限不足（已登录但没有权限），不应该跳转登录页
+    if (error.response?.status === 401) {
       const currentPath = window.location.pathname;
       const authToken = useAuthStore.getState().token;
       const adminToken = useAdminStore.getState().token;
@@ -261,6 +263,7 @@ api.interceptors.response.use(
         window.location.href = '/login';
       }
     }
+    // 403 错误不跳转登录页，让调用方处理（显示权限不足提示）
     return Promise.reject(error);
   }
 );

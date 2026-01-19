@@ -10,16 +10,23 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
 
 export interface RegisterInput {
-  email: string;
+  email?: string;
   password: string;
   name: string;
   role: UserRole;
   brandId?: string;
   factoryName?: string; // For FACTORY_OWNER creating a new factory
+  phone?: string;       // 手机号（邀请注册时使用）
+  invitationCode?: string; // 邀请码（通过邀请链接注册时使用）
 }
 
 export interface LoginInput {
   email: string;
+  password: string;
+}
+
+export interface LoginByPhoneInput {
+  phone: string;
   password: string;
 }
 
@@ -33,11 +40,15 @@ export interface UserWithoutPassword {
   updatedAt: Date;
   lastLoginAt?: Date;
   isActive?: boolean;
+  isIndependent?: boolean; // 独立商务标识
   brand?: {
     id: string;
     name: string;
     status: string;
     planType: string;
+    planExpiresAt?: Date | null;
+    isPaid?: boolean;
+    isLocked?: boolean;
     staffLimit: number;
     influencerLimit: number;
     _count?: {
@@ -45,6 +56,7 @@ export interface UserWithoutPassword {
       influencers: number;
     };
   };
+  permissions?: any; // 商务权限
 }
 
 /**
@@ -99,18 +111,51 @@ function parseExpiresIn(expiresIn: string): number {
  * Register a new user
  */
 export async function register(data: RegisterInput): Promise<{ user: UserWithoutPassword; tokens: AuthToken }> {
-  const { email, password, name, role, brandId, factoryName } = data;
+  const { email, password, name, role, brandId, factoryName, phone, invitationCode } = data;
 
-  // Check if email already exists
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  if (existingUser) {
-    throw createConflictError('该邮箱已被注册', { field: 'email' });
+  // 如果有邀请码，验证并获取邀请信息
+  let invitation = null;
+  if (invitationCode) {
+    invitation = await prisma.invitation.findUnique({
+      where: { code: invitationCode },
+      include: { brand: true },
+    });
+
+    if (!invitation) {
+      throw createBadRequestError('邀请码无效');
+    }
+    if (invitation.status !== 'PENDING') {
+      throw createBadRequestError(invitation.status === 'USED' ? '邀请已被使用' : '邀请已被撤销');
+    }
+    if (new Date() > invitation.expiresAt) {
+      throw createBadRequestError('邀请已过期');
+    }
+  }
+
+  // Check if email already exists (如果提供了邮箱)
+  if (email) {
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      throw createConflictError('该邮箱已被注册', { field: 'email' });
+    }
+  }
+
+  // Check if phone already exists (如果提供了手机号)
+  if (phone) {
+    const existingPhone = await prisma.user.findFirst({ where: { phone } });
+    if (existingPhone) {
+      throw createConflictError('该手机号已被注册', { field: 'phone' });
+    }
+  }
+
+  // 邀请注册必须提供手机号
+  if (invitationCode && !phone) {
+    throw createBadRequestError('通过邀请链接注册需要提供手机号');
   }
 
   // Validate role-specific requirements
-  if (role === 'BUSINESS' && !brandId) {
-    throw createBadRequestError('商务人员必须关联工厂');
-  }
+  // BUSINESS 角色可以不关联品牌，此时会作为独立商务注册（isIndependent: true）
+  // 注意：isIndependent 字段在 schema 中默认为 true，所以无需额外设置
 
   if (role === 'BRAND' && !factoryName) {
     throw createBadRequestError('品牌用户必须提供品牌名称');
@@ -127,7 +172,7 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
     const result = await prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
-          email,
+          email: email!, // 品牌用户必须提供邮箱
           passwordHash,
           name,
           role,
@@ -157,14 +202,92 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
     });
 
     user = result;
+  } else if (role === 'BUSINESS' && !brandId) {
+    // 独立商务注册：自动创建个人品牌，让商务可以完整使用系统功能
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. 创建用户
+      const newUser = await tx.user.create({
+        data: {
+          email: email!, // 独立商务必须提供邮箱
+          passwordHash,
+          name,
+          role,
+          isIndependent: true,
+        },
+      });
+
+      // 2. 为独立商务创建个人品牌
+      const personalBrand = await tx.brand.create({
+        data: {
+          name: `个人工作区 - ${name}`,
+          ownerId: newUser.id,
+          status: 'APPROVED', // 个人品牌自动审核通过
+          planType: 'FREE',
+          staffLimit: 1,
+          influencerLimit: 50, // 独立商务限制较低
+        },
+      });
+
+      // 3. 更新用户的 brandId
+      await tx.user.update({
+        where: { id: newUser.id },
+        data: { brandId: personalBrand.id },
+      });
+
+      // 4. 返回完整用户信息
+      return tx.user.findUnique({
+        where: { id: newUser.id },
+        include: { brand: true },
+      });
+    });
+
+    user = result;
+  } else if (invitationCode && invitation) {
+    // 通过邀请码注册：商务加入邀请方的品牌
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. 创建用户并关联到邀请方品牌
+      const newUser = await tx.user.create({
+        data: {
+          email: email || `invited_${Date.now()}@temp.local`, // 邮箱可选
+          phone,
+          passwordHash,
+          name,
+          role: 'BUSINESS',
+          brandId: invitation.brandId,
+          isIndependent: false,
+          joinedAt: new Date(),
+        },
+      });
+
+      // 2. 更新邀请状态为已使用
+      await tx.invitation.update({
+        where: { id: invitation.id },
+        data: {
+          status: 'USED',
+          usedAt: new Date(),
+          usedById: newUser.id,
+        },
+      });
+
+      // 3. 返回完整用户信息
+      return tx.user.findUnique({
+        where: { id: newUser.id },
+        include: { brand: true },
+      });
+    });
+
+    user = result;
   } else {
+    // BUSINESS 加入已有品牌，或其他角色
     user = await prisma.user.create({
       data: {
-        email,
+        email: email || `user_${Date.now()}@temp.local`,
+        phone,
         passwordHash,
         name,
         role,
         brandId: role === 'BUSINESS' ? brandId : undefined,
+        isIndependent: false,
       },
     });
   }
@@ -289,6 +412,108 @@ export async function login(data: LoginInput): Promise<{ user: UserWithoutPasswo
 }
 
 /**
+ * Login user by phone number
+ */
+export async function loginByPhone(data: LoginByPhoneInput): Promise<{ user: UserWithoutPassword; tokens: AuthToken }> {
+  const { phone, password } = data;
+
+  // Find user by phone
+  const user = await prisma.user.findFirst({
+    where: { phone },
+    include: {
+      ownedBrand: {
+        include: {
+          _count: {
+            select: {
+              staff: true,
+              influencers: true,
+            },
+          },
+        },
+      },
+      brand: {
+        include: {
+          _count: {
+            select: {
+              staff: true,
+              influencers: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    throw createUnauthorizedError('手机号或密码错误');
+  }
+
+  // 检查账号状态（禁用的账号无法登录）
+  if (user.status === 'DISABLED') {
+    throw createUnauthorizedError('账号已被禁用，请联系管理员');
+  }
+
+  // Verify password
+  const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+  if (!isPasswordValid) {
+    throw createUnauthorizedError('手机号或密码错误');
+  }
+
+  // Update last login time
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { lastLoginAt: new Date() },
+  });
+
+  // Determine brandId and factory info based on role
+  let brandId = user.brandId;
+  let factoryInfo = undefined;
+
+  // BRAND (formerly FACTORY_OWNER) - use ownedBrand
+  if (user.role === 'BRAND' && user.ownedBrand) {
+    brandId = user.ownedBrand.id;
+    factoryInfo = {
+      id: user.ownedBrand.id,
+      name: user.ownedBrand.name,
+      status: user.ownedBrand.status,
+      planType: user.ownedBrand.planType,
+      staffLimit: user.ownedBrand.staffLimit,
+      influencerLimit: user.ownedBrand.influencerLimit,
+      _count: user.ownedBrand._count,
+    };
+  }
+  // BUSINESS (formerly BUSINESS_STAFF) - use factory relation
+  else if (user.role === 'BUSINESS' && user.brand) {
+    factoryInfo = {
+      id: user.brand.id,
+      name: user.brand.name,
+      status: user.brand.status,
+      planType: user.brand.planType,
+      staffLimit: user.brand.staffLimit,
+      influencerLimit: user.brand.influencerLimit,
+      _count: user.brand._count,
+    };
+  }
+
+  const userWithoutPassword: UserWithoutPassword = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role as UserRole,
+    brandId,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+    isIndependent: user.isIndependent,
+    brand: factoryInfo,
+    permissions: user.permissions, // 商务权限
+  };
+
+  const tokens = generateTokens(userWithoutPassword);
+
+  return { user: userWithoutPassword, tokens };
+}
+
+/**
  * Verify access token
  */
 export function verifyToken(token: string): TokenPayload {
@@ -399,6 +624,9 @@ export async function getCurrentUser(userId: string): Promise<UserWithoutPasswor
       name: user.ownedBrand.name,
       status: user.ownedBrand.status,
       planType: user.ownedBrand.planType,
+      planExpiresAt: user.ownedBrand.planExpiresAt,
+      isPaid: user.ownedBrand.isPaid,
+      isLocked: user.ownedBrand.isLocked,
       staffLimit: user.ownedBrand.staffLimit,
       influencerLimit: user.ownedBrand.influencerLimit,
       _count: user.ownedBrand._count,
@@ -411,6 +639,9 @@ export async function getCurrentUser(userId: string): Promise<UserWithoutPasswor
       name: user.brand.name,
       status: user.brand.status,
       planType: user.brand.planType,
+      planExpiresAt: user.brand.planExpiresAt,
+      isPaid: user.brand.isPaid,
+      isLocked: user.brand.isLocked,
       staffLimit: user.brand.staffLimit,
       influencerLimit: user.brand.influencerLimit,
       _count: user.brand._count,
@@ -427,7 +658,8 @@ export async function getCurrentUser(userId: string): Promise<UserWithoutPasswor
     updatedAt: user.updatedAt,
     lastLoginAt: user.lastLoginAt || undefined,
     isActive: user.isActive,
+    isIndependent: user.isIndependent, // 独立商务标识
     brand: factoryInfo,
-    preferences: user.preferences,
+    permissions: user.permissions, // 商务权限
   };
 }

@@ -268,18 +268,71 @@ const CreateCollaborationModal = ({
     }
   };
 
-  const submitForm = async (values: any) => {
+  const submitForm = async (values: any, forceCreate: boolean = false) => {
     try {
       setLoading(true);
 
-      await createCollaboration({
+      const result = await createCollaboration({
         influencerId: values.influencerId,
         stage: values.stage,
         sampleId: values.sampleId,
         quotedPrice: values.quotedPrice ? parseMoney(Number(values.quotedPrice)) : undefined,
         deadline: values.deadline?.toISOString(),
         notes: values.notes,
+        forceCreate,
       });
+
+      // 处理冲突情况
+      if (!result.success && result.conflicts && result.conflicts.length > 0) {
+        const conflicts = result.conflicts;
+        Modal.confirm({
+          title: '⚠️ 联系冲突提醒',
+          content: (
+            <div>
+              <p style={{ marginBottom: 8 }}>
+                该达人已被 {conflicts.length} 位商务跟进：
+              </p>
+              <div style={{
+                padding: 12,
+                background: '#fff7e6',
+                borderRadius: 6,
+                border: '1px solid #ffd591',
+                maxHeight: 200,
+                overflowY: 'auto',
+              }}>
+                {conflicts.map((conflict, index) => (
+                  <div
+                    key={conflict.id}
+                    style={{
+                      marginBottom: index < conflicts.length - 1 ? 12 : 0,
+                      paddingBottom: index < conflicts.length - 1 ? 12 : 0,
+                      borderBottom: index < conflicts.length - 1 ? '1px dashed #ffd591' : 'none',
+                    }}
+                  >
+                    <p style={{ margin: 0 }}>
+                      <strong>{index + 1}. {conflict.staffName}</strong>
+                    </p>
+                    <p style={{ margin: '4px 0 0 0', fontSize: 12, color: '#666' }}>
+                      当前阶段：{conflict.stageName}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <p style={{ marginTop: 12, color: '#666' }}>
+                确定要继续创建新的合作记录吗？
+              </p>
+            </div>
+          ),
+          okText: '继续创建',
+          cancelText: '取消',
+          okButtonProps: { danger: true },
+          onOk: async () => {
+            // 强制创建
+            await submitForm(values, true);
+          },
+        });
+        return;
+      }
 
       message.success('合作记录已创建');
       form.resetFields();

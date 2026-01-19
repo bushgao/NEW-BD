@@ -142,12 +142,20 @@ const FactoryDetailModal = ({ brandId, visible, onClose }: FactoryDetailModalPro
               <Descriptions.Item label="负责人邮箱">{factory.owner.email}</Descriptions.Item>
               <Descriptions.Item label="商务账号">
                 {factory._count?.staff || 0} / {factory.staffLimit}
+                {factory.bonusStaff ? <Tag color="green" style={{ marginLeft: 8 }}>赠送 +{factory.bonusStaff}</Tag> : null}
               </Descriptions.Item>
               <Descriptions.Item label="达人数量">
                 {factory._count?.influencers || 0} / {factory.influencerLimit}
+                {factory.bonusInfluencer ? <Tag color="green" style={{ marginLeft: 8 }}>赠送 +{factory.bonusInfluencer}</Tag> : null}
               </Descriptions.Item>
               <Descriptions.Item label="合作数量">
                 {factory._count?.collaborations || 0}
+              </Descriptions.Item>
+              <Descriptions.Item label="套餐到期">
+                {factory.planExpiresAt
+                  ? new Date(factory.planExpiresAt).toLocaleDateString('zh-CN')
+                  : '永久'}
+                {factory.bonusDays ? <Tag color="green" style={{ marginLeft: 8 }}>赠送 +{factory.bonusDays}天</Tag> : null}
               </Descriptions.Item>
               <Descriptions.Item label="创建时间">
                 {new Date(factory.createdAt).toLocaleDateString('zh-CN')}
@@ -159,6 +167,7 @@ const FactoryDetailModal = ({ brandId, visible, onClose }: FactoryDetailModalPro
           )}
         </Spin>
       ),
+
     },
     {
       key: 'staff',

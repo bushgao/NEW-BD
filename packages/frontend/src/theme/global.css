@@ -74,46 +74,6 @@
   --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 暗色主题 */
-[data-theme='dark'] {
-  --color-bg-primary: #1a1a1a;
-  --color-bg-secondary: #262626;
-  --color-bg-tertiary: #333333;
-
-  --color-neutral-50: #171717;
-  --color-neutral-100: #262626;
-  --color-neutral-200: #404040;
-  --color-neutral-300: #525252;
-  --color-neutral-400: #737373;
-  --color-neutral-500: #a3a3a3;
-  --color-neutral-600: #d4d4d4;
-  --color-neutral-700: #e5e5e5;
-  --color-neutral-800: #f5f5f5;
-  --color-neutral-900: #fafafa;
-
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-base: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
-}
-
-/* 减少动画 */
-[data-reduced-motion='true'] * {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
-}
-
-/* 字体大小调整 */
-[data-font-size='sm'] {
-  font-size: 14px;
-}
-
-[data-font-size='lg'] {
-  font-size: 18px;
-}
-
 /* 基础样式重置 */
 * {
   box-sizing: border-box;

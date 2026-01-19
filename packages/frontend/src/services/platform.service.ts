@@ -17,6 +17,15 @@ export interface FactoryWithOwner {
   planType: PlanType;
   staffLimit: number;
   influencerLimit: number;
+  // 订阅相关字段
+  planStartedAt?: string;
+  planExpiresAt?: string;
+  isLocked?: boolean;
+  isPaid?: boolean;
+  // 赠送额度记录
+  bonusStaff?: number;
+  bonusInfluencer?: number;
+  bonusDays?: number;
   createdAt: string;
   updatedAt: string;
   owner: BrandOwner;
@@ -64,6 +73,13 @@ export interface UpdateFactoryInput {
   planType?: PlanType;
   staffLimit?: number;
   influencerLimit?: number;
+  // 订阅相关字段
+  planExpiresAt?: string | null;
+  isPaid?: boolean;
+  // 赠送额度记录
+  bonusStaff?: number;
+  bonusInfluencer?: number;
+  bonusDays?: number;
 }
 
 export interface CreatePlanConfigInput {
@@ -554,6 +570,7 @@ export function getStatusText(status: BrandStatus): string {
 export function getPlanTypeText(planType: PlanType): string {
   const texts: Record<PlanType, string> = {
     FREE: '免费版',
+    PERSONAL: '个人版',
     PROFESSIONAL: '专业版',
     ENTERPRISE: '企业版',
   };
@@ -566,6 +583,7 @@ export function getPlanTypeText(planType: PlanType): string {
 export function getPlanTypeColor(planType: PlanType): string {
   const colors: Record<PlanType, string> = {
     FREE: 'default',
+    PERSONAL: 'cyan',
     PROFESSIONAL: 'blue',
     ENTERPRISE: 'gold',
   };
@@ -613,5 +631,3 @@ export async function assignUserToBrand(userId: string, brandId: string): Promis
     throw new Error(response.error?.message || '划归失败');
   }
 }
-
-

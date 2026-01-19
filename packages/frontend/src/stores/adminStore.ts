@@ -13,6 +13,7 @@ export interface AdminUser {
     email: string;
     name: string;
     role: 'PLATFORM_ADMIN';
+    isIndependent?: boolean; // 为类型兼容性添加，对管理员始终为 false
 }
 
 interface AdminState {

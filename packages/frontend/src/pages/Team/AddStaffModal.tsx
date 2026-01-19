@@ -19,7 +19,8 @@ const AddStaffModal = ({ visible, onCancel, onSuccess }: AddStaffModalProps) => 
 
       const data: CreateStaffInput = {
         name: values.name,
-        email: values.email,
+        email: values.email || undefined,
+        phone: values.phone,
         password: values.password,
       };
 
@@ -73,11 +74,21 @@ const AddStaffModal = ({ visible, onCancel, onSuccess }: AddStaffModalProps) => 
           label="邮箱"
           name="email"
           rules={[
-            { required: true, message: '请输入邮箱' },
             { type: 'email', message: '请输入有效的邮箱地址' },
           ]}
         >
-          <Input placeholder="请输入邮箱地址（用于登录）" />
+          <Input placeholder="可选，用于邮箱登录" />
+        </Form.Item>
+
+        <Form.Item
+          label="手机号"
+          name="phone"
+          rules={[
+            { required: true, message: '请输入手机号' },
+            { pattern: /^1\d{10}$/, message: '请输入有效的11位手机号' },
+          ]}
+        >
+          <Input placeholder="请输入手机号（用于登录）" maxLength={11} />
         </Form.Item>
 
         <Form.Item

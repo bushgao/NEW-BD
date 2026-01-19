@@ -1,13 +1,16 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { body, param, validationResult } from 'express-validator';
 import * as sampleService from '../services/sample.service';
-import { authenticate, requireFactoryMember, requireRoles } from '../middleware/auth.middleware';
+import { authenticate, requireFactoryMember, requireRoles, enrichUserData } from '../middleware/auth.middleware';
 import { checkPermission } from '../middleware/permission.middleware';
 import { createBadRequestError } from '../middleware/errorHandler';
 import type { ApiResponse } from '@ics/shared';
 import type { ReceivedStatus, OnboardStatus } from '@prisma/client';
 
 const router = Router();
+
+// Apply enrichUserData middleware to all routes to ensure brandId is available
+router.use(enrichUserData);
 
 // 验证中间件
 const handleValidationErrors = (req: Request, _res: Response, next: NextFunction) => {

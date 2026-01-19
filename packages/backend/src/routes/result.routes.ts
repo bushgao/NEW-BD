@@ -1,12 +1,15 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { body, param, validationResult } from 'express-validator';
 import * as resultService from '../services/result.service';
-import { authenticate, requireFactoryMember, requireRoles } from '../middleware/auth.middleware';
+import { authenticate, requireFactoryMember, requireRoles, enrichUserData } from '../middleware/auth.middleware';
 import { createBadRequestError } from '../middleware/errorHandler';
 import type { ApiResponse } from '@ics/shared';
 import type { ContentType, ProfitStatus } from '@prisma/client';
 
 const router = Router();
+
+// Apply enrichUserData middleware to all routes to ensure brandId is available
+router.use(enrichUserData);
 
 // 验证中间件
 const handleValidationErrors = (req: Request, _res: Response, next: NextFunction) => {
@@ -113,13 +116,13 @@ router.get(
 /**
  * @route GET /api/results/stats
  * @desc 获取合作结果统计概览
- * @access Private (工厂老板)
+ * @access Private (工厂成员)
  */
 router.get(
   '/stats',
   authenticate,
   requireFactoryMember,
-  requireRoles('BRAND'),
+  // 商务人员也需要查看统计数据
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
       const brandId = req.user!.brandId;
@@ -150,13 +153,13 @@ router.get(
 /**
  * @route GET /api/results/report
  * @desc 获取 ROI 报表
- * @access Private (工厂老板)
+ * @access Private (工厂成员)
  */
 router.get(
   '/report',
   authenticate,
   requireFactoryMember,
-  requireRoles('BRAND'),
+  // 独立商务也需要查看 ROI 报表
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
       const brandId = req.user!.brandId;

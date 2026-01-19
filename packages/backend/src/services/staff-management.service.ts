@@ -20,6 +20,7 @@ export interface StaffMember {
   id: string;
   name: string;
   email: string;
+  phone?: string | null;  // 手机号
   status: 'ACTIVE' | 'DISABLED';
   createdAt: Date;
 }
@@ -37,6 +38,7 @@ export interface StaffDetail extends StaffMember {
 export interface CreateStaffInput {
   name: string;
   email: string;
+  phone?: string;  // 手机号
   password: string;
 }
 
@@ -175,6 +177,7 @@ export async function listStaff(
         id: true,
         name: true,
         email: true,
+        phone: true,
         status: true,
         createdAt: true,
       },
@@ -195,6 +198,7 @@ export async function listStaff(
     id: user.id,
     name: user.name,
     email: user.email,
+    phone: user.phone,
     status: user.status,
     createdAt: user.createdAt,
   }));
@@ -299,7 +303,7 @@ export async function createStaff(
   brandId: string,
   data: CreateStaffInput
 ): Promise<StaffMember> {
-  const { name, email, password } = data;
+  const { name, email, phone, password } = data;
 
   // 验证工厂存在
   const factory = await prisma.brand.findUnique({
@@ -310,34 +314,58 @@ export async function createStaff(
     throw createNotFoundError('工厂不存在');
   }
 
+  // 必须提供手机号（作为主要登录方式）
+  if (!phone) {
+    throw createBadRequestError('请提供手机号');
+  }
+
   // 检查配额
   await validateQuota(brandId, 'staff');
 
-  // 检查邮箱是否已存在
-  const existingUser = await prisma.user.findUnique({
-    where: { email },
+  // 检查手机号是否已存在
+  const existingPhone = await prisma.user.findFirst({
+    where: { phone },
   });
 
-  if (existingUser) {
-    throw createBadRequestError('该邮箱已被注册');
+  if (existingPhone) {
+    throw createBadRequestError('该手机号已被注册');
+  }
+
+  // 检查邮箱是否已存在（如果提供了邮箱）
+  if (email) {
+    const existingEmail = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingEmail) {
+      throw createBadRequestError('该邮箱已被注册');
+    }
   }
 
   // 加密密码
   const passwordHash = await bcrypt.hash(password, 12);
 
   // 创建商务账号
+  // 如果没有邮箱，使用手机号生成虚拟邮箱
+  const userEmail = email || `${phone}@phone.local`;
+
   const user = await prisma.user.create({
     data: {
-      email,
+      email: userEmail,
+      phone,
       passwordHash,
       name,
       role: 'BUSINESS',
       brandId,
+      isIndependent: false,
+      // 设置默认权限（基础商务）
+      permissions: PERMISSION_TEMPLATES.basic.permissions as any,
     },
     select: {
       id: true,
       name: true,
       email: true,
+      phone: true,
       createdAt: true,
     },
   });
@@ -346,6 +374,7 @@ export async function createStaff(
     id: user.id,
     name: user.name,
     email: user.email,
+    phone: user.phone,
     status: 'ACTIVE',
     createdAt: user.createdAt,
   };
@@ -374,7 +403,7 @@ export async function updateStaffStatus(
   // 更新状态
   const updatedUser = await prisma.user.update({
     where: { id: staffId },
-    data: { 
+    data: {
       status,
       disabledAt: status === 'DISABLED' ? new Date() : null,
     },

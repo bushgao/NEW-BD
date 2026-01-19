@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Form, Input, Button, Typography, message } from 'antd';
-import { LockOutlined, PhoneOutlined, AppstoreOutlined, ArrowRightOutlined } from '@ant-design/icons';
+import { LockOutlined, PhoneOutlined, ArrowRightOutlined, CheckCircleFilled } from '@ant-design/icons';
+import { Layers } from 'lucide-react';
 import { useAuthStore, getDefaultPathForRole } from '../../stores/authStore';
 import * as authService from '../../services/auth.service';
 
@@ -21,19 +22,15 @@ const LoginPage = () => {
   const handleSubmit = async (values: LoginFormValues) => {
     setLoading(true);
     try {
-      // 手机号转换为邮箱格式（后端兼容）
-      const response = await authService.login({
-        email: `${values.phone}@phone.local`,
+      const response = await authService.loginByPhone({
+        phone: values.phone,
         password: values.password,
       });
 
       if (response.success && response.data) {
         const { user, tokens } = response.data;
-
         setAuth(user, tokens);
         message.success('登录成功');
-
-        // Redirect based on role
         const defaultPath = getDefaultPathForRole(user.role);
         navigate(defaultPath, { replace: true });
       } else {
@@ -46,113 +43,92 @@ const LoginPage = () => {
     }
   };
 
+  const features = [
+    '样品回收率提升 68%',
+    '实时冲突检测，避免内部撞单',
+    '全链路 ROI 追踪分析',
+  ];
+
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      position: 'relative',
-      overflow: 'hidden',
-      background: '#0f172a', // Deep slate background
-      padding: '24px',
-    }}>
-      {/* Animated Aurora Background Blobs */}
-      <div style={{
-        position: 'absolute',
-        top: '-10%',
-        left: '10%',
-        width: '40vw',
-        height: '40vw',
-        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%)',
-        borderRadius: '50%',
-        filter: 'blur(80px)',
-        animation: 'float-slow 20s ease-in-out infinite',
-        zIndex: 0,
-      }} />
-      <div style={{
-        position: 'absolute',
-        bottom: '10%',
-        right: '10%',
-        width: '35vw',
-        height: '35vw',
-        background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%)',
-        borderRadius: '50%',
-        filter: 'blur(80px)',
-        animation: 'float-slow-reverse 25s ease-in-out infinite',
-        zIndex: 0,
-      }} />
-
-      {/* Noise Texture Overlay */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        opacity: 0.03,
-        pointerEvents: 'none',
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-        zIndex: 1,
-      }} />
-
-      <div style={{
-        position: 'relative',
-        zIndex: 10,
-        width: '100%',
-        maxWidth: '440px',
-      }}>
-        {/* Brand/Logo Section */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '12px',
-            padding: '8px 16px',
-            background: 'rgba(255, 255, 255, 0.03)',
-            borderRadius: '20px',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
-            backdropFilter: 'blur(10px)',
-          }}>
-            <AppstoreOutlined style={{ fontSize: '24px', color: '#6366f1' }} />
-            <span style={{
-              fontSize: '24px',
-              fontWeight: 800,
-              color: '#ffffff',
-              letterSpacing: '-0.02em',
-            }}>
-              Zilo
-            </span>
-          </div>
+    <div className="min-h-screen flex">
+      {/* Left Side - Visual/Branding */}
+      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-purple-300 rounded-full blur-3xl" />
         </div>
 
-        {/* Main Login Card */}
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.03)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          borderRadius: '32px',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-          padding: '48px 40px',
-          overflow: 'hidden',
-          position: 'relative',
-        }}>
-          {/* Subtle Glow Header */}
-          <div style={{ marginBottom: '32px', textAlign: 'center' }}>
-            <Title level={2} style={{
-              margin: 0,
-              fontSize: '28px',
-              fontWeight: 800,
-              color: '#ffffff',
-              letterSpacing: '-0.01em',
-            }}>
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-center px-16 text-white">
+          {/* Logo */}
+          <div className="flex items-center gap-3 mb-12">
+            <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur-sm border border-white/20">
+              <Layers className="w-7 h-7 text-white" />
+            </div>
+            <span className="text-3xl font-bold tracking-tight">Zilo</span>
+          </div>
+
+          {/* Main Headline */}
+          <h1 className="text-4xl lg:text-5xl font-black leading-tight mb-6">
+            让每一笔投入<br />
+            <span className="text-indigo-200">都透明可控</span>
+          </h1>
+
+          <p className="text-lg text-indigo-100 mb-10 max-w-md leading-relaxed">
+            专为现代 BD 团队打造的达人管理系统。从建联到复盘，全流程数据化、透明化。
+          </p>
+
+          {/* Feature List */}
+          <div className="space-y-4">
+            {features.map((feature, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <CheckCircleFilled className="text-indigo-300 text-lg" />
+                <span className="text-indigo-100 font-medium">{feature}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Testimonial/Stats */}
+          <div className="mt-16 pt-8 border-t border-white/10">
+            <div className="flex items-center gap-4">
+              <div className="flex -space-x-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <img
+                    key={i}
+                    src={`/avatars/avatar${i}.png`}
+                    alt=""
+                    className="w-10 h-10 rounded-full border-2 border-indigo-600 object-cover"
+                  />
+                ))}
+              </div>
+              <div>
+                <div className="text-white font-bold text-lg">15,000+</div>
+                <div className="text-indigo-200 text-sm">商务人员正在使用</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side - Login Form */}
+      <div className="flex-1 flex items-center justify-center bg-white px-6 py-12">
+        <div className="w-full max-w-md">
+          {/* Mobile Logo */}
+          <div className="lg:hidden flex items-center gap-2 mb-10 justify-center">
+            <div className="p-2 bg-indigo-50 rounded-xl border border-indigo-100">
+              <Layers className="w-6 h-6 text-indigo-600" />
+            </div>
+            <span className="text-2xl font-bold text-slate-900">Zilo</span>
+          </div>
+
+          {/* Header */}
+          <div className="mb-8">
+            <Title level={2} style={{ margin: 0, fontSize: '28px', fontWeight: 800, color: '#0f172a' }}>
               欢迎回来
             </Title>
-            <Text style={{
-              fontSize: '15px',
-              color: 'rgba(255, 255, 255, 0.5)',
-              marginTop: '8px',
-              display: 'block',
-            }}>
-              让合作更透明，让 ROI 更真实
+            <Text style={{ fontSize: '15px', color: '#64748b', marginTop: '8px', display: 'block' }}>
+              登录您的账户继续管理达人合作
             </Text>
           </div>
 
@@ -166,6 +142,7 @@ const LoginPage = () => {
           >
             <Form.Item
               name="phone"
+              label={<span className="text-slate-700 font-medium">手机号</span>}
               style={{ marginBottom: '20px' }}
               rules={[
                 { required: true, message: '请输入手机号' },
@@ -173,56 +150,35 @@ const LoginPage = () => {
               ]}
             >
               <Input
-                prefix={<PhoneOutlined style={{ color: 'rgba(255, 255, 255, 0.3)', marginRight: '8px' }} />}
-                placeholder="手机号"
+                prefix={<PhoneOutlined className="text-slate-400 mr-2" />}
+                placeholder="请输入手机号"
                 size="large"
-                style={{
-                  height: '52px',
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '16px',
-                  color: '#ffffff',
-                  fontSize: '15px',
-                }}
+                className="h-12 rounded-xl border-slate-200 hover:border-indigo-400 focus:border-indigo-500"
               />
             </Form.Item>
 
             <Form.Item
               name="password"
+              label={<span className="text-slate-700 font-medium">密码</span>}
               style={{ marginBottom: '28px' }}
               rules={[{ required: true, message: '请输入密码' }]}
             >
               <Input.Password
-                prefix={<LockOutlined style={{ color: 'rgba(255, 255, 255, 0.3)', marginRight: '8px' }} />}
-                placeholder="登录密码"
+                prefix={<LockOutlined className="text-slate-400 mr-2" />}
+                placeholder="请输入登录密码"
                 size="large"
-                style={{
-                  height: '52px',
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '16px',
-                  color: '#ffffff',
-                  fontSize: '15px',
-                }}
+                className="h-12 rounded-xl border-slate-200 hover:border-indigo-400 focus:border-indigo-500"
               />
             </Form.Item>
 
-            <Form.Item style={{ marginBottom: '24px' }}>
+            <Form.Item style={{ marginBottom: '20px' }}>
               <Button
                 type="primary"
                 htmlType="submit"
                 loading={loading}
                 block
                 size="large"
-                style={{
-                  height: '54px',
-                  borderRadius: '16px',
-                  fontSize: '16px',
-                  fontWeight: 700,
-                  background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-                  border: 'none',
-                  boxShadow: '0 10px 20px -5px rgba(99, 102, 241, 0.4)',
-                }}
+                className="h-12 rounded-xl text-base font-bold bg-indigo-600 hover:bg-indigo-700 border-none shadow-lg shadow-indigo-200"
                 icon={<ArrowRightOutlined />}
               >
                 立即登录
@@ -230,107 +186,48 @@ const LoginPage = () => {
             </Form.Item>
           </Form>
 
-          {/* Social/Other Actions */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ display: 'flex', gap: '12px' }}>
+          {/* Secondary Actions */}
+          <div className="flex gap-3 mb-4">
+            <Button
+              block
+              size="large"
+              onClick={() => {
+                loginAsDemo('BRAND');
+                navigate('/app/dashboard');
+                message.success('已进入演示模式');
+              }}
+              className="h-11 rounded-xl text-sm font-semibold border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-600"
+            >
+              演示模式
+            </Button>
+            <Link to="/register" className="flex-1">
               <Button
                 block
                 size="large"
-                onClick={() => {
-                  loginAsDemo('BRAND');
-                  navigate('/app/dashboard');
-                  message.success('已进入演示模式');
-                }}
-                style={{
-                  flex: 1,
-                  height: '46px',
-                  borderRadius: '14px',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  color: 'rgba(255, 255, 255, 0.7)',
-                }}
+                className="h-11 rounded-xl text-sm font-semibold border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-600"
               >
-                演示模式
-              </Button>
-              <Link to="/register" style={{ flex: 1 }}>
-                <Button
-                  block
-                  size="large"
-                  style={{
-                    height: '46px',
-                    borderRadius: '14px',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    color: 'rgba(255, 255, 255, 0.7)',
-                  }}
-                >
-                  注册账号
-                </Button>
-              </Link>
-            </div>
-
-            <Link to="/influencer-portal/login">
-              <Button
-                block
-                size="large"
-                type="text"
-                style={{
-                  height: '40px',
-                  fontSize: '14px',
-                  color: '#a855f7',
-                  fontWeight: 600,
-                }}
-              >
-                达人登录入口
+                注册账号
               </Button>
             </Link>
           </div>
-        </div>
 
-        {/* Footer info */}
-        <div style={{
-          marginTop: '32px',
-          textAlign: 'center',
-          color: 'rgba(255, 255, 255, 0.3)',
-          fontSize: '12px',
-        }}>
-          登录即代表同意 Zilo 服务协议与隐私政策
+          <Link to="/influencer-portal/login">
+            <Button
+              block
+              size="large"
+              type="text"
+              className="h-10 text-sm text-indigo-600 font-semibold hover:bg-indigo-50"
+            >
+              达人登录入口 →
+            </Button>
+          </Link>
+
+          {/* Footer */}
+          <div className="mt-10 pt-6 border-t border-slate-100 text-center text-slate-400 text-xs">
+            登录即代表同意 Zilo 服务协议与隐私政策
+          </div>
         </div>
       </div>
-
-      {/* Global CSS for Animations and Overrides */}
-      <style>{`
-        @keyframes float-slow {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(5%, 5%) scale(1.1); }
-        }
-        @keyframes float-slow-reverse {
-          0%, 100% { transform: translate(0, 0) scale(1.1); }
-          50% { transform: translate(-5%, -5%) scale(1); }
-        }
-        .ant-input-affix-wrapper, .ant-input-password {
-          transition: all 0.3s ease !important;
-        }
-        .ant-input-affix-wrapper:hover, .ant-input-affix-wrapper-focused {
-          border-color: rgba(99, 102, 241, 0.5) !important;
-          background: rgba(255, 255, 255, 0.05) !important;
-          box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
-        }
-        .ant-input {
-          background: transparent !important;
-          color: #ffffff !important;
-        }
-        .ant-input::placeholder {
-          color: rgba(255, 255, 255, 0.2) !important;
-        }
-        .ant-btn-text:hover {
-          background: rgba(168, 85, 247, 0.1) !important;
-        }
-      `}</style>
     </div>
   );
 };

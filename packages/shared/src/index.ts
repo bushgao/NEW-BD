@@ -35,11 +35,12 @@ export type InfluencerSourceType = 'PLATFORM' | 'FACTORY' | 'STAFF';
 // Verification status
 export type VerificationStatus = 'UNVERIFIED' | 'VERIFIED' | 'REJECTED';
 
-// Factory status
+// Factory status (also used as BrandStatus)
 export type FactoryStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+export type BrandStatus = FactoryStatus;
 
 // Plan types
-export type PlanType = 'FREE' | 'PROFESSIONAL' | 'ENTERPRISE';
+export type PlanType = 'FREE' | 'PERSONAL' | 'PROFESSIONAL' | 'ENTERPRISE';
 
 // Pagination
 export interface Pagination {

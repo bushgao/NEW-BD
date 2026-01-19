@@ -11,6 +11,7 @@ import notificationRoutes from './notification.routes';
 import staffManagementRoutes from './staff-management.routes';
 import userRoutes from './user.routes';
 import globalInfluencerRoutes from './global-influencer.routes';
+import invitationRoutes from './invitation.routes';
 
 // 达人端口路由（独立模块）
 import influencerAuthRoutes from './influencer-auth.routes';
@@ -65,6 +66,13 @@ router.use('/users', userRoutes);
 
 // Global influencer routes (global influencer pool)
 router.use('/global-influencers', globalInfluencerRoutes);
+
+// Invitation routes (brand invite staff)
+router.use('/invitations', invitationRoutes);
+
+// Subscription routes (subscription management)
+import subscriptionRoutes from './subscription.routes';
+router.use('/subscription', subscriptionRoutes);
 
 // ============================================
 // 达人端口路由（独立模块，与商务端完全隔离）

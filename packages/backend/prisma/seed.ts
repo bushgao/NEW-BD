@@ -12,28 +12,37 @@ async function main() {
       planType: PlanType.FREE,
       name: '免费版',
       staffLimit: 3,
-      influencerLimit: 100,
-      dataRetentionDays: 90,
+      influencerLimit: 500,
+      dataRetentionDays: 30, // 30天试用期，到期锁定
       price: 0,
-      features: ['基础达人管理', '基础样品管理', '基础合作流程'],
+      features: ['基础达人管理', '基础样品管理', '基础合作流程', '30天免费试用'],
+    },
+    {
+      planType: PlanType.PERSONAL,
+      name: '个人版',
+      staffLimit: 1,
+      influencerLimit: 500,
+      dataRetentionDays: 365, // 年付，数据保留一年
+      price: 59900, // 599元/年
+      features: ['全部基础功能', '个人达人库', '基础报表', '1人商务'],
     },
     {
       planType: PlanType.PROFESSIONAL,
       name: '专业版',
-      staffLimit: 10,
-      influencerLimit: 500,
-      dataRetentionDays: 365,
-      price: 29900, // 299元/月
-      features: ['全部基础功能', '高级报表', '数据导出', '优先支持'],
+      staffLimit: 20,
+      influencerLimit: 2000,
+      dataRetentionDays: 365, // 年付，数据保留一年
+      price: 199900, // 1999元/年
+      features: ['全部基础功能', '高级报表', '数据导出', '优先支持', '20人商务团队'],
     },
     {
       planType: PlanType.ENTERPRISE,
       name: '企业版',
       staffLimit: 50,
-      influencerLimit: 5000,
-      dataRetentionDays: 730,
-      price: 99900, // 999元/月
-      features: ['全部专业版功能', '无限数据保留', 'API接入', '专属客服'],
+      influencerLimit: 10000,
+      dataRetentionDays: 365, // 年付，数据保留一年
+      price: 299900, // 2999元/年
+      features: ['全部专业版功能', 'API接入', '专属客服', '50人商务团队', '无限达人'],
     },
   ];
 
@@ -107,9 +116,44 @@ async function main() {
       name: '李商务',
       role: UserRole.BUSINESS,
       brandId: brand.id,
+      isIndependent: false,
     },
   });
   console.log('✅ Business staff created:', staff.email);
+
+  // Create independent business user (for testing targeted invitations)
+  const independentPwd = await bcrypt.hash('123456', 10);
+  const independentUser = await prisma.user.upsert({
+    where: { email: '13800000001@phone.local' },
+    update: {},
+    create: {
+      email: '13800000001@phone.local',
+      passwordHash: independentPwd,
+      name: 'Independent Biz',
+      phone: '13800000001',
+      role: UserRole.BUSINESS,
+      isIndependent: true,
+    },
+  });
+
+  // Create personal brand for independent user
+  const personalBrand = await prisma.brand.upsert({
+    where: { ownerId: independentUser.id },
+    update: {},
+    create: {
+      name: '个人工作区 - Independent Biz',
+      ownerId: independentUser.id,
+      status: 'APPROVED',
+      planType: PlanType.FREE,
+      staffLimit: 1,
+      influencerLimit: 50,
+    },
+  });
+  await prisma.user.update({
+    where: { id: independentUser.id },
+    data: { brandId: personalBrand.id },
+  });
+  console.log('✅ Independent business created:', independentUser.phone);
 
   // Create demo samples
   const samples = [

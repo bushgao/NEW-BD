@@ -16,6 +16,15 @@ export interface FactoryWithOwner {
   planType: PlanType;
   staffLimit: number;
   influencerLimit: number;
+  // 订阅相关字段
+  planStartedAt?: Date;
+  planExpiresAt?: Date;
+  isLocked?: boolean;
+  isPaid?: boolean;
+  // 赠送额度记录
+  bonusStaff?: number;
+  bonusInfluencer?: number;
+  bonusDays?: number;
   createdAt: Date;
   updatedAt: Date;
   owner: {
@@ -29,6 +38,7 @@ export interface FactoryWithOwner {
     collaborations: number;
   };
 }
+
 
 export interface PlanConfigData {
   id: string;
@@ -65,7 +75,15 @@ export interface UpdateFactoryInput {
   planType?: PlanType;
   staffLimit?: number;
   influencerLimit?: number;
+  // 订阅相关字段
+  planExpiresAt?: Date | null;
+  isPaid?: boolean;
+  // 赠送额度记录
+  bonusStaff?: number;
+  bonusInfluencer?: number;
+  bonusDays?: number;
 }
+
 
 export interface CreatePlanConfigInput {
   planType: PlanType;
@@ -551,6 +569,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     totalInfluencers,
     independentBusinessUsers,
     freeFactories,
+    personalFactories,
     professionalFactories,
     enterpriseFactories,
   ] = await Promise.all([
@@ -562,6 +581,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     prisma.influencer.count(),
     prisma.user.count({ where: { role: 'BUSINESS', isIndependent: true, brandId: null } }),
     prisma.brand.count({ where: { planType: 'FREE' } }),
+    prisma.brand.count({ where: { planType: 'PERSONAL' } }),
     prisma.brand.count({ where: { planType: 'PROFESSIONAL' } }),
     prisma.brand.count({ where: { planType: 'ENTERPRISE' } }),
   ]);
@@ -576,6 +596,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     independentBusinessUsers,
     factoriesByPlan: {
       FREE: freeFactories,
+      PERSONAL: personalFactories,
       PROFESSIONAL: professionalFactories,
       ENTERPRISE: enterpriseFactories,
     },
@@ -1372,6 +1393,7 @@ export interface UserListItem {
   id: string;
   name: string;
   email: string;
+  phone?: string | null;  // 手机号
   role: string;
   brandId?: string;
   factoryName?: string;
@@ -1439,6 +1461,7 @@ export async function listAllUsers(
     id: user.id,
     name: user.name,
     email: user.email,
+    phone: user.phone,
     role: user.role,
     brandId: user.brandId || undefined,
     factoryName: user.brand?.name || undefined,
@@ -1603,7 +1626,7 @@ export async function getIndependentBusinessUsers(
   const where: any = {
     role: 'BUSINESS',
     isIndependent: true,
-    brandId: null,
+    // Note: Independent users have a personal workspace brand, so we don't check brandId: null
   };
 
   if (keyword) {
@@ -1625,6 +1648,17 @@ export async function getIndependentBusinessUsers(
         isActive: true,
         createdAt: true,
         lastLoginAt: true,
+        brandId: true,
+        brand: {
+          select: {
+            id: true,
+            name: true,
+            planType: true,
+            planExpiresAt: true,
+            isPaid: true,
+            isLocked: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       skip,
@@ -1756,4 +1790,3 @@ export async function assignUserToBrand(
     },
   });
 }
-

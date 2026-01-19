@@ -40,8 +40,13 @@ export function checkPermission(permission: string) {
         // 从数据库获取最新权限（确保权限修改立即生效）
         const userWithPermissions = await prisma.user.findUnique({
           where: { id: user.userId },
-          select: { permissions: true },
+          select: { permissions: true, isIndependent: true },
         });
+
+        // 独立商务拥有自己工作区的所有权限（相当于品牌老板）
+        if (userWithPermissions?.isIndependent) {
+          return next();
+        }
 
         const permissions = userWithPermissions?.permissions as StaffPermissions | null;
 
@@ -90,20 +95,25 @@ export function filterByPermission(permission: string) {
         // 从数据库获取最新权限
         const userWithPermissions = await prisma.user.findUnique({
           where: { id: user.userId },
-          select: { permissions: true },
+          select: { permissions: true, isIndependent: true },
         });
+
+        // 独立商务可以查看自己工作区的所有数据
+        if (userWithPermissions?.isIndependent) {
+          return next();
+        }
 
         const permissions = userWithPermissions?.permissions as StaffPermissions | null;
 
         // 如果没有查看其他商务数据的权限，只返回自己的数据
-        if (permission === 'dataVisibility.viewOthersInfluencers' && 
-            !hasPermission(permissions, permission)) {
+        if (permission === 'dataVisibility.viewOthersInfluencers' &&
+          !hasPermission(permissions, permission)) {
           // 添加 createdBy 过滤条件
           req.query.createdBy = user.userId;
         }
 
-        if (permission === 'dataVisibility.viewOthersCollaborations' && 
-            !hasPermission(permissions, permission)) {
+        if (permission === 'dataVisibility.viewOthersCollaborations' &&
+          !hasPermission(permissions, permission)) {
           // 添加 businessStaffId 过滤条件
           req.query.businessStaffId = user.userId;
         }

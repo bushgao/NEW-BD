@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, Avatar, Dropdown, Typography, Button, message } from 'antd';
 import {
@@ -17,17 +17,26 @@ import {
   ShopOutlined,
   CalculatorOutlined,
   CloudUploadOutlined,
+  ChromeOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useAuthStore } from '../stores/authStore';
 import { useAdminStore } from '../stores/adminStore';
 import NotificationBadge from '../pages/Notifications/NotificationBadge';
+import JoinBrandModal from '../components/JoinBrandModal';
+import * as invitationService from '../services/invitation.service';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
 
 // Menu items based on role
-const getMenuItems = (role: string): MenuProps['items'] => {
+// isIndependent: true if the user is BUSINESS role without brandId
+// permissions: staff permissions for conditional menu display
+const getMenuItems = (
+  role: string,
+  isIndependent: boolean = false,
+  permissions?: any
+): MenuProps['items'] => {
   const commonItems = [
     {
       key: '/app/dashboard',
@@ -67,6 +76,11 @@ const getMenuItems = (role: string): MenuProps['items'] => {
       icon: <CalculatorOutlined />,
       label: 'ROI 测算',
     },
+    {
+      key: '/app/plugin',
+      icon: <ChromeOutlined />,
+      label: '插件使用',
+    },
   ];
 
   const ownerItems = [
@@ -84,6 +98,11 @@ const getMenuItems = (role: string): MenuProps['items'] => {
       key: '/app/team',
       icon: <TeamOutlined />,
       label: '团队管理',
+    },
+    {
+      key: '/app/plugin',
+      icon: <ChromeOutlined />,
+      label: '插件使用',
     },
   ];
 
@@ -123,7 +142,51 @@ const getMenuItems = (role: string): MenuProps['items'] => {
       icon: <UserOutlined />,
       label: '用户管理',
     },
+    {
+      key: '/app/admin/plugin',
+      icon: <ChromeOutlined />,
+      label: '插件使用',
+    },
   ];
+
+  // 独立商务额外显示的菜单项（只显示样品管理，数据报表对单人无意义）
+  const independentItems = [
+    {
+      key: '/app/samples',
+      icon: <GiftOutlined />,
+      label: '样品管理',
+    },
+    {
+      key: '/app/plugin',
+      icon: <ChromeOutlined />,
+      label: '插件使用',
+    },
+  ];
+
+  // 根据权限动态生成商务可见的额外菜单
+  const getPermissionBasedItems = () => {
+    const items: MenuProps['items'] = [];
+
+    // 如果有样品管理权限，显示样品管理
+    if (permissions?.operations?.manageSamples) {
+      items.push({
+        key: '/app/samples',
+        icon: <GiftOutlined />,
+        label: '样品管理',
+      });
+    }
+
+    // 如果有查看成本数据权限，显示数据报表
+    if (permissions?.advanced?.viewCostData) {
+      items.push({
+        key: '/app/reports',
+        icon: <BarChartOutlined />,
+        label: '数据报表',
+      });
+    }
+
+    return items;
+  };
 
   let result;
   switch (role) {
@@ -134,19 +197,29 @@ const getMenuItems = (role: string): MenuProps['items'] => {
       result = [...commonItems, ...businessItems, ...ownerItems];
       break;
     case 'BUSINESS':
-      result = [...commonItems, ...businessItems];
+      // 独立商务显示：基础菜单 + 业务菜单 + 样品管理
+      // 普通商务：基础菜单 + 业务菜单 + 根据权限动态显示
+      if (isIndependent) {
+        result = [...commonItems, ...businessItems, ...independentItems];
+      } else {
+        // 普通商务根据权限动态显示额外菜单
+        const permissionItems = getPermissionBasedItems();
+        result = [...commonItems, ...businessItems, ...permissionItems];
+      }
       break;
     default:
       result = commonItems;
   }
 
-  console.log('🔍 getMenuItems role:', role, 'returning:', result);
+  console.log('🔍 getMenuItems role:', role, 'isIndependent:', isIndependent, 'permissions:', permissions, 'returning:', result);
   return result;
 };
 
 const MainLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [pendingInviteCount, setPendingInviteCount] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -160,6 +233,15 @@ const MainLayout = () => {
   const token = isAdminPath ? adminStore.token : authStore.token;
   const logout = isAdminPath ? adminStore.logout : authStore.logout;
   const loginPath = isAdminPath ? '/admin/login' : '/login';
+
+  // Check for pending invitations (independent business only)
+  useEffect(() => {
+    if (user?.role === 'BUSINESS' && user?.isIndependent) {
+      invitationService.getReceivedInvitations()
+        .then(invites => setPendingInviteCount(invites.length))
+        .catch(() => setPendingInviteCount(0));
+    }
+  }, [user?.role, user?.isIndependent]);
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
     navigate(key);
@@ -243,7 +325,7 @@ const MainLayout = () => {
         <Menu
           mode="inline"
           selectedKeys={[location.pathname]}
-          items={getMenuItems(user?.role || '')}
+          items={getMenuItems(user?.role || '', user?.isIndependent || false, (user as any)?.permissions)}
           onClick={handleMenuClick}
           className="bg-transparent border-r-0 px-2 space-y-1"
         />
@@ -268,6 +350,17 @@ const MainLayout = () => {
             >
               同步插件
             </Button>
+            {/* Join Brand button for independent business */}
+            {user?.role === 'BUSINESS' && user?.isIndependent && (
+              <Button
+                type="primary"
+                icon={<TeamOutlined />}
+                onClick={() => setShowJoinModal(true)}
+                className="rounded-full"
+              >
+                加入品牌 {pendingInviteCount > 0 && `(${pendingInviteCount})`}
+              </Button>
+            )}
             <div className="h-8 w-[1px] bg-neutral-200" />
             <NotificationBadge />
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
@@ -285,6 +378,16 @@ const MainLayout = () => {
           <Outlet />
         </Content>
       </Layout>
+
+      {/* Join Brand Modal */}
+      <JoinBrandModal
+        visible={showJoinModal}
+        onCancel={() => setShowJoinModal(false)}
+        onSuccess={() => {
+          // Refresh page to update user state
+          window.location.reload();
+        }}
+      />
     </Layout>
   );
 };

@@ -32,6 +32,7 @@ enum BrandStatus {
 
 enum PlanType {
   FREE
+  PERSONAL      // 个人版（独立商务）
   PROFESSIONAL
   ENTERPRISE
 }
@@ -97,6 +98,12 @@ enum VerificationStatus {
   REJECTED
 }
 
+enum InvitationStatus {
+  PENDING   // 待使用
+  USED      // 已使用
+  REVOKED   // 已撤销
+}
+
 
 // Models
 model User {
@@ -138,6 +145,9 @@ model User {
   notifications   Notification[]
   createdInfluencers  Influencer[]  @relation("InfluencerCreator")
   verifiedInfluencers Influencer[]  @relation("InfluencerVerifier")
+  sentInvitations     Invitation[]  @relation("InvitationInviter")
+  usedInvitation      Invitation?   @relation("InvitationUsedBy")
+  receivedInvitations Invitation[]  @relation("InvitationTarget")  // 收到的定向邀请
 
   @@index([email])
   @@index([brandId])
@@ -148,12 +158,24 @@ model Brand {
   id              String        @id @default(uuid())
   name            String
   ownerId         String        @unique
+  contactPhone    String?       // 品牌联系电话
   status          BrandStatus @default(PENDING)
   planType        PlanType      @default(FREE)
+  planStartedAt   DateTime      @default(now())  // 套餐开始时间
+  planExpiresAt   DateTime?     // 套餐到期时间
+  isLocked        Boolean       @default(false)  // 是否已锁定（到期后）
+  lockedAt        DateTime?     // 锁定时间
+  lastReminderAt  DateTime?     // 上次提醒时间
+  isPaid          Boolean       @default(false)  // 是否已付费
   staffLimit      Int           @default(3)
   influencerLimit Int           @default(100)
+  // 赠送额度记录
+  bonusStaff      Int           @default(0)     // 赠送商务账号数
+  bonusInfluencer Int           @default(0)     // 赠送达人数量
+  bonusDays       Int           @default(0)     // 赠送天数
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+
 
   // Relations
   owner          User            @relation("BrandOwner", fields: [ownerId], references: [id])
@@ -162,9 +184,41 @@ model Brand {
   influencerGroups InfluencerGroup[]
   samples        Sample[]
   collaborations Collaboration[]
+  invitations    Invitation[]
 
   @@index([ownerId])
   @@index([status])
+}
+
+// 品牌邀请商务模型
+model Invitation {
+  id          String           @id @default(uuid())
+  code        String           @unique  // 邀请码（8位随机字符串）
+  brandId     String           // 邀请所属品牌
+  inviterId   String           // 邀请人ID
+  status      InvitationStatus @default(PENDING)
+  expiresAt   DateTime         // 过期时间（默认7天）
+  usedAt      DateTime?        // 使用时间
+  usedById    String?          @unique // 使用者ID（一对一关系）
+  revokedAt   DateTime?        // 撤销时间
+  createdAt   DateTime         @default(now())
+  
+  // 定向邀请相关字段
+  inviteType    String         @default("LINK")  // "LINK"=链接邀请, "TARGETED"=定向邀请
+  targetPhone   String?        // 目标手机号（定向邀请时使用）
+  targetUserId  String?        // 目标用户ID（系统自动匹配）
+
+  // Relations
+  brand       Brand            @relation(fields: [brandId], references: [id])
+  inviter     User             @relation("InvitationInviter", fields: [inviterId], references: [id])
+  usedBy      User?            @relation("InvitationUsedBy", fields: [usedById], references: [id])
+  targetUser  User?            @relation("InvitationTarget", fields: [targetUserId], references: [id])
+
+  @@index([brandId])
+  @@index([inviterId])
+  @@index([code])
+  @@index([status])
+  @@index([targetUserId])
 }
 
 model Influencer {

@@ -196,6 +196,7 @@ const InfluencerSamplesPage = () => {
         background: `linear-gradient(135deg, ${theme.colors.background.secondary} 0%, ${theme.colors.background.tertiary} 100%)`,
         position: 'relative',
         padding: '24px',
+        margin: '-24px',
       }}
     >
       {/* 背景装饰元素 */}

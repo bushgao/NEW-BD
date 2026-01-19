@@ -17,7 +17,7 @@ export default {
           200: '#dae3ff',
           300: '#bdcbff',
           400: '#94a9ff',
-          500: '#6378ff', // Professional Blue
+          500: '#6378ff',
           600: '#4a59dd',
           700: '#3843b0',
           800: '#2d358a',
@@ -38,10 +38,9 @@ export default {
           950: '#030712',
         },
         surface: {
-          bg: '#FFFFFF',    // Pure white background
-          card: '#FFFFFF',  // Pure white card
-          border: '#F1F5F9', // Subtle border
-          // Landing Page 深色主题颜色
+          bg: '#FFFFFF',
+          card: '#FFFFFF',
+          border: '#F1F5F9',
           50: '#f8fafc',
           100: '#f1f5f9',
           200: '#e2e8f0',
@@ -52,13 +51,13 @@ export default {
           700: '#334155',
           800: '#1e293b',
           900: '#0f172a',
-          950: '#0a0a0f',  // 深色主题背景色
+          950: '#0a0a0f',
         }
       },
       borderRadius: {
         'xl': '12px',
         '2xl': '16px',
-        '3xl': '24px', // Modern large roundness
+        '3xl': '24px',
         '4xl': '32px',
       },
       boxShadow: {
@@ -74,6 +73,7 @@ export default {
         'slow-spin': 'spin 20s linear infinite',
         'float': 'float 6s ease-in-out infinite',
         'pulse-glow': 'pulse-glow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
       },
       keyframes: {
         float: {
@@ -83,13 +83,19 @@ export default {
         'pulse-glow': {
           '0%, 100%': { opacity: '0.6', filter: 'brightness(1)' },
           '50%': { opacity: '1', filter: 'brightness(1.5)' },
+        },
+        shake: {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '15%': { transform: 'translateX(-4px) rotate(-2deg)' },
+          '30%': { transform: 'translateX(4px) rotate(2deg)' },
+          '45%': { transform: 'translateX(-2px) rotate(-1deg)' },
+          '60%': { transform: 'translateX(2px) rotate(1deg)' },
         }
-      }
+      },
     },
   },
   plugins: [],
-  // 重要：避免与 Ant Design 样式冲突
   corePlugins: {
     preflight: false,
-  }
+  },
 }

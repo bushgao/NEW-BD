@@ -386,6 +386,8 @@ router.get(
  * @desc 创建合作记录
  * @access Private (商务人员)
  * @permission operations.manageCollaborations - 需要合作管理权限
+ * @note 如果该达人已被其他商务跟进，返回 409 冲突状态码
+ *       前端可传入 forceCreate=true 强制创建（忽略冲突）
  */
 router.post(
   '/',
@@ -402,24 +404,41 @@ router.post(
         throw createBadRequestError('用户未关联工厂');
       }
 
-      const { influencerId, stage, sampleId, quotedPrice, deadline, notes } = req.body;
+      const { influencerId, stage, sampleId, quotedPrice, deadline, notes, forceCreate } = req.body;
 
-      const collaboration = await collaborationService.createCollaboration({
-        influencerId,
-        brandId,
-        businessStaffId,
-        stage,
-        sampleId,
-        quotedPrice: quotedPrice ? Number(quotedPrice) : undefined,
-        deadline: deadline ? new Date(deadline) : undefined,
-        notes,
-      });
+      const collaboration = await collaborationService.createCollaboration(
+        {
+          influencerId,
+          brandId,
+          businessStaffId,
+          stage,
+          sampleId,
+          quotedPrice: quotedPrice ? Number(quotedPrice) : undefined,
+          deadline: deadline ? new Date(deadline) : undefined,
+          notes,
+        },
+        forceCreate === true
+      );
 
       res.status(201).json({
         success: true,
         data: { collaboration },
       });
-    } catch (error) {
+    } catch (error: any) {
+      // 特殊处理冲突错误，返回 409 状态码和冲突详情
+      if (error.name === 'CollaborationConflict') {
+        res.status(409).json({
+          success: false,
+          error: {
+            code: 'COLLABORATION_CONFLICT',
+            message: error.message,
+          },
+          data: {
+            conflicts: error.conflicts, // 返回所有冲突的商务列表
+          },
+        });
+        return;
+      }
       next(error);
     }
   }

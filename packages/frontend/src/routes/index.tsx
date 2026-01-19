@@ -30,9 +30,13 @@ const TeamPage = lazy(() => import('../pages/Team'));
 const RoiCalculatorPage = lazy(() => import('../pages/RoiCalculator'));
 const AdminInfluencerCollection = lazy(() => import('../pages/Admin/InfluencerCollection'));
 const InfluencerSquarePage = lazy(() => import('../pages/InfluencerSquare'));
+const PluginUsagePage = lazy(() => import('../pages/PluginUsage'));
 
 // 平台管理员登录页面
 const AdminLoginPage = lazy(() => import('../pages/AdminLogin'));
+
+// 邀请注册页面
+const InviteRegisterPage = lazy(() => import('../pages/Invite'));
 
 // 达人端口页面
 const InfluencerLoginPage = lazy(() => import('../pages/InfluencerPortal/Login'));
@@ -65,16 +69,42 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 interface RoleRouteProps {
   children: React.ReactNode;
   allowedRoles: UserRole[];
+  allowIndependent?: boolean; // 允许独立商务访问（即使角色不在 allowedRoles 中）
+  requiredPermission?: 'manageSamples' | 'viewCostData'; // 权限检查（用于商务员工）
 }
 
-const RoleRoute = ({ children, allowedRoles }: RoleRouteProps) => {
+const RoleRoute = ({ children, allowedRoles, allowIndependent = false, requiredPermission }: RoleRouteProps) => {
   const { user, isAuthenticated } = useAuthStore();
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
   }
 
-  if (!allowedRoles.includes(user.role)) {
+  // 检查角色是否在允许列表中
+  const hasAllowedRole = allowedRoles.includes(user.role);
+
+  // 检查是否为独立商务（当 allowIndependent 为 true 时）
+  const isAllowedIndependent = allowIndependent && user.role === 'BUSINESS' && user.isIndependent;
+
+  // 检查基于权限的访问（商务员工特有）
+  const hasRequiredPermission = (() => {
+    if (!requiredPermission || user.role !== 'BUSINESS') {
+      return false;
+    }
+    const permissions = (user as any)?.permissions;
+    if (!permissions) {
+      return false;
+    }
+    if (requiredPermission === 'manageSamples') {
+      return permissions?.operations?.manageSamples === true;
+    }
+    if (requiredPermission === 'viewCostData') {
+      return permissions?.advanced?.viewCostData === true;
+    }
+    return false;
+  })();
+
+  if (!hasAllowedRole && !isAllowedIndependent && !hasRequiredPermission) {
     // Redirect to default path for user's role
     const defaultPath = getDefaultPathForRole(user.role);
     return <Navigate to={defaultPath} replace />;
@@ -175,6 +205,9 @@ const AppRoutes = () => {
           }
         />
 
+        {/* 邀请注册页面 - 公开访问 */}
+        <Route path="/invite/:code" element={<InviteRegisterPage />} />
+
         {/* Protected routes */}
         <Route
           path="/app"
@@ -215,11 +248,11 @@ const AppRoutes = () => {
             }
           />
 
-          {/* Sample management - Factory Owner only */}
+          {/* Sample management - Factory Owner, Independent Business, and staff with permission */}
           <Route
             path="samples"
             element={
-              <RoleRoute allowedRoles={['BRAND']}>
+              <RoleRoute allowedRoles={['BRAND']} allowIndependent={true} requiredPermission="manageSamples">
                 <SamplesPage />
               </RoleRoute>
             }
@@ -245,11 +278,11 @@ const AppRoutes = () => {
             }
           />
 
-          {/* Reports - Factory Owner only */}
+          {/* Reports - Factory Owner and staff with viewCostData permission */}
           <Route
             path="reports"
             element={
-              <RoleRoute allowedRoles={['BRAND']}>
+              <RoleRoute allowedRoles={['BRAND']} requiredPermission="viewCostData">
                 <ReportsPage />
               </RoleRoute>
             }
@@ -281,6 +314,16 @@ const AppRoutes = () => {
             element={
               <RoleRoute allowedRoles={['BRAND']}>
                 <TeamPage />
+              </RoleRoute>
+            }
+          />
+
+          {/* Plugin Usage - All authenticated users */}
+          <Route
+            path="plugin"
+            element={
+              <RoleRoute allowedRoles={['BRAND', 'BUSINESS']}>
+                <PluginUsagePage />
               </RoleRoute>
             }
           />
@@ -318,6 +361,7 @@ const AppRoutes = () => {
           <Route path="influencers" element={<AdminInfluencers />} />
           <Route path="collection" element={<AdminInfluencerCollection />} />
           <Route path="users" element={<AdminUsers />} />
+          <Route path="plugin" element={<PluginUsagePage />} />
         </Route>
 
         {/* Notifications for admin - using admin auth */}
@@ -391,6 +435,7 @@ const AppRoutes = () => {
           <Route path="collaborations" element={<InfluencerCollaborationsPage />} />
           <Route path="collaborations/:id" element={<InfluencerCollaborationDetailPage />} />
           <Route path="settings" element={<InfluencerSettingsPage />} />
+          <Route path="plugin" element={<PluginUsagePage />} />
         </Route>
 
         {/* Catch all */}

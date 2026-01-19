@@ -9,7 +9,7 @@ export interface DateRange {
   endDate: Date;
 }
 
-export type ExportType = 
+export type ExportType =
   | 'influencers'
   | 'samples'
   | 'dispatches'
@@ -368,4 +368,314 @@ export async function exportData(
   }
 
   return { buffer, filename };
+}
+
+// ==================== 用户数据备份导出 ====================
+
+interface BackupSummary {
+  sampleCount: number;
+  influencerCount: number;
+  groupCount: number;
+  collaborationCount: number;
+  resultCount: number;
+  dispatchCount: number;
+  followUpCount: number;
+}
+
+/**
+ * 导出用户在指定品牌下的所有业务数据（多 sheet Excel）
+ * 用于加入品牌前的数据备份
+ * 
+ * 独立商务拥有的数据：
+ * - 样品列表（属于品牌）
+ * - 达人列表（属于品牌，由用户创建）
+ * - 达人分组（属于品牌）
+ * - 合作记录（属于品牌，由用户负责）
+ * - 合作结果（关联合作）
+ * - 样品发放（由用户发放）
+ * - 跟进记录（由用户添加）
+ */
+export async function exportUserDataBackup(
+  userId: string,
+  brandId: string
+): Promise<{ buffer: Buffer; filename: string; summary: BackupSummary }> {
+  // 获取用户信息
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { name: true },
+  });
+
+  // 1. 获取样品列表（品牌的所有样品，因为独立商务的品牌就是自己的）
+  const samples = await prisma.sample.findMany({
+    where: { brandId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  // 2. 获取达人数据
+  const influencers = await prisma.influencer.findMany({
+    where: { brandId },
+    include: {
+      group: { select: { name: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  // 3. 获取达人分组
+  const groups = await prisma.influencerGroup.findMany({
+    where: { brandId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  // 4. 获取合作记录
+  const collaborations = await prisma.collaboration.findMany({
+    where: { brandId },
+    include: {
+      influencer: true,
+      sample: true,
+      result: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  // 5. 获取合作结果
+  const results = await prisma.collaborationResult.findMany({
+    where: {
+      collaboration: { brandId },
+    },
+    include: {
+      collaboration: {
+        include: {
+          influencer: true,
+        },
+      },
+    },
+    orderBy: { publishedAt: 'desc' },
+  });
+
+  // 6. 获取样品发放记录
+  const dispatches = await prisma.sampleDispatch.findMany({
+    where: {
+      collaboration: { brandId },
+    },
+    include: {
+      sample: true,
+      collaboration: {
+        include: {
+          influencer: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  // 7. 获取跟进记录
+  const followUps = await prisma.followUpRecord.findMany({
+    where: {
+      collaboration: { brandId },
+    },
+    include: {
+      collaboration: {
+        include: {
+          influencer: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  // 创建 Excel 工作簿
+  const workbook = XLSX.utils.book_new();
+
+  // Sheet 1: 数据汇总
+  const summarySheetData = [
+    ['数据备份汇总'],
+    [''],
+    ['导出用户', user?.name || ''],
+    ['导出时间', formatDateTime(new Date())],
+    [''],
+    ['数据类型', '数量'],
+    ['样品', samples.length],
+    ['达人', influencers.length],
+    ['达人分组', groups.length],
+    ['合作记录', collaborations.length],
+    ['合作结果', results.length],
+    ['样品发放', dispatches.length],
+    ['跟进记录', followUps.length],
+  ];
+  const wsSummary = XLSX.utils.aoa_to_sheet(summarySheetData);
+  XLSX.utils.book_append_sheet(workbook, wsSummary, '数据汇总');
+
+  // Sheet 2: 样品列表
+  const sampleData = samples.map((s, index) => ({
+    '序号': index + 1,
+    'SKU': s.sku,
+    '名称': s.name,
+    '单件成本（元）': formatMoney(s.unitCost),
+    '建议零售价（元）': formatMoney(s.retailPrice),
+    '可复寄': s.canResend ? '是' : '否',
+    '备注': s.notes || '',
+    '创建时间': formatDateTime(s.createdAt),
+  }));
+
+  if (sampleData.length > 0) {
+    const wsSamples = XLSX.utils.json_to_sheet(sampleData);
+    XLSX.utils.book_append_sheet(workbook, wsSamples, '样品列表');
+  } else {
+    const wsEmpty = XLSX.utils.aoa_to_sheet([['暂无样品数据']]);
+    XLSX.utils.book_append_sheet(workbook, wsEmpty, '样品列表');
+  }
+
+  // Sheet 3: 达人列表
+  const influencerData = influencers.map((inf, index) => ({
+    '序号': index + 1,
+    '昵称': inf.nickname,
+    '平台': PLATFORM_NAMES[inf.platform],
+    '平台账号ID': inf.platformId,
+    'UID': inf.uid || '',
+    '主页链接': inf.homeUrl || '',
+    '手机号': inf.phone || '',
+    '微信号': inf.wechat || '',
+    '收件地址': inf.shippingAddress || '',
+    '粉丝数': inf.followers || '',
+    '分组': inf.group?.name || '',
+    '标签': inf.tags.join(', '),
+    '备注': inf.notes || '',
+    '创建时间': formatDateTime(inf.createdAt),
+  }));
+
+  if (influencerData.length > 0) {
+    const wsInfluencers = XLSX.utils.json_to_sheet(influencerData);
+    XLSX.utils.book_append_sheet(workbook, wsInfluencers, '达人列表');
+  } else {
+    const wsEmpty = XLSX.utils.aoa_to_sheet([['暂无达人数据']]);
+    XLSX.utils.book_append_sheet(workbook, wsEmpty, '达人列表');
+  }
+
+  // Sheet 4: 达人分组
+  const groupData = groups.map((g, index) => ({
+    '序号': index + 1,
+    '分组名称': g.name,
+    '颜色': g.color,
+    '描述': g.description || '',
+    '创建时间': formatDateTime(g.createdAt),
+  }));
+
+  if (groupData.length > 0) {
+    const wsGroups = XLSX.utils.json_to_sheet(groupData);
+    XLSX.utils.book_append_sheet(workbook, wsGroups, '达人分组');
+  } else {
+    const wsEmpty = XLSX.utils.aoa_to_sheet([['暂无分组数据']]);
+    XLSX.utils.book_append_sheet(workbook, wsEmpty, '达人分组');
+  }
+
+  // Sheet 5: 合作记录
+  const collaborationData = collaborations.map((collab, index) => ({
+    '序号': index + 1,
+    '达人昵称': collab.influencer?.nickname || '',
+    '平台': collab.influencer ? PLATFORM_NAMES[collab.influencer.platform] : '',
+    '阶段': STAGE_NAMES[collab.stage],
+    '样品': collab.sample?.name || '',
+    '报价（元）': collab.quotedPrice ? formatMoney(collab.quotedPrice) : '',
+    '是否超期': collab.isOverdue ? '是' : '否',
+    '截止时间': formatDate(collab.deadline),
+    '销售GMV（元）': collab.result ? formatMoney(collab.result.salesGmv) : '',
+    'ROI': collab.result ? collab.result.roi.toFixed(2) : '',
+    '回本状态': collab.result ? PROFIT_STATUS_NAMES[collab.result.profitStatus] : '',
+    '创建时间': formatDateTime(collab.createdAt),
+  }));
+
+  if (collaborationData.length > 0) {
+    const wsCollaborations = XLSX.utils.json_to_sheet(collaborationData);
+    XLSX.utils.book_append_sheet(workbook, wsCollaborations, '合作记录');
+  } else {
+    const wsEmpty = XLSX.utils.aoa_to_sheet([['暂无合作记录']]);
+    XLSX.utils.book_append_sheet(workbook, wsEmpty, '合作记录');
+  }
+
+  // Sheet 6: 合作结果
+  const resultData = results.map((r, index) => ({
+    '序号': index + 1,
+    '达人昵称': r.collaboration?.influencer?.nickname || '',
+    '平台': r.collaboration?.influencer ? PLATFORM_NAMES[r.collaboration.influencer.platform] : '',
+    '内容形式': r.contentType === 'SHORT_VIDEO' ? '短视频' : '直播',
+    '发布时间': formatDateTime(r.publishedAt),
+    '销售件数': r.salesQuantity,
+    '销售GMV（元）': formatMoney(r.salesGmv),
+    '佣金比例（%）': r.commissionRate ? `${r.commissionRate}%` : '',
+    '坑位费（元）': formatMoney(r.pitFee),
+    '实付佣金（元）': formatMoney(r.actualCommission),
+    '样品成本（元）': formatMoney(r.totalSampleCost),
+    '合作总成本（元）': formatMoney(r.totalCollaborationCost),
+    'ROI': r.roi.toFixed(4),
+    '回本状态': PROFIT_STATUS_NAMES[r.profitStatus],
+    '是否复投': r.willRepeat ? '是' : '否',
+    '备注': r.notes || '',
+  }));
+
+  if (resultData.length > 0) {
+    const wsResults = XLSX.utils.json_to_sheet(resultData);
+    XLSX.utils.book_append_sheet(workbook, wsResults, '合作结果');
+  } else {
+    const wsEmpty = XLSX.utils.aoa_to_sheet([['暂无合作结果']]);
+    XLSX.utils.book_append_sheet(workbook, wsEmpty, '合作结果');
+  }
+
+  // Sheet 7: 样品发放记录
+  const dispatchData = dispatches.map((d, index) => ({
+    '序号': index + 1,
+    '样品SKU': d.sample?.sku || '',
+    '样品名称': d.sample?.name || '',
+    '达人昵称': d.collaboration?.influencer?.nickname || '',
+    '数量': d.quantity,
+    '样品成本（元）': formatMoney(d.totalSampleCost),
+    '快递费（元）': formatMoney(d.shippingCost),
+    '总成本（元）': formatMoney(d.totalCost),
+    '快递单号': d.trackingNumber || '',
+    '签收状态': RECEIVED_STATUS_NAMES[d.receivedStatus],
+    '上车状态': ONBOARD_STATUS_NAMES[d.onboardStatus],
+    '寄样时间': formatDateTime(d.dispatchedAt),
+  }));
+
+  if (dispatchData.length > 0) {
+    const wsDispatches = XLSX.utils.json_to_sheet(dispatchData);
+    XLSX.utils.book_append_sheet(workbook, wsDispatches, '样品发放');
+  } else {
+    const wsEmpty = XLSX.utils.aoa_to_sheet([['暂无样品发放记录']]);
+    XLSX.utils.book_append_sheet(workbook, wsEmpty, '样品发放');
+  }
+
+  // Sheet 8: 跟进记录
+  const followUpData = followUps.map((record, index) => ({
+    '序号': index + 1,
+    '达人昵称': record.collaboration?.influencer?.nickname || '',
+    '跟进内容': record.content,
+    '跟进时间': formatDateTime(record.createdAt),
+  }));
+
+  if (followUpData.length > 0) {
+    const wsFollowUps = XLSX.utils.json_to_sheet(followUpData);
+    XLSX.utils.book_append_sheet(workbook, wsFollowUps, '跟进记录');
+  } else {
+    const wsEmpty = XLSX.utils.aoa_to_sheet([['暂无跟进记录']]);
+    XLSX.utils.book_append_sheet(workbook, wsEmpty, '跟进记录');
+  }
+
+  // 生成 Excel 文件
+  const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+  const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const filename = `数据备份_${user?.name || 'user'}_${timestamp}.xlsx`;
+
+  return {
+    buffer,
+    filename,
+    summary: {
+      sampleCount: samples.length,
+      influencerCount: influencers.length,
+      groupCount: groups.length,
+      collaborationCount: collaborations.length,
+      resultCount: results.length,
+      dispatchCount: dispatches.length,
+      followUpCount: followUps.length,
+    },
+  };
 }

@@ -8,6 +8,44 @@ export interface User {
   name: string;
   role: UserRole;
   brandId?: string;
+  isIndependent?: boolean; // 独立商务标识
+  permissions?: {
+    dataVisibility: {
+      viewOthersInfluencers: boolean;
+      viewOthersCollaborations: boolean;
+      viewOthersPerformance: boolean;
+      viewTeamData: boolean;
+      viewRanking: boolean;
+    };
+    operations: {
+      manageInfluencers: boolean;
+      manageSamples: boolean;
+      manageCollaborations: boolean;
+      deleteCollaborations: boolean;
+      exportData: boolean;
+      batchOperations: boolean;
+    };
+    advanced: {
+      viewCostData: boolean;
+      viewROIData: boolean;
+      modifyOthersData: boolean;
+    };
+  }; // 商务权限
+  brand?: {
+    id: string;
+    name: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+    planType: 'FREE' | 'PERSONAL' | 'PROFESSIONAL' | 'ENTERPRISE';
+    planExpiresAt?: string;
+    isPaid?: boolean;
+    isLocked?: boolean;
+    staffLimit: number;
+    influencerLimit: number;
+    _count?: {
+      staff: number;
+      influencers: number;
+    };
+  };
   factory?: {
     id: string;
     name: string;
@@ -51,6 +89,10 @@ export const useAuthStore = create<AuthState>()(
           console.error('[AuthStore] ❌ Attempted to set invalid token:', token);
           throw new Error('Invalid token: accessToken is null or missing');
         }
+
+        // Debug: 检查 user 对象是否包含 permissions
+        console.log('[AuthStore] setAuth called with user:', user);
+        console.log('[AuthStore] User permissions:', user?.permissions);
 
         console.log('[AuthStore] ✅ Setting valid token');
         set({

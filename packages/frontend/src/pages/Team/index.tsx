@@ -16,6 +16,7 @@ import {
   PlusOutlined,
   DeleteOutlined,
   UserOutlined,
+  UserAddOutlined,
   StopOutlined,
   CheckCircleOutlined,
   WarningOutlined,
@@ -32,6 +33,7 @@ import {
 } from '../../services/staff-management.service';
 import { Card, CardContent } from '../../components/ui/Card';
 import AddStaffModal from './AddStaffModal';
+import InviteStaffModal from './InviteStaffModal';
 import StaffDetailModal from './StaffDetailModal';
 import StaffPermissionsModal from './StaffPermissionsModal';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -48,6 +50,7 @@ const TeamPage = () => {
 
   // Modal states
   const [addModalVisible, setAddModalVisible] = useState(false);
+  const [inviteModalVisible, setInviteModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [permissionsModalVisible, setPermissionsModalVisible] = useState(false);
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
@@ -150,13 +153,21 @@ const TeamPage = () => {
       title: '姓名',
       dataIndex: 'name',
       key: 'name',
-      width: 150,
+      width: 120,
     },
     {
       title: '邮箱',
       dataIndex: 'email',
       key: 'email',
-      width: 200,
+      width: 180,
+      render: (email: string) => email?.includes('@phone.local') ? '-' : email,
+    },
+    {
+      title: '手机号',
+      dataIndex: 'phone',
+      key: 'phone',
+      width: 130,
+      render: (phone: string) => phone || '-',
     },
     {
       title: '状态',
@@ -319,14 +330,22 @@ const TeamPage = () => {
                   {quotaUsage && ` (配额: ${quotaUsage.staff.current}/${quotaUsage.staff.limit})`}
                 </Text>
               </div>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleAdd}
-                disabled={quotaUsage?.staff.isReached}
-              >
-                添加商务账号
-              </Button>
+              <Space>
+                <Button
+                  icon={<UserAddOutlined />}
+                  onClick={() => setInviteModalVisible(true)}
+                >
+                  邀请商务
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={handleAdd}
+                  disabled={quotaUsage?.staff.isReached}
+                >
+                  添加商务账号
+                </Button>
+              </Space>
             </div>
 
             <Table
@@ -351,6 +370,12 @@ const TeamPage = () => {
           visible={addModalVisible}
           onCancel={() => setAddModalVisible(false)}
           onSuccess={handleAddSuccess}
+        />
+
+        {/* 邀请商务弹窗 */}
+        <InviteStaffModal
+          visible={inviteModalVisible}
+          onCancel={() => setInviteModalVisible(false)}
         />
 
         {/* 商务账号详情弹窗 */}

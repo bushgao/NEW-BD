@@ -13,6 +13,7 @@ interface User {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   role: string;
   brandId?: string;
   factoryName?: string;
@@ -113,13 +114,21 @@ const Users = () => {
       title: '姓名',
       dataIndex: 'name',
       key: 'name',
-      width: 120,
+      width: 100,
     },
     {
       title: '邮箱',
       dataIndex: 'email',
       key: 'email',
-      width: 200,
+      width: 180,
+      render: (email: string) => email?.includes('@phone.local') ? '-' : email,
+    },
+    {
+      title: '手机号',
+      dataIndex: 'phone',
+      key: 'phone',
+      width: 130,
+      render: (phone: string) => phone || '-',
     },
     {
       title: '角色',

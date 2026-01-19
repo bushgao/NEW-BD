@@ -94,13 +94,13 @@ router.post(
   requireRoles('BRAND'),
   asyncHandler(async (req: Request, res: Response) => {
     const brandId = req.user!.brandId!;
-    const { name, email, password } = req.body;
+    const { name, email, phone, password } = req.body;
 
-    // 验证必填字段
-    if (!name || !email || !password) {
+    // 验证必填字段（手机号是必填的）
+    if (!name || !phone || !password) {
       res.status(400).json({
         error: 'BAD_REQUEST',
-        message: '姓名、邮箱和密码为必填项',
+        message: '请提供手机号',
       });
       return;
     }
@@ -108,6 +108,7 @@ router.post(
     const staffMember = await staffManagementService.createStaff(brandId, {
       name,
       email,
+      phone,
       password,
     });
 

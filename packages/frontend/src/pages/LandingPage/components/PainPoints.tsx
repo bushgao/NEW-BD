@@ -1,118 +1,109 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FileSpreadsheet, MessageCircle, AlertTriangle, XCircle, ChevronRight } from 'lucide-react';
+import { FileSpreadsheet, MessageCircle, AlertTriangle, XCircle, Users, ChevronRight } from 'lucide-react';
 
 const PainPoints: React.FC = () => {
-  const pains = [
-    {
-      icon: FileSpreadsheet,
-      title: "Excel 表格地狱",
-      desc: "表格满天飞，版本永远对不上。不仅效率极低，更是数据错误的温床。",
-      highlight: "每天浪费 2+ 小时",
-      color: "text-blue-400"
-    },
-    {
-      icon: MessageCircle,
-      title: "微信消息黑洞",
-      desc: "承诺埋在聊天记录里，截图找不到。员工离职，核心数据直接清零。",
-      highlight: "客户资产流失",
-      color: "text-green-400"
-    },
-    {
-      icon: XCircle,
-      title: "样品有去无回",
-      desc: "样品寄出几十份，回收寥寥无几。这是一笔巨大的、被忽视的隐形亏损。",
-      highlight: "每年亏损数万元",
-      color: "text-red-400"
-    },
-    {
-      icon: AlertTriangle,
-      title: "虚荣 ROI 陷阱",
-      desc: "只看 GMV 不看净利？扣除各项隐形费用，你可能其实一直在赔钱赚吆喝。",
-      highlight: "盲目亏损推广",
-      color: "text-yellow-400"
-    }
-  ];
+    const pains = [
+        {
+            icon: FileSpreadsheet,
+            title: "效率下降 70%",
+            desc: "表格满天飞，版本永远对不上。每天花费大量时间在填表和核对上，而非业务本身。",
+            highlight: "每天浪费 2+ 小时",
+            color: "text-blue-700",
+            bg: "bg-blue-50",
+            border: "border-blue-200"
+        },
+        {
+            icon: MessageCircle,
+            title: "信息散落微信",
+            desc: "承诺埋在聊天记录里，截图找不到。核心数据随员工离职直接清零。",
+            highlight: "客户资产流失",
+            color: "text-green-700",
+            bg: "bg-green-50",
+            border: "border-green-200"
+        },
+        {
+            icon: XCircle,
+            title: "样品有去无回",
+            desc: "样品寄出几十份，回收寥寥无几。这是一笔巨大的、被忽视的隐形亏损。",
+            highlight: "隐形亏损 ¥5万+",
+            color: "text-red-700",
+            bg: "bg-red-50",
+            border: "border-red-200"
+        },
+        {
+            icon: Users,
+            title: "撞单内耗",
+            desc: "两个BD同时联系一个达人，客户反感，内部扯皮。团队越大，错误越多。",
+            highlight: "团队协作损耗",
+            color: "text-purple-700",
+            bg: "bg-purple-50",
+            border: "border-purple-200"
+        },
+        {
+            icon: AlertTriangle,
+            title: "虚荣 ROI 陷阱",
+            desc: "只看 GMV 不看净利？扣除各项隐形费用，其实一直在赔钱赚吆喝。",
+            highlight: "80%品牌算错账",
+            color: "text-yellow-700",
+            bg: "bg-yellow-50",
+            border: "border-yellow-200"
+        }
+    ];
 
-  return (
-    <section className="py-32 relative bg-surface-950">
+    return (
+        <section className="py-20 relative bg-slate-50 border-t border-slate-200">
+            <div className="max-w-7xl mx-auto px-6 relative z-10">
+                {/* Section Header */}
+                <div className="mb-12 max-w-2xl">
+                    <div className="flex items-center gap-2 mb-4">
+                        <span className="w-8 h-[3px] bg-indigo-600 rounded-full"></span>
+                        <span className="text-indigo-700 font-bold text-sm uppercase tracking-widest">核心痛点</span>
+                    </div>
 
-      <div className="container mx-auto px-6 relative z-10">
-        {/* Section Header */}
-        <div className="mb-20 max-w-2xl">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="flex items-center gap-2 mb-6"
-          >
-            <span className="w-12 h-[1px] bg-brand-500"></span>
-            <span className="text-brand-300 font-mono text-sm uppercase tracking-widest">核心痛点</span>
-          </motion.div>
+                    <h2 className="text-3xl md:text-4xl font-display font-bold text-slate-900 mb-4">
+                        别让 <span className="text-red-600">混乱</span> 蚕食你的利润
+                    </h2>
 
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-4xl md:text-5xl font-display font-bold text-white mb-6"
-          >
-            别让 <span className="text-gradient-brand">混乱</span> <br />
-            蚕食你的利润
-          </motion.h2>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="text-surface-300 text-lg"
-          >
-            大多数团队在 "找达人" 上花了大钱，却在 "执行管理" 上把利润一点点漏光。
-            传统的管理方式已经跟不上你的增长速度。
-          </motion.p>
-        </div>
-
-        {/* Bento Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {pains.map((pain, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: idx * 0.1 }}
-              whileHover={{ y: -5 }}
-              className="glass-panel p-8 rounded-3xl group relative overflow-hidden"
-            >
-              {/* Background gradient on hover */}
-              <div className="absolute inset-0 bg-gradient-to-br from-brand-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-              <div className="relative z-10 flex flex-col h-full">
-                <div className="mb-6 inline-flex p-3 rounded-2xl bg-surface-800/50 border border-white/5">
-                  <pain.icon className={`w-6 h-6 ${pain.color}`} />
+                    <p className="text-slate-700 text-lg leading-relaxed font-medium">
+                        大多数团队在 "找达人" 上花了大钱，却在 "执行管理" 上把利润一点点漏光。
+                    </p>
                 </div>
 
-                <h3 className="text-xl font-bold text-white mb-3 group-hover:text-brand-200 transition-colors">
-                  {pain.title}
-                </h3>
+                {/* Compact Grid Layout - 3+2 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {pains.map((pain, idx) => (
+                        <div
+                            key={idx}
+                            className={`bg-white p-6 rounded-2xl flex flex-col border border-slate-300 shadow-sm hover:shadow-lg transition-all duration-300 ${idx >= 3 ? 'lg:col-span-1.5' : ''
+                                }`}
+                        >
+                            <div className="flex items-start justify-between mb-4">
+                                <div className={`inline-flex p-2.5 rounded-xl ${pain.bg} border ${pain.border}`}>
+                                    <pain.icon className={`w-5 h-5 ${pain.color}`} />
+                                </div>
+                                <ChevronRight className="w-5 h-5 text-slate-300" />
+                            </div>
 
-                <p className="text-surface-400 text-sm leading-relaxed mb-8 flex-grow">
-                  {pain.desc}
-                </p>
+                            <h3 className="text-lg font-bold text-slate-900 mb-2">
+                                {pain.title}
+                            </h3>
 
-                <div className="pt-6 border-t border-white/5 flex items-center justify-between">
-                  <span className={`text-xs font-bold uppercase tracking-wider ${pain.color}`}>
-                    {pain.highlight}
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-surface-500 group-hover:translate-x-1 transition-transform" />
+                            <p className="text-slate-600 text-sm leading-relaxed mb-6 font-medium">
+                                {pain.desc}
+                            </p>
+
+                            <div className="pt-4 border-t border-slate-100 mt-auto">
+                                <span className={`text-xs font-bold uppercase tracking-wider ${pain.color}`}>
+                                    {pain.highlight}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+            </div>
+        </section>
+    );
 };
 
 export default PainPoints;

@@ -7,6 +7,7 @@ export interface StaffMember {
   id: string;
   name: string;
   email: string;
+  phone?: string;  // 手机号
   status: 'ACTIVE' | 'DISABLED';
   createdAt: string;
 }
@@ -24,6 +25,7 @@ export interface StaffDetail extends StaffMember {
 export interface CreateStaffInput {
   name: string;
   email: string;
+  phone?: string;  // 手机号
   password: string;
 }
 
