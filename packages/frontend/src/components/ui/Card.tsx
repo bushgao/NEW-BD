@@ -8,7 +8,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 
 export interface CardProps {
     children: React.ReactNode;
-    variant?: 'default' | 'elevated' | 'outlined';
+    variant?: 'default' | 'elevated' | 'outlined' | 'deep';
     padding?: 'none' | 'sm' | 'md' | 'lg';
     hoverable?: boolean;
     onClick?: () => void;
@@ -47,6 +47,17 @@ export const Card: React.FC<CardProps> = ({
                     ...baseStyles,
                     border: `1px solid ${theme.colors.neutral[200]}`,
                     boxShadow: 'none',
+                };
+            case 'deep':
+                // Deep Space Glassmorphism variant
+                return {
+                    background: 'rgba(15, 23, 42, 0.6)',
+                    backdropFilter: 'blur(16px)',
+                    borderRadius: theme.borderRadius.lg,
+                    transition: `all ${theme.transitions.base}`,
+                    border: '1px solid rgba(148, 163, 184, 0.15)',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                    color: '#e2e8f0',
                 };
             case 'default':
             default:

@@ -47,7 +47,7 @@ const StaffDetailModal = ({ staffId, visible, onClose }: StaffDetailModalProps) 
 
     setLoading(true);
     try {
-      const result = await getStaffInfluencers(staffId, 1, 10);
+      const result = await getStaffInfluencers(staffId, { page: 1, pageSize: 10 });
       setInfluencers(result.data);
       setInfluencersTotal(result.total);
     } catch (error) {
@@ -64,7 +64,7 @@ const StaffDetailModal = ({ staffId, visible, onClose }: StaffDetailModalProps) 
 
     setLoading(true);
     try {
-      const result = await getStaffCollaborations(staffId, 1, 10);
+      const result = await getStaffCollaborations(staffId, { page: 1, pageSize: 10 });
       setCollaborations(result.data);
       setCollaborationsTotal(result.total);
     } catch (error) {

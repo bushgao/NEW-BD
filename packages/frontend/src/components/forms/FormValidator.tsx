@@ -417,4 +417,3 @@ const FormValidator: React.FC<FormValidatorProps> = ({
 };
 
 export default FormValidator;
-export type { ValidationResult, ValidationError, ValidationWarning, ValidationInfo };

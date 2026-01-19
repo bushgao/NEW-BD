@@ -1613,7 +1613,7 @@ function generateSuggestions(
   bestFrequency: string,
   avgResponseTime: number,
   conversionByTime: TimeConversionData[],
-  conversionByFrequency: FrequencyConversionData[]
+  _conversionByFrequency: FrequencyConversionData[]  // 预留为未来扩展
 ): string[] {
   const suggestions: string[] = [];
 
@@ -1742,12 +1742,12 @@ async function getSampleSuggestions(
           const existing = samplePerformance.get(sampleId);
 
           if (existing) {
-            existing.totalGMV += collab.result.gmv || 0;
+            existing.totalGMV += collab.result.salesGmv || 0;
             existing.count += 1;
           } else {
             samplePerformance.set(sampleId, {
               sample: dispatch.sample,
-              totalGMV: collab.result.gmv || 0,
+              totalGMV: collab.result.salesGmv || 0,
               count: 1,
             });
           }
@@ -1807,12 +1807,12 @@ async function getSampleSuggestions(
         const existing = platformSamplePerformance.get(sampleId);
 
         if (existing) {
-          existing.totalGMV += collab.result.gmv || 0;
+          existing.totalGMV += collab.result.salesGmv || 0;
           existing.count += 1;
         } else {
           platformSamplePerformance.set(sampleId, {
             sample: dispatch.sample,
-            totalGMV: collab.result.gmv || 0,
+            totalGMV: collab.result.salesGmv || 0,
             count: 1,
           });
         }
@@ -1868,7 +1868,7 @@ async function getPriceSuggestions(
   // 1. 基于该达人的历史报价
   if (historicalCollabs.length > 0) {
     const prices = historicalCollabs
-      .map(c => c.result?.cost || 0)
+      .map(c => c.result?.totalCollaborationCost || 0)
       .filter(p => p > 0);
 
     if (prices.length > 0) {
@@ -1898,14 +1898,14 @@ async function getPriceSuggestions(
         brandId,
         influencerId: { in: platformInfluencers.map(i => i.id) },
       },
-      cost: { gt: 0 },
+      totalCollaborationCost: { gt: 0 },
     },
-    select: { cost: true },
+    select: { totalCollaborationCost: true },
     take: 200,
   });
 
   if (platformResults.length > 0) {
-    const avgPlatformPrice = platformResults.reduce((sum, r) => sum + r.cost, 0) / platformResults.length;
+    const avgPlatformPrice = platformResults.reduce((sum, r) => sum + r.totalCollaborationCost, 0) / platformResults.length;
     suggestions.push({
       field: 'quotedPrice',
       value: Math.round(avgPlatformPrice),
@@ -1946,8 +1946,8 @@ async function getPriceSuggestions(
  * 推荐排期
  */
 async function getScheduleSuggestions(
-  brandId: string,
-  influencer: any,
+  _brandId: string,  // 预留为未来扩展
+  _influencer: any,  // 预留为未来扩展
   historicalCollabs: any[]
 ) {
   const suggestions: any[] = [];
@@ -2109,9 +2109,14 @@ async function batchDispatchSample(
     data: {
       collaborationId,
       sampleId: data.sampleId,
-      dispatchedBy: collaboration.businessStaffId,
+      businessStaffId: collaboration.businessStaffId,
+      quantity: 1,  // 批量寄样默认1件
+      unitCostSnapshot: sample.unitCost,
+      totalSampleCost: sample.unitCost,
+      shippingCost: 0,  // 批量寄样默认不计快递费
+      totalCost: sample.unitCost,
       dispatchedAt: new Date(),
-      status: 'DISPATCHED',
+      receivedStatus: 'PENDING',
     },
   });
 
@@ -2210,9 +2215,9 @@ async function validateCollaborationData(
   data: any,
   errors: ValidationError[],
   warnings: ValidationWarning[],
-  infos: ValidationInfo[],
+  _infos: ValidationInfo[],  // 预留为未来扩展
   duplicates: DuplicateCheck[],
-  anomalies: AnomalyCheck[]
+  anomalies: AnomalyCheck[]  // 用于检查异常报价等
 ) {
   // 1. 验证必填字段
   if (!data.influencerId) {
@@ -2245,7 +2250,7 @@ async function validateCollaborationData(
         },
         include: {
           influencer: {
-            select: { name: true, platform: true },
+            select: { nickname: true, platform: true },
           },
         },
       });
@@ -2255,7 +2260,7 @@ async function validateCollaborationData(
           field: 'influencerId',
           value: data.influencerId,
           existingRecordId: existingCollaboration.id,
-          existingRecordInfo: `${existingCollaboration.influencer.name} (${existingCollaboration.influencer.platform}) - ${STAGE_NAMES[existingCollaboration.stage]}`,
+          existingRecordInfo: `${existingCollaboration.influencer.nickname} (${existingCollaboration.influencer.platform}) - ${STAGE_NAMES[existingCollaboration.stage]}`,
           message: `该达人已有进行中的合作记录`,
         });
       }
@@ -2400,9 +2405,9 @@ async function validateDispatchData(
   data: any,
   errors: ValidationError[],
   warnings: ValidationWarning[],
-  infos: ValidationInfo[],
+  _infos: ValidationInfo[],  // 预留为未来扩展
   duplicates: DuplicateCheck[],
-  anomalies: AnomalyCheck[]
+  _anomalies: AnomalyCheck[]  // 预留为未来扩展
 ) {
   // 1. 验证必填字段
   if (!data.sampleId) {
@@ -2454,7 +2459,7 @@ async function validateDispatchData(
       where: {
         collaborationId: data.collaborationId,
         sampleId: data.sampleId,
-        status: { in: ['DISPATCHED', 'RECEIVED'] },
+        receivedStatus: { in: ['PENDING', 'RECEIVED'] },  // 使用正确的字段名
       },
       include: {
         sample: { select: { name: true } },
@@ -2466,7 +2471,7 @@ async function validateDispatchData(
         field: 'sampleId',
         value: data.sampleId,
         existingRecordId: existingDispatch.id,
-        existingRecordInfo: `${existingDispatch.sample.name} - ${existingDispatch.status === 'DISPATCHED' ? '已寄出' : '已签收'}`,
+        existingRecordInfo: `${existingDispatch.sample.name} - ${existingDispatch.receivedStatus === 'PENDING' ? '已寄出' : '已签收'}`,
         message: '该样品已寄给该达人',
       });
     }
@@ -2498,9 +2503,9 @@ async function validateResultData(
   data: any,
   errors: ValidationError[],
   warnings: ValidationWarning[],
-  infos: ValidationInfo[],
+  _infos: ValidationInfo[],  // 预留为未来扩展
   duplicates: DuplicateCheck[],
-  anomalies: AnomalyCheck[]
+  anomalies: AnomalyCheck[]  // 用于检查异常数据
 ) {
   // 1. 验证必填字段
   if (!data.collaborationId) {
@@ -2527,7 +2532,7 @@ async function validateResultData(
         field: 'collaborationId',
         value: data.collaborationId,
         existingRecordId: collaboration.result.id,
-        existingRecordInfo: `播放量: ${collaboration.result.views}, 点赞数: ${collaboration.result.likes}`,
+        existingRecordInfo: `GMV: ¥${(collaboration.result.salesGmv / 100).toFixed(2)}, 销量: ${collaboration.result.salesQuantity}`,
         message: '该合作已有结果记录',
       });
     }

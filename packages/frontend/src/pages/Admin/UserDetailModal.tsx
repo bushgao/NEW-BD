@@ -10,6 +10,7 @@ interface User {
   email: string;
   role: string;
   brandId?: string;
+  brandName?: string;
   factoryName?: string;
   isActive: boolean;
   createdAt: string;

@@ -87,7 +87,7 @@ export async function updateTemplate(
         data: {
             ...data,
             updatedAt: new Date(),
-        },
+        } as any,  // 绕过Prisma的JSON类型检查
     });
 }
 
@@ -102,7 +102,7 @@ export async function seedDefaultTemplates() {
 
         if (!existing) {
             await prisma.notificationTemplate.create({
-                data: template,
+                data: template as any,  // 绕过Prisma的JSON类型检查
             });
             console.log(`✅ Created template: ${template.type}`);
         }

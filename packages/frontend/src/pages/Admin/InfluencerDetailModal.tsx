@@ -62,7 +62,7 @@ export default function InfluencerDetailModal({ open, onClose, influencerId }: P
   const renderBasicInfo = () => (
     <Descriptions bordered column={2}>
       <Descriptions.Item label="昵称">{influencer.nickname}</Descriptions.Item>
-      <Descriptions.Item label="平台">{platformLabels[influencer.platform]}</Descriptions.Item>
+      <Descriptions.Item label="平台">{platformLabels[influencer.platform as Platform]}</Descriptions.Item>
       <Descriptions.Item label="账号ID">{influencer.platformId}</Descriptions.Item>
       <Descriptions.Item label="粉丝数">{influencer.followers || '-'}</Descriptions.Item>
       <Descriptions.Item label="手机号">{influencer.phone || '-'}</Descriptions.Item>
@@ -93,7 +93,7 @@ export default function InfluencerDetailModal({ open, onClose, influencerId }: P
         {influencer.brand?.name || '-'}
       </Descriptions.Item>
       <Descriptions.Item label="来源类型">
-        <Tag color="blue">{sourceTypeLabels[influencer.sourceType]}</Tag>
+        <Tag color="blue">{sourceTypeLabels[influencer.sourceType as InfluencerSourceType]}</Tag>
       </Descriptions.Item>
       <Descriptions.Item label="添加人">
         {influencer.creator?.name || '-'}
@@ -116,8 +116,8 @@ export default function InfluencerDetailModal({ open, onClose, influencerId }: P
       <div>
         <Descriptions bordered column={2} style={{ marginBottom: 24 }}>
           <Descriptions.Item label="认证状态">
-            <Tag color={verificationStatusColors[influencer.verificationStatus]}>
-              {verificationStatusLabels[influencer.verificationStatus]}
+            <Tag color={verificationStatusColors[influencer.verificationStatus as VerificationStatus]}>
+              {verificationStatusLabels[influencer.verificationStatus as VerificationStatus]}
             </Tag>
           </Descriptions.Item>
           <Descriptions.Item label="认证时间">

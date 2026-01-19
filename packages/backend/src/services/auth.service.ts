@@ -33,7 +33,7 @@ export interface LoginByPhoneInput {
 
 export interface UserWithoutPassword {
   id: string;
-  email: string;
+  email: string | null;  // 邮箱可选
   name: string;
   role: UserRole;
   brandId: string | null;
@@ -66,7 +66,7 @@ export interface UserWithoutPassword {
 function generateTokens(user: UserWithoutPassword): AuthToken {
   const payload: TokenPayload = {
     userId: user.id,
-    email: user.email,
+    email: user.email || '',  // email可为null，传空字符串给TokenPayload
     role: user.role as UserRole,
     brandId: user.brandId || undefined,
   };

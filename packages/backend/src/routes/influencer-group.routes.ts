@@ -15,7 +15,15 @@ router.use(enrichUserData);
 router.post('/', authenticate, requireFactoryMember, async (req, res, next) => {
   try {
     const { name, color, description } = req.body;
-    const { brandId, userId } = req.user!;
+    const brandId = req.user!.brandId;
+    const userId = req.user!.userId;
+
+    if (!brandId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: '用户未关联品牌' },
+      });
+    }
 
     if (!name) {
       return res.status(400).json({
@@ -48,7 +56,7 @@ router.post('/', authenticate, requireFactoryMember, async (req, res, next) => {
  */
 router.get('/', authenticate, requireFactoryMember, async (req, res, next) => {
   try {
-    const { brandId } = req.user!;
+    const brandId = req.user!.brandId!;
 
     const groups = await groupService.listGroups(brandId);
 
@@ -69,7 +77,7 @@ router.get('/', authenticate, requireFactoryMember, async (req, res, next) => {
 router.get('/:id', authenticate, requireFactoryMember, async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { brandId } = req.user!;
+    const brandId = req.user!.brandId!;
 
     const group = await groupService.getGroupById(id, brandId);
 
@@ -90,7 +98,7 @@ router.get('/:id', authenticate, requireFactoryMember, async (req, res, next) =>
 router.get('/:id/stats', authenticate, requireFactoryMember, async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { brandId } = req.user!;
+    const brandId = req.user!.brandId!;
 
     const stats = await groupService.getGroupStats(id, brandId);
 
@@ -111,7 +119,7 @@ router.get('/:id/stats', authenticate, requireFactoryMember, async (req, res, ne
 router.get('/:id/influencers', authenticate, requireFactoryMember, async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { brandId } = req.user!;
+    const brandId = req.user!.brandId!;
 
     const influencers = await groupService.getGroupInfluencers(id, brandId);
 
@@ -132,7 +140,7 @@ router.get('/:id/influencers', authenticate, requireFactoryMember, async (req, r
 router.put('/:id', authenticate, requireFactoryMember, async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { brandId } = req.user!;
+    const brandId = req.user!.brandId!;
     const { name, color, description } = req.body;
 
     const group = await groupService.updateGroup(id, brandId, {
@@ -158,7 +166,7 @@ router.put('/:id', authenticate, requireFactoryMember, async (req, res, next) =>
 router.delete('/:id', authenticate, requireFactoryMember, async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { brandId } = req.user!;
+    const brandId = req.user!.brandId!;
 
     await groupService.deleteGroup(id, brandId);
 
@@ -179,7 +187,7 @@ router.delete('/:id', authenticate, requireFactoryMember, async (req, res, next)
 router.post('/batch-move', authenticate, requireFactoryMember, async (req, res, next) => {
   try {
     const { influencerIds, groupId } = req.body;
-    const { brandId } = req.user!;
+    const brandId = req.user!.brandId!;
 
     if (!influencerIds || !Array.isArray(influencerIds) || influencerIds.length === 0) {
       return res.status(400).json({

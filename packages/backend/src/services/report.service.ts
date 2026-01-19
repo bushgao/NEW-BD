@@ -12,7 +12,7 @@ export interface DateRange {
 export interface StaffPerformanceItem {
   staffId: string;
   staffName: string;
-  staffEmail: string;
+  staffEmail: string | null;  // 邮箱可选
   // 数量指标
   contactedCount: number;      // 建联数量（创建的合作记录数）
   progressedCount: number;     // 推进数量（阶段从线索推进到后续阶段的合作数）
@@ -389,7 +389,7 @@ export async function getFactoryDashboard(
   period: 'week' | 'month' = 'month'
 ): Promise<FactoryDashboard> {
   const now = new Date();
-  
+
   // 计算当前周期的日期范围
   let currentPeriodStart: Date;
   if (period === 'week') {
@@ -868,7 +868,7 @@ export async function getBusinessStaffDashboard(
   period: 'week' | 'month' = 'month'
 ): Promise<BusinessStaffDashboard> {
   const now = new Date();
-  
+
   // 计算当前周期的日期范围
   let currentPeriodStart: Date;
   if (period === 'week') {
@@ -1572,7 +1572,7 @@ export interface ROIAnalysisData {
  */
 export async function getRoiAnalysis(brandId: string): Promise<ROIAnalysisData> {
   // ==================== 按商务统计 ROI ====================
-  
+
   const staffMembers = await prisma.user.findMany({
     where: {
       brandId,
@@ -2208,7 +2208,7 @@ async function calculateROIScore(
     }
 
     // 计算总GMV
-    const totalGmv = collab.result.gmv || 0;
+    const totalGmv = collab.result.salesGmv || 0;
 
     // 计算ROI
     if (totalCost > 0) {
@@ -2281,7 +2281,7 @@ async function calculateEfficiencyScore(
   const now = new Date();
 
   // 1. 计算平均推进速度 (0-50分)
-  const completedCollabs = collaborations.filter(c => 
+  const completedCollabs = collaborations.filter(c =>
     c.stage === 'PUBLISHED' || c.stage === 'REVIEWED'
   );
 
@@ -2331,8 +2331,8 @@ async function calculateEfficiencyScore(
  * 简化版：基于当前评分生成模拟趋势数据
  */
 async function getScoreTrend(
-  staffId: string,
-  brandId: string,
+  _staffId: string,
+  _brandId: string,
   currentScores: {
     overall: number;
     followUpFrequency: number;
@@ -2896,7 +2896,7 @@ export interface SmartAlertsResponse {
  * 生成每日工作摘要、异常预警和重要节点提醒
  * Requirements: FR-1.3
  */
-export async function getSmartAlerts(brandId: string, userId?: string): Promise<SmartAlertsResponse> {
+export async function getSmartAlerts(brandId: string, _userId?: string): Promise<SmartAlertsResponse> {
   const now = new Date();
   const alerts: SmartAlert[] = [];
 
@@ -2946,7 +2946,7 @@ export async function getSmartAlerts(brandId: string, userId?: string): Promise<
   }
 
   // ==================== 2. 异常预警 ====================
-  
+
   // 2.1 超期合作预警
   const overdueCollaborations = await prisma.collaboration.findMany({
     where: {
@@ -3126,7 +3126,7 @@ export async function getSmartAlerts(brandId: string, userId?: string): Promise<
   }
 
   // ==================== 3. 重要节点提醒 ====================
-  
+
   // 3.1 即将到期的合作（3天内）
   const threeDaysLater = new Date();
   threeDaysLater.setDate(threeDaysLater.getDate() + 3);
@@ -3294,7 +3294,7 @@ export async function getSmartAlerts(brandId: string, userId?: string): Promise<
     const priorityOrder = { high: 3, medium: 2, low: 1 };
     const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
     if (priorityDiff !== 0) return priorityDiff;
-    
+
     // 优先级相同，按时间排序（新的在前）
     return b.timestamp.getTime() - a.timestamp.getTime();
   });
@@ -3680,17 +3680,17 @@ export async function getWorkStats(
   period: 'today' | 'week' | 'month' = 'week'
 ): Promise<WorkStatsResponse> {
   const now = new Date();
-  
+
   // 计算当前周期的日期范围
   let currentPeriodStart: Date;
   let previousPeriodStart: Date;
   let previousPeriodEnd: Date;
-  
+
   if (period === 'today') {
     // 今日
     currentPeriodStart = new Date(now);
     currentPeriodStart.setHours(0, 0, 0, 0);
-    
+
     // 昨日
     previousPeriodStart = new Date(currentPeriodStart);
     previousPeriodStart.setDate(previousPeriodStart.getDate() - 1);
@@ -3703,7 +3703,7 @@ export async function getWorkStats(
     currentPeriodStart = new Date(now);
     currentPeriodStart.setDate(now.getDate() - diff);
     currentPeriodStart.setHours(0, 0, 0, 0);
-    
+
     // 上周
     previousPeriodStart = new Date(currentPeriodStart);
     previousPeriodStart.setDate(previousPeriodStart.getDate() - 7);
@@ -3712,7 +3712,7 @@ export async function getWorkStats(
   } else {
     // 本月开始
     currentPeriodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    
+
     // 上月
     previousPeriodStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     previousPeriodEnd = new Date(currentPeriodStart);
@@ -3937,7 +3937,7 @@ export async function getWorkStats(
   } else {
     // 本月趋势：按周统计
     const weeksInMonth = Math.ceil((now.getDate() - currentPeriodStart.getDate() + 1) / 7);
-    
+
     for (let i = 0; i < Math.min(weeksInMonth, 4); i++) {
       const weekStart = new Date(currentPeriodStart);
       weekStart.setDate(weekStart.getDate() + i * 7);

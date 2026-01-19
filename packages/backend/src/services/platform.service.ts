@@ -30,7 +30,7 @@ export interface FactoryWithOwner {
   owner: {
     id: string;
     name: string;
-    email: string;
+    email: string | null;  // 邮箱可选
   };
   _count?: {
     staff: number;
@@ -673,7 +673,7 @@ export async function getPlatformDetailedStats(startDate?: Date, endDate?: Date)
 export interface BrandStaffMember {
   id: string;
   name: string;
-  email: string;
+  email: string | null;  // 邮箱可选
   role: string;
   createdAt: Date;
   _count?: {
@@ -685,7 +685,7 @@ export interface BrandStaffMember {
 export interface StaffWorkStats {
   id: string;
   name: string;
-  email: string;
+  email: string | null;  // 邮箱可选
   role: string;
   brandId: string;
   factoryName: string;
@@ -1379,7 +1379,7 @@ export async function getInfluencerStats(startDate?: Date, endDate?: Date): Prom
       OTHER: byPlatform.find((p) => p.platform === 'OTHER')?._count || 0,
     },
     topFactories: byFactory.map((f) => ({
-      brandId: f.brandId,
+      factoryId: f.brandId,
       factoryName: factoryMap.get(f.brandId) || '未知工厂',
       count: f._count,
     })),
@@ -1392,7 +1392,7 @@ export async function getInfluencerStats(startDate?: Date, endDate?: Date): Prom
 export interface UserListItem {
   id: string;
   name: string;
-  email: string;
+  email: string | null;  // 邮箱可选
   phone?: string | null;  // 手机号
   role: string;
   brandId?: string;

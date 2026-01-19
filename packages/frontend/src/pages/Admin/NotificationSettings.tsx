@@ -339,7 +339,7 @@ const NotificationSettings: React.FC = () => {
                         <Paragraph style={{ color: 'rgba(255,255,255,0.9)', whiteSpace: 'pre-wrap' }}>
                             {currentTemplate.content}
                         </Paragraph>
-                        {currentTemplate.metadata?.showQrCode && (
+                        {(currentTemplate.metadata?.showQrCode as boolean) && (
                             <div
                                 style={{
                                     marginTop: 16,
@@ -350,7 +350,7 @@ const NotificationSettings: React.FC = () => {
                                 }}
                             >
                                 <img
-                                    src={currentTemplate.metadata.qrCodeUrl as string}
+                                    src={currentTemplate.metadata?.qrCodeUrl as string}
                                     alt="WeChat QR"
                                     style={{ maxWidth: 150, borderRadius: 8 }}
                                 />

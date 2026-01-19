@@ -21,6 +21,7 @@ interface BentoCardProps {
     subtitle?: string;
     extra?: React.ReactNode;
     span?: 1 | 2 | 3 | 4 | 5 | 6; // 扩展 span 支持
+    variant?: 'default' | 'deep'; // 支持 deep 主题变体
 }
 
 export const BentoCard: React.FC<BentoCardProps> = ({
@@ -30,6 +31,7 @@ export const BentoCard: React.FC<BentoCardProps> = ({
     subtitle,
     extra,
     span = 1,
+    variant = 'default',
 }) => {
     const spanClass = {
         1: 'col-span-1',
@@ -40,18 +42,31 @@ export const BentoCard: React.FC<BentoCardProps> = ({
         6: 'col-span-1 md:col-span-6', // 全宽
     }[span];
 
+    // variant 样式
+    const variantStyles = variant === 'deep'
+        ? 'bg-slate-900/60 backdrop-blur-lg border border-slate-700/30 text-slate-200'
+        : '';
+
+    const titleClass = variant === 'deep'
+        ? 'text-lg font-bold text-slate-100 tracking-tight leading-tight'
+        : 'text-lg font-bold text-neutral-900 tracking-tight leading-tight';
+
+    const subtitleClass = variant === 'deep'
+        ? 'text-sm text-slate-400 mt-1'
+        : 'text-sm text-neutral-500 mt-1';
+
     return (
-        <div className={`bento-card flex flex-col ${spanClass} ${className}`}>
+        <div className={`bento-card flex flex-col ${spanClass} ${variantStyles} ${className}`}>
             {(title || extra) && (
                 <div className="flex items-center justify-between mb-6">
                     <div>
                         {title && (
-                            <h3 className="text-lg font-bold text-neutral-900 tracking-tight leading-tight">
+                            <h3 className={titleClass}>
                                 {title}
                             </h3>
                         )}
                         {subtitle && (
-                            <p className="text-sm text-neutral-500 mt-1">
+                            <p className={subtitleClass}>
                                 {subtitle}
                             </p>
                         )}

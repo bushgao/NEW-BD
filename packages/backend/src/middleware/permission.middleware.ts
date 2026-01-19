@@ -17,7 +17,7 @@ import prisma from '../lib/prisma';
  * router.post('/samples', authenticate, checkPermission('operations.manageSamples'), createSample);
  */
 export function checkPermission(permission: string) {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       const user = req.user;
 
@@ -51,10 +51,7 @@ export function checkPermission(permission: string) {
         const permissions = userWithPermissions?.permissions as StaffPermissions | null;
 
         if (!hasPermission(permissions, permission)) {
-          throw createForbiddenError('您没有权限执行此操作', {
-            permission,
-            message: '请联系工厂老板开通权限',
-          });
+          throw createForbiddenError('您没有权限执行此操作，请联系工厂老板开通权限');
         }
       }
 
@@ -77,7 +74,7 @@ export function checkPermission(permission: string) {
  * router.get('/influencers', authenticate, filterByPermission('dataVisibility.viewOthersInfluencers'), getInfluencers);
  */
 export function filterByPermission(permission: string) {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       const user = req.user;
 
@@ -134,7 +131,7 @@ export function filterByPermission(permission: string) {
  * @returns Express 中间件
  */
 export function checkStaffDataAccess() {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       const user = req.user;
       const targetStaffId = req.params.staffId || req.params.id;

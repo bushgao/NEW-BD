@@ -3,7 +3,6 @@ import {
   createBadRequestError,
   createNotFoundError,
   createConflictError,
-  createQuotaExceededError,
 } from '../middleware/errorHandler';
 import type { Platform, PipelineStage, Pagination, PaginatedResult } from '@ics/shared';
 
@@ -617,7 +616,7 @@ export async function getSmartRecommendations(
     const lastCollab = influencer.collaborations[0];
     if (lastCollab && lastCollab.result) {
       const result = lastCollab.result;
-      const roi = result.salesGmv && result.cost ? (result.salesGmv / result.cost - 1) * 100 : 0;
+      const roi = result.salesGmv && result.totalCollaborationCost ? (result.salesGmv / result.totalCollaborationCost - 1) * 100 : 0;
 
       if (roi > 0) {
         recommendations.push({

@@ -43,7 +43,7 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
     req.user = payload;
     next();
   } catch (error) {
-    console.log('[Auth Middleware] ❌ Authentication failed:', error.message);
+    console.log('[Auth Middleware] ❌ Authentication failed:', (error as Error).message);
     next(error);
   }
 }

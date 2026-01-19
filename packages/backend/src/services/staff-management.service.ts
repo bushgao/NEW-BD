@@ -19,7 +19,7 @@ import {
 export interface StaffMember {
   id: string;
   name: string;
-  email: string;
+  email: string | null;  // 邮箱可选
   phone?: string | null;  // 手机号
   status: 'ACTIVE' | 'DISABLED';
   createdAt: Date;
@@ -81,7 +81,7 @@ export async function getStaffPermissions(
     throw createNotFoundError('商务账号不存在');
   }
 
-  const permissions = (user.permissions as StaffPermissions) || PERMISSION_TEMPLATES.basic.permissions;
+  const permissions = (user.permissions as unknown as StaffPermissions) || PERMISSION_TEMPLATES.basic.permissions;
   const template = identifyTemplate(permissions);
 
   return {
@@ -114,7 +114,7 @@ export async function updateStaffPermissions(
   const updatedUser = await prisma.user.update({
     where: { id: staffId },
     data: {
-      permissions,
+      permissions: permissions as any,
     },
     select: {
       id: true,
@@ -349,7 +349,7 @@ export async function createStaff(
   // email 现在是可选的，不再生成假邮箱
   const user = await prisma.user.create({
     data: {
-      email: email || undefined, // 邮箱可选
+      email: email || null, // 邮箱可选
       phone,
       passwordHash,
       name,
