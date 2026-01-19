@@ -1,0 +1,1 @@
+import{r as t}from"./api-W_2ufh2E.js";async function o(n){return t("post","/auth/login/email",n)}async function s(n){return t("post","/auth/login",n)}async function a(n){return t("post","/auth/register",n)}export{o as a,s as l,a as r};

@@ -19,7 +19,13 @@ const handleValidationErrors = (req: Request, _res: Response, next: NextFunction
 
 // Validation rules
 const registerValidation = [
+  body('phone')
+    .notEmpty()
+    .withMessage('请输入手机号')
+    .matches(/^1[3-9]\d{9}$/)
+    .withMessage('请输入有效的中国手机号'),
   body('email')
+    .optional()
     .isEmail()
     .withMessage('请输入有效的邮箱地址')
     .normalizeEmail(),

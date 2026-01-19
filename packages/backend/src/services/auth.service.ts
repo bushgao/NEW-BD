@@ -173,8 +173,8 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
     const result = await prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
-          email: email!, // 品牌用户必须提供邮箱
-          phone, // 保存手机号
+          email: email || undefined, // 邮箱可选
+          phone, // 保存手机号（用于登录）
           passwordHash,
           name,
           role,
@@ -210,8 +210,8 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
       // 1. 创建用户
       const newUser = await tx.user.create({
         data: {
-          email: email!, // 独立商务必须提供邮箱
-          phone, // 保存手机号
+          email: email || undefined, // 邮箱可选
+          phone, // 保存手机号（用于登录）
           passwordHash,
           name,
           role,

@@ -1,0 +1,1 @@
+function o(n){return(n/100).toLocaleString("zh-CN",{minimumFractionDigits:2,maximumFractionDigits:2})}function r(n){return Math.round(n*100)}function a(n){return`${(n*100).toFixed(1)}%`}function i(n){return`${n.toFixed(2)}x`}export{a,i as b,o as f,r as p};
