@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { createUnauthorizedError, createConflictError, createBadRequestError } from '../middleware/errorHandler';
 import type { UserRole, AuthToken, TokenPayload } from '@ics/shared';
+import { createWelcomeNotification, seedDefaultTemplates } from './notification-template.service';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-super-secret-refresh-key';
@@ -173,6 +174,7 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
       const newUser = await tx.user.create({
         data: {
           email: email!, // 品牌用户必须提供邮箱
+          phone, // 保存手机号
           passwordHash,
           name,
           role,
@@ -209,6 +211,7 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
       const newUser = await tx.user.create({
         data: {
           email: email!, // 独立商务必须提供邮箱
+          phone, // 保存手机号
           passwordHash,
           name,
           role,
@@ -248,7 +251,7 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
       // 1. 创建用户并关联到邀请方品牌
       const newUser = await tx.user.create({
         data: {
-          email: email || `invited_${Date.now()}@temp.local`, // 邮箱可选
+          email: email || undefined, // 邮箱可选，不再生成假邮箱
           phone,
           passwordHash,
           name,
@@ -281,7 +284,7 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
     // BUSINESS 加入已有品牌，或其他角色
     user = await prisma.user.create({
       data: {
-        email: email || `user_${Date.now()}@temp.local`,
+        email: email || undefined, // 邮箱可选，不再生成假邮箱
         phone,
         passwordHash,
         name,
@@ -307,6 +310,17 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
   };
 
   const tokens = generateTokens(userWithoutPassword);
+
+  // 发送欢迎通知（异步执行，不阻塞注册流程）
+  try {
+    // 确保默认模板存在
+    await seedDefaultTemplates();
+    await createWelcomeNotification(user.id);
+    console.log('[register] ✅ Welcome notification sent to user:', user.id);
+  } catch (err) {
+    console.error('[register] ⚠️ Failed to send welcome notification:', err);
+    // 不抛出错误，注册流程不应该因为通知失败而中断
+  }
 
   return { user: userWithoutPassword, tokens };
 }
@@ -526,8 +540,9 @@ export function verifyToken(token: string): TokenPayload {
     console.log('[verifyToken] ✅ Token valid, payload:', payload);
     return payload;
   } catch (error) {
-    console.log('[verifyToken] ❌ Verification failed:', error.message);
-    console.log('[verifyToken] Error type:', error.constructor.name);
+    const err = error as Error;
+    console.log('[verifyToken] ❌ Verification failed:', err.message);
+    console.log('[verifyToken] Error type:', err.constructor?.name);
 
     if (error instanceof jwt.TokenExpiredError) {
       throw createUnauthorizedError('登录已过期，请重新登录');
@@ -619,32 +634,42 @@ export async function getCurrentUser(userId: string): Promise<UserWithoutPasswor
   // BRAND (formerly FACTORY_OWNER) - use ownedBrand
   if (user.role === 'BRAND' && user.ownedBrand) {
     brandId = user.ownedBrand.id;
+    const brand = user.ownedBrand as typeof user.ownedBrand & {
+      planExpiresAt?: Date | null;
+      isPaid?: boolean;
+      isLocked?: boolean;
+    };
     factoryInfo = {
-      id: user.ownedBrand.id,
-      name: user.ownedBrand.name,
-      status: user.ownedBrand.status,
-      planType: user.ownedBrand.planType,
-      planExpiresAt: user.ownedBrand.planExpiresAt,
-      isPaid: user.ownedBrand.isPaid,
-      isLocked: user.ownedBrand.isLocked,
-      staffLimit: user.ownedBrand.staffLimit,
-      influencerLimit: user.ownedBrand.influencerLimit,
-      _count: user.ownedBrand._count,
+      id: brand.id,
+      name: brand.name,
+      status: brand.status,
+      planType: brand.planType,
+      planExpiresAt: brand.planExpiresAt,
+      isPaid: brand.isPaid,
+      isLocked: brand.isLocked,
+      staffLimit: brand.staffLimit,
+      influencerLimit: brand.influencerLimit,
+      _count: brand._count,
     };
   }
   // BUSINESS (formerly BUSINESS_STAFF) - use factory relation
   else if (user.role === 'BUSINESS' && user.brand) {
+    const brand = user.brand as typeof user.brand & {
+      planExpiresAt?: Date | null;
+      isPaid?: boolean;
+      isLocked?: boolean;
+    };
     factoryInfo = {
-      id: user.brand.id,
-      name: user.brand.name,
-      status: user.brand.status,
-      planType: user.brand.planType,
-      planExpiresAt: user.brand.planExpiresAt,
-      isPaid: user.brand.isPaid,
-      isLocked: user.brand.isLocked,
-      staffLimit: user.brand.staffLimit,
-      influencerLimit: user.brand.influencerLimit,
-      _count: user.brand._count,
+      id: brand.id,
+      name: brand.name,
+      status: brand.status,
+      planType: brand.planType,
+      planExpiresAt: brand.planExpiresAt,
+      isPaid: brand.isPaid,
+      isLocked: brand.isLocked,
+      staffLimit: brand.staffLimit,
+      influencerLimit: brand.influencerLimit,
+      _count: brand._count,
     };
   }
 

@@ -18,6 +18,7 @@ import {
   CalculatorOutlined,
   CloudUploadOutlined,
   ChromeOutlined,
+  BellOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useAuthStore } from '../stores/authStore';
@@ -99,11 +100,7 @@ const getMenuItems = (
       icon: <TeamOutlined />,
       label: '团队管理',
     },
-    {
-      key: '/app/plugin',
-      icon: <ChromeOutlined />,
-      label: '插件使用',
-    },
+    // 注意：插件使用已在 businessItems 中，BRAND 用户会合并两个数组
   ];
 
   const adminItems = [
@@ -143,24 +140,25 @@ const getMenuItems = (
       label: '用户管理',
     },
     {
+      key: '/app/admin/notification-settings',
+      icon: <BellOutlined />,
+      label: '消息设置',
+    },
+    {
       key: '/app/admin/plugin',
       icon: <ChromeOutlined />,
       label: '插件使用',
     },
   ];
 
-  // 独立商务额外显示的菜单项（只显示样品管理，数据报表对单人无意义）
+  // 独立商务额外显示的菜单项（只显示样品管理，插件使用已在 businessItems 中）
   const independentItems = [
     {
       key: '/app/samples',
       icon: <GiftOutlined />,
       label: '样品管理',
     },
-    {
-      key: '/app/plugin',
-      icon: <ChromeOutlined />,
-      label: '插件使用',
-    },
+    // 注意：插件使用已在 businessItems 中
   ];
 
   // 根据权限动态生成商务可见的额外菜单

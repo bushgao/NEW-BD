@@ -9,7 +9,7 @@ const Footer: React.FC = () => {
 
                 {/* Single Row: Logo + Description */}
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="p-1.5 bg-slate-800 rounded-lg border border-slate-700">
+                    <div className="w-7 h-7 flex items-center justify-center bg-slate-800 rounded-lg border border-slate-700 flex-shrink-0">
                         <Layers className="w-4 h-4 text-indigo-400" />
                     </div>
                     <span className="text-lg font-display font-bold text-white tracking-tight">Zilo</span>

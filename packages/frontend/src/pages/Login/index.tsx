@@ -62,8 +62,8 @@ const LoginPage = () => {
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-center px-16 text-white">
           {/* Logo */}
-          <div className="flex items-center gap-3 mb-12">
-            <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur-sm border border-white/20">
+          <div className="flex items-center gap-3 mb-12 w-fit">
+            <div className="w-12 h-12 flex items-center justify-center bg-white/10 rounded-xl backdrop-blur-sm border border-white/20 flex-shrink-0">
               <Layers className="w-7 h-7 text-white" />
             </div>
             <span className="text-3xl font-bold tracking-tight">Zilo</span>
@@ -115,8 +115,8 @@ const LoginPage = () => {
       <div className="flex-1 flex items-center justify-center bg-white px-6 py-12">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center gap-2 mb-10 justify-center">
-            <div className="p-2 bg-indigo-50 rounded-xl border border-indigo-100">
+          <div className="lg:hidden flex items-center gap-2 mb-10 justify-center w-fit mx-auto">
+            <div className="w-10 h-10 flex items-center justify-center bg-indigo-50 rounded-xl border border-indigo-100 flex-shrink-0">
               <Layers className="w-6 h-6 text-indigo-600" />
             </div>
             <span className="text-2xl font-bold text-slate-900">Zilo</span>

@@ -278,19 +278,13 @@ export interface TargetedInvitationInfo extends InvitationInfo {
 
 /**
  * 根据手机号查找独立商务用户
- * 注意：用户可能通过手机号注册，此时 email 格式为 ${phone}@phone.local，phone 字段可能为空
+ * 更新：现在只按 phone 字段搜索，不再使用假邮箱格式
  */
 export async function findIndependentBusinessByPhone(phone: string) {
-    // 构建虚拟邮箱格式（手机号注册时的格式）
-    const virtualEmail = `${phone}@phone.local`;
-
-    // 同时搜索 phone 字段和 email 字段
+    // 直接按 phone 字段搜索
     const anyUser = await prisma.user.findFirst({
         where: {
-            OR: [
-                { phone: phone },
-                { email: virtualEmail },
-            ],
+            phone: phone,
         },
         select: {
             id: true,

@@ -26,11 +26,17 @@ import {
 } from '@ant-design/icons';
 import * as notificationService from '../../services/notification.service';
 import type { Notification } from '../../services/notification.service';
+import { WechatOutlined } from '@ant-design/icons';
 
 const { Text, Paragraph } = Typography;
 
 // 通知类型配置
 const NOTIFICATION_TYPE_CONFIG: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
+  WELCOME: {
+    icon: <WechatOutlined />,
+    color: 'success',
+    label: '欢迎消息',
+  },
   DEADLINE_APPROACHING: {
     icon: <ClockCircleOutlined />,
     color: 'warning',
@@ -196,6 +202,7 @@ const NotificationsPage = () => {
   // 渲染通知项
   const renderNotificationItem = (item: Notification) => {
     const typeConfig = getTypeConfig(item.type);
+    const isWelcome = item.type === 'WELCOME';
 
     return (
       <List.Item
@@ -258,14 +265,42 @@ const NotificationsPage = () => {
           description={
             <div>
               <Paragraph
-                style={{ marginBottom: 4, color: item.isRead ? '#999' : '#333' }}
-                ellipsis={{ rows: 2 }}
+                style={{ marginBottom: 4, color: item.isRead ? '#999' : '#333', whiteSpace: 'pre-wrap' }}
+                ellipsis={isWelcome ? false : { rows: 2 }}
               >
                 {item.content}
               </Paragraph>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                {formatTime(item.createdAt)}
-              </Text>
+              {/* 欢迎消息显示微信二维码 */}
+              {isWelcome && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: 16,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    borderRadius: 12,
+                    display: 'inline-block',
+                  }}
+                >
+                  <img
+                    src="/wechat-demo-qr.jpg"
+                    alt="WeChat QR Code"
+                    style={{
+                      width: 120,
+                      height: 120,
+                      borderRadius: 8,
+                      display: 'block',
+                    }}
+                  />
+                  <div style={{ color: 'white', fontSize: 12, textAlign: 'center', marginTop: 8 }}>
+                    扫码添加微信
+                  </div>
+                </div>
+              )}
+              <div style={{ marginTop: 8 }}>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {formatTime(item.createdAt)}
+                </Text>
+              </div>
             </div>
           }
         />

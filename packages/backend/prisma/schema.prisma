@@ -108,11 +108,11 @@ enum InvitationStatus {
 // Models
 model User {
   id           String     @id @default(uuid())
-  email        String     @unique
+  email        String?    @unique  // 邮箱（可选，但如果提供则唯一）
   passwordHash String
   name         String
-  phone        String?    // 手机号（必填）
-  wechat       String?    // 微信号（必填）
+  phone        String?    @unique  // 手机号（可选，但如果提供则唯一）
+  wechat       String?    // 微信号
   role         UserRole
   brandId    String?
   
@@ -449,6 +449,18 @@ model Notification {
   @@index([userId])
   @@index([isRead])
   @@index([createdAt])
+}
+
+// 通知模板配置（管理员可编辑）
+model NotificationTemplate {
+  id          String   @id @default(uuid())
+  type        String   @unique  // 通知类型，如 "WELCOME", "DEADLINE_APPROACHING"
+  title       String            // 模板标题
+  content     String   @db.Text // 模板内容（支持变量替换）
+  isEnabled   Boolean  @default(true)  // 是否启用
+  metadata    Json?    // 额外配置，如二维码URL等
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model PlanConfig {

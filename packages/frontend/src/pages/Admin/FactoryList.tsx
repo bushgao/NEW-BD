@@ -286,11 +286,23 @@ const FactoryList = ({ onRefresh }: FactoryListProps) => {
       width: 100,
     },
     {
+      title: '手机号',
+      dataIndex: ['owner', 'phone'],
+      key: 'ownerPhone',
+      width: 130,
+      render: (phone: string | null) => phone || '-',
+    },
+    {
       title: '邮箱',
       dataIndex: ['owner', 'email'],
       key: 'ownerEmail',
       width: 180,
       ellipsis: true,
+      render: (email: string | null) => {
+        if (!email) return '-';
+        if (email.includes('@phone.local') || email.includes('@temp.local')) return '-';
+        return email;
+      },
     },
     {
       title: '状态',

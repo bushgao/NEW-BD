@@ -346,12 +346,10 @@ export async function createStaff(
   const passwordHash = await bcrypt.hash(password, 12);
 
   // 创建商务账号
-  // 如果没有邮箱，使用手机号生成虚拟邮箱
-  const userEmail = email || `${phone}@phone.local`;
-
+  // email 现在是可选的，不再生成假邮箱
   const user = await prisma.user.create({
     data: {
-      email: userEmail,
+      email: email || undefined, // 邮箱可选
       phone,
       passwordHash,
       name,

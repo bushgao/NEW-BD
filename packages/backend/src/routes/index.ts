@@ -8,6 +8,7 @@ import reportRoutes from './report.routes';
 import platformRoutes from './platform.routes';
 import importExportRoutes from './import-export.routes';
 import notificationRoutes from './notification.routes';
+import notificationTemplateRoutes from './notification-template.routes';
 import staffManagementRoutes from './staff-management.routes';
 import userRoutes from './user.routes';
 import globalInfluencerRoutes from './global-influencer.routes';
@@ -57,6 +58,9 @@ router.use('/', importExportRoutes);
 
 // Notification routes
 router.use('/notifications', notificationRoutes);
+
+// Notification template routes (admin only)
+router.use('/notification-templates', notificationTemplateRoutes);
 
 // Staff management routes (factory owner only)
 router.use('/staff', staffManagementRoutes);

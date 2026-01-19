@@ -19,15 +19,15 @@ const LandingPage = () => {
         // Global text color boosted from default to slate-700/900 for legibility
         <div className="min-h-screen flex flex-col font-sans bg-white text-slate-900 selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
             {/* Navigation - Light Mode */}
-            <nav className="fixed w-full z-50 transition-all duration-300 bg-white/90 backdrop-blur-md border-b border-slate-100">
-                <div className="w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <nav className="fixed w-full z-50 transition-all duration-300 bg-white/70 backdrop-blur-xl border-b border-slate-100/80">
+                <div className="w-full max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-50 rounded-xl border border-indigo-100">
-                            <Layers className="w-5 h-5 text-indigo-700" />
+                        <div className="w-9 h-9 flex-shrink-0 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center justify-center">
+                            <Layers className="w-5 h-5 text-indigo-700 flex-shrink-0" />
                         </div>
                         <span className="text-xl font-display font-bold text-slate-900 tracking-tight">Zilo</span>
                     </div>
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-4">
                         <button
                             onClick={handleLoginClick}
                             className="text-slate-700 hover:text-indigo-700 transition-colors text-sm font-bold hidden md:block border-0 bg-transparent cursor-pointer"
@@ -36,7 +36,7 @@ const LandingPage = () => {
                         </button>
                         <button
                             onClick={handleLoginClick}
-                            className="bg-slate-900 hover:bg-black text-white px-5 py-2 rounded-full text-sm font-bold transition-all hover:scale-105 border-0 cursor-pointer shadow-lg shadow-slate-200"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-full text-sm font-bold transition-all hover:scale-105 border-0 cursor-pointer shadow-lg shadow-indigo-200"
                         >
                             免费试用
                         </button>

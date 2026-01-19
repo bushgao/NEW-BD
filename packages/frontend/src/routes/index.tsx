@@ -31,6 +31,7 @@ const RoiCalculatorPage = lazy(() => import('../pages/RoiCalculator'));
 const AdminInfluencerCollection = lazy(() => import('../pages/Admin/InfluencerCollection'));
 const InfluencerSquarePage = lazy(() => import('../pages/InfluencerSquare'));
 const PluginUsagePage = lazy(() => import('../pages/PluginUsage'));
+const NotificationSettingsPage = lazy(() => import('../pages/Admin/NotificationSettings'));
 
 // 平台管理员登录页面
 const AdminLoginPage = lazy(() => import('../pages/AdminLogin'));
@@ -362,6 +363,7 @@ const AppRoutes = () => {
           <Route path="collection" element={<AdminInfluencerCollection />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="plugin" element={<PluginUsagePage />} />
+          <Route path="notification-settings" element={<NotificationSettingsPage />} />
         </Route>
 
         {/* Notifications for admin - using admin auth */}
