@@ -38,9 +38,12 @@ app.use(cors({
       return callback(null, true);
     }
 
-    // 生产环境可以从环境变量读取
-    if (process.env.CORS_ORIGIN && origin === process.env.CORS_ORIGIN) {
-      return callback(null, true);
+    // 生产环境可以从环境变量读取（支持逗号分隔的多个域名）
+    if (process.env.CORS_ORIGIN) {
+      const envOrigins = process.env.CORS_ORIGIN.split(',').map(o => o.trim());
+      if (envOrigins.includes(origin)) {
+        return callback(null, true);
+      }
     }
 
     callback(new Error('Not allowed by CORS'));
