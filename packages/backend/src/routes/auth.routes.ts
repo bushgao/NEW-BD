@@ -76,7 +76,7 @@ router.post(
   handleValidationErrors,
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
-      const { email, password, name, role, brandId, brandName } = req.body;
+      const { email, password, name, role, brandId, brandName, phone } = req.body;
 
       // 如果是商务人员加入工厂，检查工厂的商务账号配额
       if (role === 'BUSINESS' && brandId) {
@@ -91,6 +91,7 @@ router.post(
         role: role as UserRole,
         brandId,
         factoryName: brandName, // 前端传 brandName，服务层还是用 factoryName
+        phone, // 🔑 传递手机号到服务层
       });
 
       res.status(201).json({

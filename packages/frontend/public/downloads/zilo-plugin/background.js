@@ -2,7 +2,7 @@
 
 // 默认配置
 const DEFAULT_CONFIG = {
-  apiUrl: 'https://zilohq.com/api',
+  apiUrl: 'http://localhost:3000/api',
   token: '',
 };
 

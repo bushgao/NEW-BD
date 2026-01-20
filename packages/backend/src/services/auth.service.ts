@@ -181,12 +181,19 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
         },
       });
 
+      // 创建品牌（免费版30天试用）
+      const trialExpiresAt = new Date();
+      trialExpiresAt.setDate(trialExpiresAt.getDate() + 30); // 30天后到期
+
       const newBrand = await tx.brand.create({
         data: {
           name: factoryName!,
           ownerId: newUser.id,
           status: 'PENDING',
           planType: 'FREE',
+          staffLimit: 1,
+          influencerLimit: 50,
+          planExpiresAt: trialExpiresAt, // 免费试用30天
         },
       });
 
@@ -204,7 +211,7 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
     });
 
     user = result;
-  } else if (role === 'BUSINESS' && !brandId) {
+  } else if (role === 'BUSINESS' && !brandId && !invitationCode) {
     // 独立商务注册：自动创建个人品牌，让商务可以完整使用系统功能
     const result = await prisma.$transaction(async (tx) => {
       // 1. 创建用户
@@ -219,7 +226,10 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
         },
       });
 
-      // 2. 为独立商务创建个人品牌
+      // 2. 为独立商务创建个人品牌（免费版30天试用）
+      const trialExpiresAt = new Date();
+      trialExpiresAt.setDate(trialExpiresAt.getDate() + 30); // 30天后到期
+
       const personalBrand = await tx.brand.create({
         data: {
           name: `个人工作区 - ${name}`,
@@ -227,7 +237,8 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
           status: 'APPROVED', // 个人品牌自动审核通过
           planType: 'FREE',
           staffLimit: 1,
-          influencerLimit: 50, // 独立商务限制较低
+          influencerLimit: 50,
+          planExpiresAt: trialExpiresAt, // 免费试用30天
         },
       });
 

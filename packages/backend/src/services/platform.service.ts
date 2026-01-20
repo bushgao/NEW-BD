@@ -31,6 +31,7 @@ export interface FactoryWithOwner {
     id: string;
     name: string;
     email: string | null;  // 邮箱可选
+    phone: string | null;  // 手机号
   };
   _count?: {
     staff: number;
@@ -143,6 +144,7 @@ export async function listFactories(
             id: true,
             name: true,
             email: true,
+            phone: true,
           },
         },
         _count: {
@@ -181,6 +183,7 @@ export async function getFactoryById(brandId: string): Promise<FactoryWithOwner>
           id: true,
           name: true,
           email: true,
+          phone: true,
         },
       },
       _count: {
@@ -232,6 +235,7 @@ export async function reviewFactory(
           id: true,
           name: true,
           email: true,
+          phone: true,
         },
       },
       _count: {
@@ -271,6 +275,7 @@ export async function updateFactory(
           id: true,
           name: true,
           email: true,
+          phone: true,
         },
       },
       _count: {
@@ -316,6 +321,7 @@ export async function toggleBrandStatus(
           id: true,
           name: true,
           email: true,
+          phone: true,
         },
       },
       _count: {
@@ -338,15 +344,25 @@ export async function deleteBrand(brandId: string): Promise<void> {
   // 先检查品牌是否存在
   const brand = await prisma.brand.findUnique({
     where: { id: brandId },
+    include: {
+      staff: { select: { id: true } },  // 获取所有商务人员ID
+    },
   });
 
   if (!brand) {
     throw createNotFoundError('品牌不存在');
   }
 
+  // 收集需要清理的商务人员ID
+  const staffIds = brand.staff.map(s => s.id);
+  const allUserIds = [...staffIds, brand.ownerId];
+
   // 使用事务删除品牌及关联数据
+  // 顺序说明：Brand.ownerId 引用 User，所以必须先删除 Brand 才能删除 User
   await prisma.$transaction(async (tx) => {
-    // 删除合作记录相关数据
+    // ========== 第一阶段：删除所有引用品牌或用户的子数据 ==========
+
+    // 1. 删除合作记录的子表
     await tx.stageHistory.deleteMany({
       where: { collaboration: { brandId } },
     });
@@ -359,45 +375,70 @@ export async function deleteBrand(brandId: string): Promise<void> {
     await tx.sampleDispatch.deleteMany({
       where: { collaboration: { brandId } },
     });
+
+    // 2. 删除合作记录
     await tx.collaboration.deleteMany({
       where: { brandId },
     });
 
-    // 删除达人记录
+    // 3. 删除达人记录
     await tx.influencer.deleteMany({
       where: { brandId },
     });
 
-    // 删除达人分组
+    // 4. 删除达人分组
     await tx.influencerGroup.deleteMany({
       where: { brandId },
     });
 
-    // 删除样品
+    // 5. 删除样品
     await tx.sample.deleteMany({
       where: { brandId },
     });
 
-    // 删除通知
+    // 6. 删除通知
     await tx.notification.deleteMany({
-      where: { user: { brandId } },
+      where: { userId: { in: allUserIds } },
     });
 
-    // 删除用户（商务人员）
-    await tx.user.deleteMany({
-      where: { brandId, role: 'BUSINESS' },
+    // 7. 删除邀请记录（引用 brandId 和 userId）
+    await tx.invitation.deleteMany({
+      where: { brandId },
     });
 
-    // 清除品牌负责人的 brandId（不删除用户）
+    // ========== 第二阶段：断开用户与品牌的关联 ==========
+
+    // 8. 清除所有商务人员的 brandId（断开关联，但暂不删除）
     await tx.user.updateMany({
+      where: { id: { in: staffIds } },
+      data: { brandId: null },
+    });
+
+    // 9. 清除品牌负责人的 brandId
+    await tx.user.update({
       where: { id: brand.ownerId },
       data: { brandId: null },
     });
 
-    // 删除品牌
+    // ========== 第三阶段：删除品牌 ==========
+
+    // 10. 删除品牌（现在 ownerId 引用的用户仍存在，品牌可以安全删除）
     await tx.brand.delete({
       where: { id: brandId },
     });
+
+    // ========== 第四阶段：删除商务用户（可选） ==========
+
+    // 11. 删除商务人员（品牌已删除，现在可以安全删除用户）
+    // 注意：品牌负责人不删除，只是断开关联
+    if (staffIds.length > 0) {
+      await tx.user.deleteMany({
+        where: {
+          id: { in: staffIds },
+          role: 'BUSINESS',
+        },
+      });
+    }
   });
 }
 
