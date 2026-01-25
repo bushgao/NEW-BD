@@ -25,6 +25,7 @@ import {
   DeleteOutlined,
   TagsOutlined,
   BulbOutlined,
+  WechatOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { Platform } from '@ics/shared';
@@ -58,6 +59,8 @@ import SmartRecommendations, { type RecommendedInfluencer } from './SmartRecomme
 import BatchOperations from './BatchOperations';
 import InfluencerDetailPanel from './InfluencerDetailPanel';
 import InfluencerGroups from './InfluencerGroups';
+// TODO: AddWeChatModal文件有编码问题，暂时禁用
+// import AddWeChatModal from './AddWeChatModal';
 // QuickAddModal 已废弃,改用 Chrome 浏览器插件实现达人采集
 // import QuickAddModal, { type QuickAddData } from './QuickAddModal';
 import { ExportButton } from '../Import';
@@ -98,6 +101,8 @@ const InfluencersPage = () => {
   const [tagsInfluencer, setTagsInfluencer] = useState<Influencer | null>(null);
   const [detailPanelVisible, setDetailPanelVisible] = useState(false);
   const [detailInfluencer, setDetailInfluencer] = useState<Influencer | null>(null);
+  const [addWeChatModalVisible, setAddWeChatModalVisible] = useState(false);
+  const [addWeChatTarget, setAddWeChatTarget] = useState<Influencer | null>(null);
   // const [quickAddModalVisible, setQuickAddModalVisible] = useState(false);
 
   // 配额检查
