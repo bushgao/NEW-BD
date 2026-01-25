@@ -135,19 +135,14 @@ export async function exportInfluencers(options: ExportOptions): Promise<Buffer>
     '昵称': inf.nickname,
     '平台': PLATFORM_NAMES[inf.platform],
     '平台账号ID': inf.platformId,
-    'UID': inf.uid || '',
-    '主页链接': inf.homeUrl || '',
     '手机号': inf.phone || '',
-    '微信号': inf.wechat || '',
-    '粉丝数': inf.followers || '',
-    '收件地址': inf.shippingAddress || '',
     '类目': inf.categories.join(', '),
     '标签': inf.tags.join(', '),
     '备注': inf.notes || '',
     '创建时间': formatDateTime(inf.createdAt),
   }));
 
-  return createExcelBuffer(data, '达人列表', [15, 10, 20, 15, 30, 15, 15, 15, 20, 20, 20, 30, 20]);
+  return createExcelBuffer(data, '达人列表', [15, 10, 20, 15, 20, 20, 30, 20]);
 }
 
 /**

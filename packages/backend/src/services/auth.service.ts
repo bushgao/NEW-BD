@@ -211,7 +211,7 @@ export async function register(data: RegisterInput): Promise<{ user: UserWithout
     });
 
     user = result;
-  } else if (role === 'BUSINESS' && !brandId && !invitationCode) {
+  } else if (role === 'BUSINESS' && !brandId) {
     // 独立商务注册：自动创建个人品牌，让商务可以完整使用系统功能
     const result = await prisma.$transaction(async (tx) => {
       // 1. 创建用户

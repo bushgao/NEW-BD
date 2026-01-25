@@ -51,12 +51,11 @@ const { Option } = Select;
 
 
 // 套餐预设配置
-// 核心原则：功能全开，只按团队规模区分
 const PLAN_PRESETS: Record<string, { staffLimit: number; influencerLimit: number; days: number }> = {
-  FREE: { staffLimit: 1, influencerLimit: 50, days: 30 },         // 免费版：30天试用
-  PERSONAL: { staffLimit: 1, influencerLimit: 100, days: 365 },   // 个人版：1年，¥399
-  PROFESSIONAL: { staffLimit: 5, influencerLimit: 500, days: 365 }, // 专业版：1年，¥699
-  ENTERPRISE: { staffLimit: 20, influencerLimit: 2000, days: 365 }, // 企业版：1年，¥999
+  FREE: { staffLimit: 3, influencerLimit: 100, days: 0 }, // 免费版无限期
+  PERSONAL: { staffLimit: 1, influencerLimit: 50, days: 30 }, // 个人版30天试用
+  PROFESSIONAL: { staffLimit: 10, influencerLimit: 500, days: 365 }, // 专业版1年
+  ENTERPRISE: { staffLimit: 50, influencerLimit: 2000, days: 365 }, // 企业版1年
 };
 
 interface FactoryListProps {
