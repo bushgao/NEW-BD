@@ -1,232 +1,306 @@
 /**
- * 微信一键添�?- Chrome 插件通信服务
- * 通过 postMessage �?Chrome 插件�?content script 通信
+ * 微信桥接服务
+ * 通过Chrome Native Messaging与本地微信自动化程序通信
  */
 
-// 检查插件是否已加载
-let pluginReady = false;
+// Chrome Extension API type declarations
+declare const chrome: {
+    runtime: {
+        connectNative: (hostName: string) => ChromePort;
+    };
+} | undefined;
 
-// 监听插件就绪消息
-window.addEventListener('message', (event) => {
-    if (event.data?.type === 'zilo-wechat-ready') {
-        pluginReady = true;
-        console.log('[WeChat Bridge] Chrome 插件已就�?);
+interface ChromePort {
+    postMessage: (message: unknown) => void;
+    onMessage: {
+        addListener: (callback: (message: unknown) => void) => void;
+    };
+    onDisconnect: {
+        addListener: (callback: () => void) => void;
+    };
+    disconnect: () => void;
+}
+
+const NATIVE_HOST_ID = 'com.ics.wechat_bridge';
+
+interface NativeMessage {
+    action: string;
+    [key: string]: unknown;
+}
+
+interface NativeResponse {
+    success: boolean;
+    message?: string;
+    data?: unknown;
+    error?: string;
+}
+
+interface WeChatWindow {
+    title: string;
+    handle: number;
+    display_name?: string;
+    nickname?: string;
+}
+
+let nativePort: ChromePort | null = null;
+let messageId = 0;
+const pendingMessages = new Map<number, { resolve: (value: NativeResponse) => void; reject: (reason: Error) => void }>();
+
+/**
+ * 检查Native Host是否可用
+ */
+export async function isPluginAvailable(): Promise<boolean> {
+    try {
+        if (typeof chrome === 'undefined' || !chrome.runtime) {
+            console.warn('Chrome extension API not available');
+            return false;
+        }
+        return true;
+    } catch {
+        return false;
     }
-});
+}
 
 /**
- * 检�?Chrome 插件是否可用
+ * 等待插件准备就绪
  */
-export const isPluginAvailable = (): boolean => {
-    return pluginReady;
-};
+export async function waitForPlugin(timeout = 5000): Promise<boolean> {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeout) {
+        if (await isPluginAvailable()) {
+            return true;
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    return false;
+}
 
 /**
- * 等待插件就绪
+ * 连接到Native Host
  */
-export const waitForPlugin = (timeout = 3000): Promise<boolean> => {
-    return new Promise((resolve) => {
-        if (pluginReady) {
-            resolve(true);
+function connectToNativeHost(): ChromePort | null {
+    try {
+        if (nativePort) {
+            return nativePort;
+        }
+
+        if (typeof chrome === 'undefined' || !chrome.runtime) {
+            return null;
+        }
+
+        nativePort = chrome.runtime.connectNative(NATIVE_HOST_ID);
+
+        nativePort.onMessage.addListener((response: unknown) => {
+            const res = response as NativeResponse & { id?: number };
+            if (res.id !== undefined && pendingMessages.has(res.id)) {
+                const { resolve } = pendingMessages.get(res.id)!;
+                pendingMessages.delete(res.id);
+                resolve(res);
+            }
+        });
+
+        nativePort.onDisconnect.addListener(() => {
+            console.log('Native host disconnected');
+            nativePort = null;
+
+            for (const [id, { reject }] of pendingMessages) {
+                reject(new Error('Native host disconnected'));
+                pendingMessages.delete(id);
+            }
+        });
+
+        return nativePort;
+    } catch (error) {
+        console.error('Failed to connect to native host:', error);
+        return null;
+    }
+}
+
+/**
+ * 发送消息到Native Host
+ */
+async function sendNativeMessage(message: NativeMessage): Promise<NativeResponse> {
+    return new Promise((resolve, reject) => {
+        const port = connectToNativeHost();
+
+        if (!port) {
+            reject(new Error('无法连接到微信助手，请确保已安装Chrome扩展'));
             return;
         }
 
-        const startTime = Date.now();
+        const id = ++messageId;
+        pendingMessages.set(id, { resolve, reject });
 
-        // 主动发�?ping 请求触发 ready 响应
-        const sendPing = () => {
-            window.postMessage({ type: 'zilo-wechat-ping' }, '*');
-        };
+        port.postMessage({ ...message, id });
 
-        // 立即发送一�?ping
-        sendPing();
-
-        const checkInterval = setInterval(() => {
-            if (pluginReady) {
-                clearInterval(checkInterval);
-                resolve(true);
-            } else if (Date.now() - startTime > timeout) {
-                clearInterval(checkInterval);
-                resolve(false);
-            } else {
-                // 每次检查时发�?ping
-                sendPing();
+        setTimeout(() => {
+            if (pendingMessages.has(id)) {
+                pendingMessages.delete(id);
+                reject(new Error('请求超时'));
             }
-        }, 200);
-    });
-};
-
-/**
- * 发送消息到 Chrome 插件并等待响�?
- */
-export const sendToPlugin = <T = any>(
-    action: string,
-    data: Record<string, any> = {}
-): Promise<{ success: boolean; data?: T; error?: string }> => {
-    return new Promise((resolve) => {
-        const handleResponse = (event: MessageEvent) => {
-            if (
-                event.data?.type === 'zilo-wechat-response' &&
-                event.data?.action === action
-            ) {
-                window.removeEventListener('message', handleResponse);
-                resolve({
-                    success: event.data.success,
-                    data: event.data.data,
-                    error: event.data.error,
-                });
-            }
-        };
-
-        // 设置超时（添加好友操作需要较长时间）
-        const timeoutId = setTimeout(() => {
-            window.removeEventListener('message', handleResponse);
-            resolve({ success: false, error: '通信超时，请确保 Chrome 插件已安装并启用' });
         }, 30000);
-
-        window.addEventListener('message', handleResponse);
-
-        // 发送消�?
-        window.postMessage({
-            type: 'zilo-wechat',
-            action,
-            data,
-        }, '*');
     });
-};
+}
 
 /**
- * 检�?Native Host 连接状�?
+ * 检查Native Host连接状态
  */
-export const checkNativeHostConnection = async (): Promise<{
-    connected: boolean;
-    message: string;
-}> => {
-    const result = await sendToPlugin<{ message: string }>('checkNativeHost');
-    return {
-        connected: result.success,
-        message: result.data?.message || result.error || '未知状�?,
-    };
-};
+export async function checkNativeHostConnection(): Promise<{ connected: boolean; message: string }> {
+    try {
+        const response = await sendNativeMessage({ action: 'ping' });
+        return {
+            connected: response.success,
+            message: response.message || '已连接',
+        };
+    } catch (error) {
+        return {
+            connected: false,
+            message: error instanceof Error ? error.message : '连接失败',
+        };
+    }
+}
 
 /**
- * 获取微信窗口列表
+ * 检查微信状态
  */
-export const getWeChatWindows = async (): Promise<{
-    success: boolean;
-    windows: Array<{
-        title: string;
-        handle: number;
-        account_name: string;
-    }>;
-    error?: string;
-}> => {
-    const result = await sendToPlugin<{
-        windows: Array<{ title: string; handle: number; account_name: string }>;
-    }>('getWeChatWindows');
-
-    return {
-        success: result.success,
-        windows: result.data?.windows || [],
-        error: result.error,
-    };
-};
+export async function checkWeChatStatus(): Promise<{ available: boolean; message: string; clients?: WeChatWindow[] }> {
+    try {
+        const response = await sendNativeMessage({ action: 'check_wechat_status' });
+        return {
+            available: response.success,
+            message: response.message || '',
+            clients: response.data as WeChatWindow[] | undefined,
+        };
+    } catch (error) {
+        return {
+            available: false,
+            message: error instanceof Error ? error.message : '检查失败',
+        };
+    }
+}
 
 /**
- * 添加微信好友（完整流程）
+ * 获取所有微信窗口
  */
-export const addWeChatFriend = async (params: {
+export async function getWeChatWindows(): Promise<WeChatWindow[]> {
+    try {
+        const response = await sendNativeMessage({ action: 'get_wechat_windows' });
+        if (response.success && Array.isArray(response.data)) {
+            return response.data as WeChatWindow[];
+        }
+        return [];
+    } catch (error) {
+        console.error('Failed to get wechat windows:', error);
+        return [];
+    }
+}
+
+/**
+ * 添加微信好友
+ */
+export async function addWeChatFriend(params: {
     wechatId: string;
-    nickname: string;
+    nickname?: string;
     platform?: string;
     message?: string;
     remark?: string;
-    windowHandle?: number;
-}): Promise<{
-    success: boolean;
-    step?: string;
-    message: string;
-}> => {
-    const result = await sendToPlugin<{
-        step: string;
-        message: string;
-    }>('addWeChatFriend', { params });
+    hwnd?: number;
+}): Promise<{ success: boolean; message: string }> {
+    try {
+        const response = await sendNativeMessage({
+            action: 'add_friend',
+            wechat_id: params.wechatId,
+            nickname: params.nickname,
+            platform: params.platform,
+            message: params.message,
+            remark: params.remark,
+            hwnd: params.hwnd,
+        });
 
-    return {
-        success: result.success,
-        step: result.data?.step,
-        message: result.data?.message || result.error || '操作失败',
-    };
-};
-
-/**
- * 分步1: 搜索微信号（用户需手动点击搜索结果�?
- */
-export const searchWechat = async (params: {
-    wechatId: string;
-    windowHandle?: number;
-}): Promise<{
-    success: boolean;
-    message: string;
-}> => {
-    const result = await sendToPlugin<{
-        message: string;
-    }>('searchWechat', { params });
-
-    return {
-        success: result.success,
-        message: result.data?.message || result.error || '操作失败',
-    };
-};
-
-/**
- * 分步2: 填写验证信息（用户已进入添加好友界面后调用）
- */
-export const fillFriendInfo = async (params: {
-    message?: string;
-    remark?: string;
-    windowHandle?: number;
-}): Promise<{
-    success: boolean;
-    message: string;
-}> => {
-    const result = await sendToPlugin<{
-        message: string;
-    }>('fillFriendInfo', { params });
-
-    return {
-        success: result.success,
-        message: result.data?.message || result.error || '操作失败',
-    };
-};
-
-/**
- * 检查微信状�?
- */
-export const checkWeChatStatus = async (): Promise<{
-    installed: boolean;
-    running: boolean;
-    logged_in: boolean;
-    window_count: number;
-    message: string;
-}> => {
-    const result = await sendToPlugin<{
-        installed: boolean;
-        running: boolean;
-        logged_in: boolean;
-        window_count: number;
-        message: string;
-    }>('checkWeChatStatus');
-
-    if (!result.success) {
         return {
-            installed: false,
-            running: false,
-            logged_in: false,
-            window_count: 0,
-            message: result.error || '检查失�?,
+            success: response.success,
+            message: response.message || (response.success ? '好友请求已发送' : '添加失败'),
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: error instanceof Error ? error.message : '添加失败',
         };
     }
+}
 
-    return result.data!;
-};
+/**
+ * 搜索微信号
+ */
+export async function searchWeChatList(wechatId: string, hwnd?: number): Promise<{ success: boolean; message: string }> {
+    try {
+        const response = await sendNativeMessage({
+            action: 'search_wechat',
+            wechat_id: wechatId,
+            window_handle: hwnd,
+        });
+
+        return {
+            success: response.success,
+            message: response.message || '',
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: error instanceof Error ? error.message : '搜索失败',
+        };
+    }
+}
+
+/**
+ * 填写好友信息
+ */
+export async function fillFriendInfo(params: {
+    message?: string;
+    remark?: string;
+    hwnd?: number;
+}): Promise<{ success: boolean; message: string }> {
+    try {
+        const response = await sendNativeMessage({
+            action: 'fill_friend_info',
+            message: params.message,
+            remark: params.remark,
+            window_handle: params.hwnd,
+        });
+
+        return {
+            success: response.success,
+            message: response.message || '',
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: error instanceof Error ? error.message : '填写失败',
+        };
+    }
+}
+
+/**
+ * 发送文件
+ */
+export async function sendFilePlugin(filePath: string, hwnd?: number): Promise<{ success: boolean; message: string }> {
+    try {
+        const response = await sendNativeMessage({
+            action: 'send_file',
+            file_path: filePath,
+            window_handle: hwnd,
+        });
+
+        return {
+            success: response.success,
+            message: response.message || '',
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: error instanceof Error ? error.message : '发送失败',
+        };
+    }
+}

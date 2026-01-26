@@ -59,8 +59,7 @@ import SmartRecommendations, { type RecommendedInfluencer } from './SmartRecomme
 import BatchOperations from './BatchOperations';
 import InfluencerDetailPanel from './InfluencerDetailPanel';
 import InfluencerGroups from './InfluencerGroups';
-// TODO: AddWeChatModal文件有编码问题，暂时禁用
-// import AddWeChatModal from './AddWeChatModal';
+import AddWeChatModal from './AddWeChatModal';
 // QuickAddModal 已废弃,改用 Chrome 浏览器插件实现达人采集
 // import QuickAddModal, { type QuickAddData } from './QuickAddModal';
 import { ExportButton } from '../Import';
