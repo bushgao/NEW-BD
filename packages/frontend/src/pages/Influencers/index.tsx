@@ -298,6 +298,20 @@ const InfluencersPage = () => {
     setDetailInfluencer(null);
   };
 
+  // WeChat modal handlers
+  const handleAddWeChat = (influencer: Influencer) => {
+    setAddWeChatTarget(influencer);
+    setAddWeChatModalVisible(true);
+  };
+
+  const handleAddWeChatClose = (refresh?: boolean) => {
+    setAddWeChatModalVisible(false);
+    setAddWeChatTarget(null);
+    if (refresh) {
+      fetchData();
+    }
+  };
+
   // Batch operations handlers
   const handleBatchTag = async (tags: string[]) => {
     const ids = selectedRowKeys as string[];
@@ -536,7 +550,7 @@ const InfluencersPage = () => {
     {
       title: '操作',
       key: 'action',
-      width: 120,
+      width: 150,
       fixed: 'right',
       render: (_, record) => (
         <Space size={4}>
@@ -547,6 +561,15 @@ const InfluencersPage = () => {
               className="rounded-lg"
               icon={<SearchOutlined style={{ color: '#6366f1' }} />}
               onClick={() => handleViewInfluencer(record)}
+            />
+          </Tooltip>
+          <Tooltip title="添加微信">
+            <Button
+              type="text"
+              size="small"
+              className="rounded-lg"
+              icon={<WechatOutlined style={{ color: '#07C160' }} />}
+              onClick={() => handleAddWeChat(record)}
             />
           </Tooltip>
           {hasPermission('operations.manageInfluencers') ? (
@@ -896,6 +919,18 @@ const InfluencersPage = () => {
             influencer={detailInfluencer}
             onClose={handleDetailPanelClose}
           />
+
+          {addWeChatTarget && (
+            <AddWeChatModal
+              visible={addWeChatModalVisible}
+              influencerId={addWeChatTarget.id}
+              wechatId={addWeChatTarget.wechat || ''}
+              nickname={addWeChatTarget.nickname}
+              platform={addWeChatTarget.platform}
+              onClose={() => handleAddWeChatClose()}
+              onSuccess={() => handleAddWeChatClose(true)}
+            />
+          )}
 
           {/* QuickAddModal 已废弃，改用 Chrome 浏览器插件实现达人采集 */}
           {/* <QuickAddModal
