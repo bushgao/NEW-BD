@@ -210,7 +210,7 @@ const InfluencerDetailPanel: React.FC<InfluencerDetailPanelProps> = ({
 
     return (
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        <Descriptions bordered column={2} size="small">
+        <Descriptions column={1} size="small" labelStyle={{ width: 100 }} contentStyle={{ fontWeight: 500 }}>
           <Descriptions.Item label="昵称" span={2}>
             <Text strong>{influencer.nickname}</Text>
           </Descriptions.Item>
